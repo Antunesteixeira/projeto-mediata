@@ -1,0 +1,1 @@
+Este é um sistema para cadastro de ticker para a empresa MEDIATA
