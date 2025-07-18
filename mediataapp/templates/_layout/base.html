@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Dashboard - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 250px;
+            background-color: #343a40;
+            color: white;
+            min-height: 100vh;
+        }
+
+        .sidebar a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .sidebar a:hover {
+            background-color: #495057;
+        }
+
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            background-color: #f8f9fa;
+        }
+
+        .sidebar .nav-link.active {
+            background-color: #495057;
+            font-weight: bold;
+        }
+
+        .navbar {
+            background-color: #fff;
+            border-bottom: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Sidebar -->
+    <div class="sidebar d-flex flex-column p-3">
+        <h4 class="mb-4">Mediata Panel</h4>
+        <ul class="nav nav-pills flex-column">
+            <li class="nav-item mb-2">
+                <a href="{% url 'dashboard' %}" class="nav-link active">Dashboard</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="{% url 'index-tickets' %}" class="nav-link">Tickets</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="#" class="nav-link">Relatórios</a>
+            </li>
+            <li class="nav-item mb-2">
+                <a href="#" class="nav-link">Configurações</a>
+            </li>
+            <li class="nav-item mt-auto">
+                <a href="{% url 'logout' %}" class="nav-link text-danger">Sair</a>
+            </li>
+        </ul>
+    </div>
+
+    {% block conteudo %} {% endblock %}
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

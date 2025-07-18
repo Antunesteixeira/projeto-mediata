@@ -1,1 +1,1 @@
-Este é um sistema para cadastro de ticker para a empresa MEDIATA
+Este é um sistema para cadastro de ticket para a empresa MEDIATA
