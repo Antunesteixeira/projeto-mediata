@@ -3,6 +3,8 @@ from django.contrib.auth import authenticate, logout
 from django.contrib.auth import login as login_django
 from django.contrib.auth.decorators import login_required
 
+from tickets.models import Ticket 
+
 def index(request):
     if request.user.is_authenticated:
         return redirect('/dashboard/')
@@ -11,7 +13,10 @@ def index(request):
     
 def login(request):
     if request.method == "GET":
-        return render(request, 'registration/login.html')
+        if request.user.is_authenticated:
+            return redirect('/dashboard/')
+        else:
+            return render(request, 'registration/login.html')
     else: 
         username = request.POST.get('username')
         password = request.POST.get('password')
@@ -30,4 +35,5 @@ def sair(request):
 
 @login_required
 def dashboard(request):
-    return render(request, 'home/dashboard.html')
+    tickets_total = Ticket.objects.count()
+    return render(request, 'home/dashboard.html', {'tickets_total': tickets_total })

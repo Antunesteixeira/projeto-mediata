@@ -2,12 +2,6 @@
 
 {% block conteudo %}
   <!-- Main Content -->
-  <div class="main-content">
-    <nav class="navbar navbar-expand navbar-light mb-4">
-      <div class="container-fluid">
-        <span class="navbar-brand mb-0 h5">Bem-vindo, {{ user.username }}</span>
-      </div>
-    </nav>
 
     <h2>Visão Geral</h2>
     <div class="row g-4 mt-3">
@@ -15,7 +9,7 @@
         <div class="card shadow-sm">
           <div class="card-body">
             <h5 class="card-title">Tickets</h5>
-            <p class="card-text">120 registrados</p>
+            <p class="card-text">{{ tickets_total }} registrados</p>
           </div>
         </div>
       </div>
@@ -36,6 +30,6 @@
         </div>
       </div>
     </div>
-  </div>
+
 
 {% endblock %} 

@@ -1,0 +1,11 @@
+{% if messages %}
+    <div class="row">
+        <ul class="messages">
+            {% for message in messages %}
+            <div {% if message.tags %} class="alert alert-{{ message.tags }} alert-dismissible"{% endif %}>
+                {{ message }}
+            </div>
+            {% endfor %}
+        </ul>
+    </div>    
+    {% endif %}

@@ -1,16 +1,66 @@
 {% extends '../_layout/base.html' %}
 
 {% block conteudo %}
-  <!-- Main Content -->
-  <div class="main-content">
-    <nav class="navbar navbar-expand navbar-light mb-4">
-      <div class="container-fluid">
-        <span class="navbar-brand mb-0 h5">Bem-vindo, {{ user.username }}</span>
-      </div>
-    </nav>
+<!-- Main Content -->
 
-    <h2>Tickets</h2>
-    
-  </div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="fs-2">Tickets</span>
+        
+        <a href="{% url 'cadastro-ticket' %}" class="btn btn-secondary rounded-pill">
+            Adicionars ticket <i class="bi bi-plus-lg"></i>
+        </a>
+    </div>
 
-{% endblock %} 
+
+    <div class="table-responsive small">
+    <table class="table table-striped table-sm w-100" style="table-layout: fixed;">
+        <thead>
+            <tr align="center">
+                <th scope="col">Ticket</th>
+                <th scope="col">Colaborador</th>
+                <th scope="col" >Criação</th>
+                <th scope="col">Teste</th>
+                <th scope="col">Status</th>
+                <th scope="col">Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ticket in tickets %}
+            <tr align="center">
+                <td>{{ ticket.ticket }}</td>
+                <td>Antunes Teixeira</td>
+                <td>{{ ticket.data_criacao|date:"d/m/Y H:i" }}</td>
+                <td>placeholder</td>
+                <td>
+                    {% if ticket.status == 'E' %}
+                        <span class="badge text-bg-warning">Executado</span>
+                    {% endif %}
+                    {% if ticket.status == 'O' %}
+                        <span class="badge text-bg-info">Orçamento</span>
+                    {% endif %}
+                    {% if ticket.status == 'A' %}
+                        <span class="badge text-bg-secondary">Aprovado</span>
+                    {% endif %}
+                    {% if ticket.status == 'F' %}
+                        <span class="badge text-bg-dark">Finalizado</span>
+                    {% endif %}
+                    {% if ticket.status == 'V' %}
+                        <span class="badge text-bg-success">Vistoriado</span>
+                    {% endif %}
+                    {% if ticket.status == 'R' %}
+                        <span class="badge text-bg-light">Rejeitado</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <div class="d-flex gap-1 flex-wrap">
+                        <a href="#"><button class="btn btn-primary btn-sm">Ver</button></a>
+                        <button class="btn btn-success btn-sm">Editar</button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock %}
