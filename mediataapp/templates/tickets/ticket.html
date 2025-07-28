@@ -1,0 +1,292 @@
+{% extends '_layout/base.html' %}
+
+{% block conteudo %}
+<style>
+  .timeline {
+    position: relative;
+    padding-left: 40px;
+    margin: 2rem 0;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 18px;
+    width: 4px;
+    background: #dee2e6;
+  }
+
+  .timeline-item {
+    position: relative;
+    margin-bottom: 30px;
+    transition: background 0.3s;
+  }
+
+  .timeline-item:hover {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  .timeline-marker {
+    position: absolute;
+    left: -2px;
+    top: 0;
+    width: 20px;
+    height: 20px;
+    background-color: #0d6efd;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+  }
+
+  .timeline-content {
+    padding-left: 30px;
+  }
+
+  .timeline-date {
+    font-weight: bold;
+    color: #6c757d;
+    font-size: 14px;
+  }
+
+  .card-title button {
+    margin-left: 10px;
+  }
+
+  .list-group-item p {
+    margin: 0;
+  }
+</style>
+
+<div class="container py-4">
+
+  <!-- Cabeçalho -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h2 class="fs-4 mb-1">Ticket: #{{ ticket.ticket }}</h2>
+      <p class="mb-1">Operador Mediata: <strong>Operador</strong></p>
+      {% if ticket.emergencial %}
+        <span class="badge bg-danger">Emergencial</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Informações Gerais -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="card-title">Colaborador</h5>
+          <p><strong>Nome:</strong></p>
+          <p><strong>Função:</strong></p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="card-title">Cliente</h5>
+          <p><strong>Serviço para:</strong></p>
+          <p><strong>Telefone:</strong></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Orçamento -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="card-title d-flex justify-content-between align-items-center">
+        Orçamento
+        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#ModalOrcamento">Adicionar</button>
+      </h5>
+
+      {% if orcamento %}
+        <div class="mb-2">
+          <p>{{ orcamento }}</p>
+
+          <div class="btn-group btn-group-sm mb-3" role="group">
+            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#ModalServico">Serviço</button>
+            <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#ModalMaterial">Material</button>
+            <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#ModalServico">Ferramenta</button>
+          </div>
+        </div>
+
+        <!-- Lista de Serviços -->
+        <h6 class="text-muted">Serviços</h6>
+        <ul class="list-group mb-3">
+          {% for servico in servicos %}
+            <li class="list-group-item d-flex justify-content-between">
+              <div>
+                <strong>{{ servico.servico }}</strong>
+                <br><small class="text-muted">{{ servico.descricao }}</small>
+              </div>
+              <span>R$ {{ servico.valor_servico }}</span>
+            </li>
+          {% endfor %}
+          {% if servicos %}
+            <li class="list-group-item d-flex justify-content-between fw-bold">
+              <span>Total serviço</span>
+              <span>R$ {{ valor_custo_total }}</span>
+            </li>
+          {% else %}
+            <li class="list-group-item">Nenhum serviço registrado.</li>
+          {% endif %}
+        </ul>
+
+        <!-- Lista de Materiais -->
+        <h6 class="text-muted">Materiais</h6>
+        <ul class="list-group">
+          {% for material in materiais %}
+            <li class="list-group-item d-flex justify-content-between">
+              <div>
+                <strong>{{ material.material }}</strong>
+                <br><small class="text-muted">{{ material.descricao }}</small>
+              </div>
+              <span>R$ {{ material.valor_material }}</span>
+            </li>
+          {% endfor %}
+          {% if materiais %}
+            <li class="list-group-item d-flex justify-content-between fw-bold">
+              <span>Total material</span>
+              <span>R$ {{ valor_custo_total }}</span>
+            </li>
+          {% else %}
+            <li class="list-group-item">Nenhum material registrado.</li>
+          {% endif %}
+        </ul>
+        <ul class="list-group">
+          <li class="list-group-item d-flex justify-content-between fw-bold">
+            <span>Total</span>
+            <span>R$ {{ valor_custo_total }}</span>
+          </li>
+
+        </ul>
+        
+
+      {% else %}
+        <p class="mt-2 text-muted">Nenhum orçamento registrado ainda.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Informações adicionais -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="card-title">Informações Adicionais</h5>
+      <p><strong>Faturamento:</strong> R$ {{ valor_custo_total }}</p>
+      <p><strong>Status:</strong>
+        {% with ticket.status as s %}
+          <span class="badge 
+            {% if s == 'E' %}bg-warning text-dark
+            {% elif s == 'O' %}bg-info text-dark
+            {% elif s == 'A' %}bg-secondary
+            {% elif s == 'F' %}bg-dark
+            {% elif s == 'V' %}bg-success
+            {% elif s == 'R' %}bg-light text-dark
+            {% else %}bg-secondary
+            {% endif %}
+          ">
+            
+          </span>
+        {% endwith %}
+      </p>
+      <p><strong>Descrição:</strong> {{ ticket.descricao }}</p>
+      <p><strong>Fator/Margem:</strong> {{ bdi }}</p>
+    </div>
+  </div>
+
+  <!-- Timeline -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h5 class="card-title">Datas</h5>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-marker">✓</div>
+          <div class="timeline-content">
+            <div class="timeline-date">{{ ticket.data_criacao|date:"d/m/Y" }}</div>
+            <p>Data de criação</p>
+          </div>
+        </div>
+        {% if ticket.data_finalizar %}
+        <div class="timeline-item">
+          <div class="timeline-marker">✓</div>
+          <div class="timeline-content">
+            <div class="timeline-date">{{ ticket.data_finalizar|date:"d/m/Y" }}</div>
+            <p>Data para finalizar</p>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modais -->
+<!-- Orçamento -->
+<div class="modal fade" id="ModalOrcamento" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Novo Orçamento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">{{ form.as_p }}</div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Serviço -->
+<div class="modal fade" id="ModalServico" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Novo Serviço</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">{{ formservico.as_p }}</div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Material -->
+<div class="modal fade" id="ModalMaterial" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Novo Material</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">{{ formmaterial.as_p }}</div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}

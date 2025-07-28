@@ -1,4 +1,5 @@
 from django.db import models
+import uuid
 
 from django.contrib.auth.models import User
 
@@ -8,9 +9,11 @@ from django.contrib.auth.models import User
 class Ticket(models.Model):
     
     STATUS_CHOICES = [
-        ('O', 'Orçamento'), 
+        ('L', 'Levantamento'),
+        ('C', 'Cotação'), 
         ('A', 'Aprovado'),
-        ('E', 'Executado'),         
+        ('E', 'Em executado'),
+        ('X', 'Executado'),         
         ('V', 'Vistoriado'),
         ('F', 'Finalizado'),
         ('R', 'Rejeitado'), 
@@ -30,11 +33,12 @@ class Ticket(models.Model):
     data_criacao = models.DateTimeField(auto_now_add=True)
     ultimo_update = models.DateField(auto_now_add=True)
     finalizado = models.BooleanField(default=False, null=True) 
-    data_finalizar = models.DateField()
+    data_finalizar = models.DateField(null=True, blank=True)
+    key = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     class Meta:
         ordering = ['-data_criacao']
-
+    
     def func_valor_custo_total(self):
         if self.valor_faturamento == 0 and self.valor_custo == 0:
             return self.valor_mao_obra + self.valor_custo + 1
@@ -55,6 +59,36 @@ class Ticket(models.Model):
     def __str__(self):
         return self.ticket
     
+class Orcamento(models.Model):
+    orcamento = models.CharField(max_length=255)
+    ticket_orcamento = models.ForeignKey(Ticket, on_delete=models.CASCADE)
+    data_criacao = models.DateTimeField(auto_now_add=True)
+    descricao = models.TextField()
+
+    def __str__(self):
+        return self.orcamento
+
+class Material(models.Model):
+    material = models.CharField(max_length=255)
+    orcamento_material = models.ForeignKey(Orcamento, on_delete=models.SET_NULL, null=True)
+    valor_material =  models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return self.material
     
-        
-       
+class Servico(models.Model):
+    servico = models.CharField(max_length=255)
+    orcamento_servico = models.ForeignKey(Orcamento, on_delete=models.SET_NULL, null=True)
+    valor_servico = models.DecimalField(max_digits=10, decimal_places=2)
+
+    def __str__(self):
+        return self.servico
+    
+class HistoricoTicket(models.Model):
+    ticket_historico = models.ForeignKey(Ticket, on_delete=models.SET_NULL, null=True)
+    data_historico = models.DateTimeField(auto_now_add=True)
+    descricao_historico = models.TextField()
+
+    def __str__(self):
+        return self.descricao_historico
+

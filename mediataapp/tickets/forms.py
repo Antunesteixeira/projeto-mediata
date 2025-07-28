@@ -1,18 +1,17 @@
 from django import forms
-from .models import Ticket
+from .models import Ticket, Orcamento, Servico, Material
 
 class TicketForm(forms.ModelForm):
     data_finalizar = forms.DateField(
-        widget=forms.DateInput(
-            attrs={
-                'type': 'date',
-                'class': 'form-control',
-                'placeholder': 'Data de finalização'
-            }
-        ),
-        input_formats=['%Y-%m-%d', '%d/%m/%Y'],
-        required=False
+    widget=forms.DateInput(
+        attrs={
+            'class': 'form-control',
+            'type': 'date',
+        },
+        format='%Y-%m-%d'  # formato compatível com input type="date"
+        )
     )
+
 
     class Meta:
         model = Ticket
@@ -79,3 +78,49 @@ class TicketForm(forms.ModelForm):
         if not self.instance.pk and self.user and not self.user.is_superuser:
             self.fields['emergencial'].widget = forms.HiddenInput()
             self.fields['emergencial'].required = False
+
+class OrcamentoForm(forms.ModelForm):
+    class Meta:
+        model = Orcamento
+        fields = [
+            'orcamento',
+            'descricao'
+        ]
+        labels = {
+            'orcamento': 'Orçamento',
+            'descricao': 'Descrição'
+        }
+        widgets = {
+            'orcamento': forms.TextInput(attrs={'class': 'form-control'}),
+            'descricao': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+class ServicoForm(forms.ModelForm):
+    class Meta:
+        model = Servico
+        fields = [
+            'servico',
+            'valor_servico'
+        ]
+        widgets = {
+            'servico': forms.TextInput(attrs={'class': 'form-control'}),
+            'valor_servico': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: R$ 230,00'
+            }),
+        }
+
+class MaterialForm(forms.ModelForm):
+    class Meta:
+        model = Material
+        fields = [
+            'material',
+            'valor_material'
+        ]
+        widgets = {
+            'material': forms.TextInput(attrs={'class': 'form-control'}),
+            'valor_material': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: R$ 250,00'
+            }),
+        }

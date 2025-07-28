@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="pt-br">
 
@@ -5,7 +6,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Dashboard - Admin</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="{% static 'bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Bootstrap Icons (opcional) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
     <style>
         body {
             min-height: 100vh;
@@ -24,7 +32,8 @@
             text-decoration: none;
         }
 
-        .sidebar a:hover {
+        .sidebar a:hover,
+        .sidebar .nav-link.active {
             background-color: #495057;
         }
 
@@ -32,11 +41,6 @@
             flex: 1;
             padding: 2rem;
             background-color: #f8f9fa;
-        }
-
-        .sidebar .nav-link.active {
-            background-color: #495057;
-            font-weight: bold;
         }
 
         .navbar {
@@ -51,43 +55,60 @@
     <!-- Sidebar -->
     <div class="sidebar d-flex flex-column p-3">
         <h4 class="mb-4">Mediata Panel</h4>
-        <ul class="nav nav-pills flex-column">
-            <li class="nav-item mb-2">
+        <ul class="nav nav-pills flex-column mb-auto">
+
+            <li class="nav-item">
                 <a href="{% url 'dashboard' %}" class="nav-link active">Dashboard</a>
             </li>
-            <li class="nav-item mb-2">
+            <li>
                 <a href="{% url 'index-tickets' %}" class="nav-link">Tickets</a>
             </li>
-            <li class="nav-item mb-2">
+            <li>
                 <a href="#" class="nav-link">Relatórios</a>
             </li>
-            <li class="nav-item mb-2">
-                <a href="#" class="nav-link">Usuários</a>
+            <li>
+                <a href="{% url 'index-usuarios' %}" class="nav-link">Usuários</a>
             </li>
-            <li class="nav-item mb-2">
+
+            <!-- Menu com submenu -->
+            <li>
+                <a class="nav-link" data-bs-toggle="collapse" href="#submenuLayouts" role="button"
+                    aria-expanded="false" aria-controls="submenuLayouts">
+                    Usuários <i class="bi bi-chevron-down"></i>
+                </a>
+                <div class="collapse" id="submenuLayouts">
+                    <ul class="nav flex-column ms-3">
+                        <li><a href="{% url 'index-usuarios' %}" class="nav-link">Listar Usuários</a></li>
+                        <li><a href="{% url 'editar-usuarios' %}" class="nav-link">Editar Usuário</a></li>
+                    </ul>
+                </div>
+            </li>
+
+            <li>
                 <a href="#" class="nav-link">Configurações</a>
             </li>
-            <li class="nav-item mt-auto">
-                <a href="{% url 'logout' %}" class="nav-link text-danger">Sair</a>
-            </li>
         </ul>
+
+        <hr>
+
+        <a href="{% url 'logout' %}" class="nav-link text-danger mt-auto"><i class="bi bi-person"></i> Sair</a>
     </div>
 
     <!-- Main Content -->
-  <div class="main-content">
-    <nav class="navbar navbar-expand navbar-light mb-4">
-      <div class="container-fluid">
-        <span class="navbar-brand mb-0 h5">Bem-vindo, {{ user.username }}</span>
-      </div>
-    </nav>
+    <div class="main-content">
+        <nav class="navbar navbar-expand navbar-light mb-4">
+            <div class="container-fluid">
+                <span class="navbar-brand mb-0 h5">Bem-vindo, {{ user.username }}</span>
+            </div>
+        </nav>
 
-    {% include '../paginas/menssagens.html' %}
+        {% include '../paginas/menssagens.html' %}
 
-    {% block conteudo %}
-    
-    {% endblock %}
-  </div>
+        {% block conteudo %}
+        {% endblock %}
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
