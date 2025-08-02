@@ -1,35 +1,67 @@
 {% extends '_layout/base.html' %}
 
 {% block conteudo %}
-  <!-- Main Content -->
-
-    <h2>Visão Geral</h2>
-    <div class="row g-4 mt-3">
-      <div class="col-md-4">
-        <div class="card shadow-sm">
+  <h2>Visão Geral</h2>
+  <div class="row g-4 mt-3">
+    <!-- Tickets -->
+    <div class="col-md-3">
+      <a href="{% url 'index-tickets' %}" class="text-decoration-none">
+        <div class="card shadow-sm bg-primary text-white h-100">
           <div class="card-body">
-            <h5 class="card-title">Tickets</h5>
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-ticket-detailed-fill fs-1 me-3"></i>
+              <h5 class="card-title mb-0">Tickets</h5>
+            </div>
             <p class="card-text">{{ tickets_total }} registrados</p>
           </div>
         </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card shadow-sm">
+      </a>
+    </div>
+
+    <!-- Vendas -->
+    <div class="col-md-3">
+      <a href="#" class="text-decoration-none">
+        <div class="card shadow-sm bg-success text-white h-100">
           <div class="card-body">
-            <h5 class="card-title">Vendas</h5>
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-graph-up-arrow fs-1 me-3"></i>
+              <h5 class="card-title mb-0">Relatorios</h5>
+            </div>
             <p class="card-text">R$ 15.300 este mês</p>
           </div>
         </div>
-      </div>
-      <div class="col-md-4">
-        <div class="card shadow-sm">
+      </a>
+    </div>
+
+    <!-- Orçamentos -->
+    <div class="col-md-3">
+      <a href="#" class="text-decoration-none">
+        <div class="card shadow-sm bg-danger text-white h-100">
           <div class="card-body">
-            <h5 class="card-title">Suporte</h5>
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-cash-coin fs-1 me-3"></i>
+              <h5 class="card-title mb-0">Orçamentos</h5>
+            </div>
+            <p class="card-text">R$ 15.300 este mês</p>
+          </div>
+        </div>
+      </a>
+    </div>
+
+    <!-- Suporte -->
+    <div class="col-md-3">
+      <a href="#" class="text-decoration-none">
+        <div class="card shadow-sm bg-warning text-dark h-100">
+          <div class="card-body">
+            <div class="d-flex align-items-center mb-2">
+              <i class="bi bi-headset fs-1 me-3"></i>
+              <h5 class="card-title mb-0">Suporte</h5>
+            </div>
             <p class="card-text">8 chamados abertos</p>
           </div>
         </div>
-      </div>
+      </a>
     </div>
-
-
-{% endblock %} 
+    
+  </div>
+{% endblock %}

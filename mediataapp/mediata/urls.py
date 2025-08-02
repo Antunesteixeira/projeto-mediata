@@ -25,6 +25,7 @@ urlpatterns = [
     path('', include('core.urls')),
     path('usuarios/', include('usuarios.urls')),
     path('tickets/', include('tickets.urls')),
+    path('insumos/', include('insumos.urls')),
 ]
 
 if settings.DEBUG:

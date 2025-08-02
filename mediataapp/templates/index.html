@@ -1,7 +1,94 @@
 {% extends '_layout/base.html' %}
 
 {% block conteudo %}
-    <h1>Sistema Mediata Serviços.</h1>
-    <a href="{% url 'cadastro-usuarios' %}">Cadastro de usuários</a>
+
+<!-- Exemplo de botão para abrir o modal e preencher com ticket específico -->
+<button type="button"
+        class="btn btn-sm btn-outline-primary abrir-modal"
+        data-bs-toggle="modal"
+        data-bs-target="#ModalServico"
+        data-ticket-id="18">
+  Pesquisar
+</button>
+
+<!-- Modal Serviço -->
+<div class="modal fade" id="ModalServico" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post">
+        {% csrf_token %}
+        <div class="modal-header">
+          <h5 class="modal-title">Novo Serviço</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          {{ formservico.as_p }}
+
+          <!-- Campo de busca de ticket -->
+          <label for="campo-pesquisa-ticket" class="form-label mt-3">Buscar Ticket</label>
+          <input type="text" id="campo-pesquisa-ticket" class="form-control" placeholder="Digite o número do ticket">
+
+          <!-- Resultados da busca -->
+          <ul id="resultado-pesquisa-ticket" class="list-group mt-2"></ul>
+
+          <!-- Campos ocultos ou visíveis que serão preenchidos automaticamente -->
+          <div class="mt-3">
+            <label for="ticket_id_input" class="form-label">Ticket ID</label>
+            <input type="text" class="form-control" id="ticket_id_input" name="ticket_id" readonly>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  const tickets = {{ tickets_json|safe }};
+
+  const campoPesquisa = document.getElementById('campo-pesquisa-ticket');
+  const listaResultados = document.getElementById('resultado-pesquisa-ticket');
+
+  const campoTicketId = document.getElementById('ticket_id_input');
+  // Você pode adicionar outros campos se quiser preencher mais dados
+
+  campoPesquisa.addEventListener('input', () => {
+    const termo = campoPesquisa.value.trim().toLowerCase();
+    listaResultados.innerHTML = '';
+
+    const resultados = tickets.filter(t => t.ticket.toLowerCase().includes(termo));
+
+    if (termo && resultados.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'list-group-item text-muted';
+      li.textContent = 'Nenhum ticket encontrado.';
+      listaResultados.appendChild(li);
+    } else {
+      resultados.forEach(ticket => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item list-group-item-action';
+        li.style.cursor = 'pointer';
+        li.textContent = `#${ticket.ticket} (ID: ${ticket.id})`;
+
+        li.addEventListener('click', () => {
+          // Preenche os campos automaticamente ao clicar
+          campoPesquisa.value = ticket.ticket;
+          campoTicketId.value = ticket.id;
+
+          // Limpa os resultados após selecionar
+          listaResultados.innerHTML = '';
+        });
+
+        listaResultados.appendChild(li);
+      });
+    }
+  });
+</script>
 
 {% endblock %}

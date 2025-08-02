@@ -2,36 +2,135 @@
 
 {% block conteudo %}
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <span class="fs-2">Adicionar ticket</span>
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <span class="fs-2">Adicionar ticket</span>
+  </div>
+
+  {# mensagens globais #}
+  {% if messages %}
+    {% for msg in messages %}
+      <div class="alert 
+        {% if msg.tags %}
+          {% if 'error' in msg.tags %}alert-danger
+          {% elif 'warning' in msg.tags %}alert-warning
+          {% elif 'success' in msg.tags %}alert-success
+          {% else %}alert-info
+          {% endif %}
+        {% else %}alert-info{% endif %} alert-dismissible fade show" role="alert">
+        {{ msg }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" novalidate>
+    {% csrf_token %}
+
+    {# erros não associados a campo específico #}
+    {% if form.non_field_errors %}
+      <div class="alert alert-danger">
+        {{ form.non_field_errors }}
+      </div>
+    {% endif %}
+
+    <div class="row mb-3">
+      <div class="col-md-4">
+        <div class="mb-2">
+          {{ form.ticket.label_tag }}
+          {{ form.ticket }}
+          {% if form.ticket.errors %}
+            <div class="text-danger small">
+              {{ form.ticket.errors }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="mb-2">
+          {{ form.status.label_tag }}
+          {{ form.status }}
+          {% if form.status.errors %}
+            <div class="text-danger small">
+              {{ form.status.errors }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="mb-2">
+          {{ form.data_finalizar.label_tag }}
+          {{ form.data_finalizar }}
+          {% if form.data_finalizar.errors %}
+            <div class="text-danger small">
+              {{ form.data_finalizar.errors }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
     </div>
 
-    <form method="post">
-      {% csrf_token %}
-      <div class="row">
-        <div class="col-md-4">{{ form.ticket.label_tag }} {{ form.ticket }}</div>
-        <div class="col-md-4">{{ form.status.label_tag }} {{ form.status }}</div>
-        <div class="col-md-4">{{ form.data_finalizar.label_tag }} {{ form.data_finalizar }}</div>
+    <hr>
+
+    <div class="row mb-3">
+      <div class="col-md-3">
+        <div class="mb-2">
+          {{ form.valor_mao_obra.label_tag }}
+          {{ form.valor_mao_obra }}
+          {% if form.valor_mao_obra.errors %}
+            <div class="text-danger small">
+              {{ form.valor_mao_obra.errors }}
+            </div>
+          {% endif %}
+        </div>
       </div>
-
-      <hr>
-
-      <div class="row">
-        <div class="col-md-3">{{ form.valor_mao_obra.label_tag }} {{ form.valor_mao_obra }}</div>
-        <div class="col-md-3">{{ form.valor_mao_obra.label_tag }} {{ form.valor_material }}</div>
-        <div class="col-md-3">{{ form.valor_custo.label_tag }} {{ form.valor_custo }}</div>
-        <div class="col-md-3">{{ form.valor_faturamento.label_tag }} {{ form.valor_faturamento }}</div>
+      <div class="col-md-3">
+        <div class="mb-2">
+          {{ form.valor_material.label_tag }}
+          {{ form.valor_material }}
+          {% if form.valor_material.errors %}
+            <div class="text-danger small">
+              {{ form.valor_material.errors }}
+            </div>
+          {% endif %}
+        </div>
       </div>
-
-      <hr>
-
-      <div class="mb-3">
-        {{ form.descricao.label_tag }}
-        {{ form.descricao }}
+      <div class="col-md-3">
+        <div class="mb-2">
+          {{ form.valor_custo.label_tag }}
+          {{ form.valor_custo }}
+          {% if form.valor_custo.errors %}
+            <div class="text-danger small">
+              {{ form.valor_custo.errors }}
+            </div>
+          {% endif %}
+        </div>
       </div>
+      <div class="col-md-3">
+        <div class="mb-2">
+          {{ form.valor_faturamento.label_tag }}
+          {{ form.valor_faturamento }}
+          {% if form.valor_faturamento.errors %}
+            <div class="text-danger small">
+              {{ form.valor_faturamento.errors }}
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
 
-      <button type="submit" class="btn btn-primary">Salvar</button>
-    </form>
+    <hr>
 
+    <div class="mb-3">
+      {{ form.descricao.label_tag }}
+      {{ form.descricao }}
+      {% if form.descricao.errors %}
+        <div class="text-danger small">
+          {{ form.descricao.errors }}
+        </div>
+      {% endif %}
+    </div>
+
+    <button type="submit" class="btn btn-primary">Salvar</button>
+  </form>
 
 {% endblock %}

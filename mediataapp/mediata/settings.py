@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     'core',
     'usuarios',
     'tickets',
+    'insumos',
     # apps de terceiros
 ]
 

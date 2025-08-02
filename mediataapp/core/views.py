@@ -5,6 +5,7 @@ from django.contrib.auth.decorators import login_required
 
 from tickets.models import Ticket 
 
+@login_required
 def index(request):
     if request.user.is_authenticated:
         return redirect('/dashboard/')
@@ -28,7 +29,8 @@ def login(request):
             return redirect('/dashboard/')
         else:
             return redirect('accounts/login/')
-
+        
+@login_required
 def sair(request):
     logout(request)
     return redirect('/')

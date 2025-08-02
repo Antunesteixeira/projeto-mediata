@@ -2,6 +2,7 @@ from django.db import models
 import uuid
 
 from django.contrib.auth.models import User
+from insumos.models import Insumos
 
 #from cliente.models import Cliente
 #from colaborador.models import Colaborador
@@ -67,6 +68,13 @@ class Orcamento(models.Model):
 
     def __str__(self):
         return self.orcamento
+
+class ItemOrcamento(models.Model):
+    orcamento = models.ForeignKey(Orcamento, on_delete=models.SET_NULL, null=True)
+    item = models.ForeignKey(Insumos, on_delete=models.SET_NULL, null=True)
+    data_cadastro = models.DateTimeField(auto_now_add=True)
+    quant =  models.IntegerField(default=1)
+
 
 class Material(models.Model):
     material = models.CharField(max_length=255)

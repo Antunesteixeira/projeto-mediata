@@ -26,7 +26,7 @@ def cadastro_usuarios(request):
         if user: 
             return redirect('cadastro-usuarios')
 
-def editar_usuarios(request):
+def editar_usuarios(request, id):
     return render(request, 'usuarios/editar-usuarios.html')
         
 def register(request):

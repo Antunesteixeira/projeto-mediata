@@ -3,7 +3,7 @@
 {% block conteudo %}
 
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <span class="fs-2">Adicionar ticket</span>
+        <span class="fs-2">Editar ticket</span>
     </div>
 
     <form method="post">
@@ -34,7 +34,9 @@
         {{ form.descricao }}
       </div>
 
-      <button type="submit" class="btn btn-primary">Salvar</button>
+      <button type="submit" class="btn btn-primary" class="btn btn-primary"><i class="bi bi-save-fill"></i></button>
+      <a href="{% url 'editar-ticket' ticket.key %}" class="btn btn-danger"><i class="bi bi-trash"></i></a>
+                        
     </form>
 
 

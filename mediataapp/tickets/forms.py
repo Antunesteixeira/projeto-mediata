@@ -1,5 +1,5 @@
 from django import forms
-from .models import Ticket, Orcamento, Servico, Material
+from .models import Ticket, Orcamento, Servico, Material, HistoricoTicket, ItemOrcamento
 
 class TicketForm(forms.ModelForm):
     data_finalizar = forms.DateField(
@@ -99,9 +99,12 @@ class ServicoForm(forms.ModelForm):
     class Meta:
         model = Servico
         fields = [
-            'servico',
+            'servico', #entenda como insumo
             'valor_servico'
         ]
+        labels = {
+            'servico': 'insumo'
+        }
         widgets = {
             'servico': forms.TextInput(attrs={'class': 'form-control'}),
             'valor_servico': forms.NumberInput(attrs={
@@ -122,5 +125,32 @@ class MaterialForm(forms.ModelForm):
             'valor_material': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Ex: R$ 250,00'
+            }),
+        }
+
+class HistorcoTicketForm(forms.ModelForm):
+    class Meta:
+        model = HistoricoTicket
+        fields = [
+            'descricao_historico'
+        ]
+        widgets = {
+            'descricao_historico': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+
+class ItemOrcamentoForm(forms.ModelForm):
+    class Meta:
+        model = ItemOrcamento
+        fields = [
+            'item',
+            'quant',
+        ]
+        widgets = {
+            'item': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'quant': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: 5'
             }),
         }

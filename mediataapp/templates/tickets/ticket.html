@@ -7,7 +7,6 @@
     padding-left: 40px;
     margin: 2rem 0;
   }
-
   .timeline::before {
     content: '';
     position: absolute;
@@ -17,19 +16,11 @@
     width: 4px;
     background: #dee2e6;
   }
-
   .timeline-item {
     position: relative;
     margin-bottom: 30px;
     transition: background 0.3s;
   }
-
-  .timeline-item:hover {
-    background: #f8f9fa;
-    border-radius: 8px;
-    padding: 10px;
-  }
-
   .timeline-marker {
     position: absolute;
     left: -2px;
@@ -44,32 +35,29 @@
     color: white;
     font-size: 12px;
   }
-
   .timeline-content {
     padding-left: 30px;
   }
-
   .timeline-date {
     font-weight: bold;
     color: #6c757d;
     font-size: 14px;
   }
-
   .card-title button {
     margin-left: 10px;
   }
-
   .list-group-item p {
     margin: 0;
   }
 </style>
 
 <div class="container py-4">
-
   <!-- Cabeçalho -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h2 class="fs-4 mb-1">Ticket: #{{ ticket.ticket }}</h2>
+      <h2 class="fs-4 mb-1">Ticket: #{{ ticket.ticket }} - <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
+  <i class="bi bi-trash"></i> Excluir
+</button></h2>
       <p class="mb-1">Operador Mediata: <strong>Operador</strong></p>
       {% if ticket.emergencial %}
         <span class="badge bg-danger">Emergencial</span>
@@ -99,79 +87,78 @@
     </div>
   </div>
 
-  <!-- Orçamento -->
+  <!-- Orçamento e Itens -->
   <div class="card shadow-sm mb-4">
     <div class="card-body">
-      <h5 class="card-title d-flex justify-content-between align-items-center">
-        Orçamento
-        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#ModalOrcamento">Adicionar</button>
-      </h5>
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <h5 class="card-title mb-0"><i class="bi bi-receipt me-2"></i>Orçamento</h5>
+          {% if orcamento %}
+            <small class="text-muted">#{{ orcamento }}{% if orcamento.descricao %} – {{ orcamento.descricao }}{% endif %}</small>
+          {% endif %}
+        </div>
+        <div class="btn-group btn-group-sm">
+          <button class="btn btn-sm btn-warning" {% if orcamento %} disabled {% endif %} data-bs-toggle="modal" data-bs-target="#ModalOrcamento">
+            <i class="bi bi-plus-circle me-1"></i>Adicionar Orçamento
+          </button>
+          {% if orcamento %}
+            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#ModalItemOrcamento">
+              <i class="bi bi-list-check me-1"></i>Adicionar Item
+            </button>
+          {% endif %}
+        </div>
+      </div>
 
       {% if orcamento %}
-        <div class="mb-2">
-          <p>{{ orcamento }}</p>
-
-          <div class="btn-group btn-group-sm mb-3" role="group">
-            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#ModalServico">Serviço</button>
-            <button class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#ModalMaterial">Material</button>
-            <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#ModalServico">Ferramenta</button>
+        <h6 class="text-muted"><i class="bi bi-list-check me-1"></i>Itens de Orçamento</h6>
+        {% if itens_orcamento %}
+          <div class="table-responsive mb-3">
+            <table class="table table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Descrição</th>
+                  <th class="text-end">Quantidade</th>
+                  <th class="text-end">Valor Unitário</th>
+                  <th class="text-end">Tipo</th>
+                  <th class="text-end">Subtotal</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for item in itens_orcamento %}
+                  <tr>
+                    <td>{{ item.item }}</td>
+                    <td class="text-end">{{ item.quant }}</td>
+                    <td class="text-end">R$ {{ item.item.valor_unit }}</td>
+                    <td class="text-end">
+                      {% if item.item.tipo == 'M' %}
+                        Material
+                      {% elif item.item.tipo == 'S' %}
+                        Serviço
+                      {% elif item.item.tipo == 'O' %}
+                        Mão de Obra
+                      {% elif item.item.tipo == 'E' %}
+                        Equipamento
+                      {% elif item.item.tipo == 'T' %}
+                        Taxa
+                      {% else %}
+                        —
+                      {% endif %}
+                    </td>
+                    <td class="text-end">R$ {{ item.subtotal }}</td>
+                  </tr>
+                {% endfor %}
+                <tr class="fw-bold bg-light">
+                  <td colspan="4">Total Itens</td>
+                  <td class="text-end">R$ {{ total_itens }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </div>
-
-        <!-- Lista de Serviços -->
-        <h6 class="text-muted">Serviços</h6>
-        <ul class="list-group mb-3">
-          {% for servico in servicos %}
-            <li class="list-group-item d-flex justify-content-between">
-              <div>
-                <strong>{{ servico.servico }}</strong>
-                <br><small class="text-muted">{{ servico.descricao }}</small>
-              </div>
-              <span>R$ {{ servico.valor_servico }}</span>
-            </li>
-          {% endfor %}
-          {% if servicos %}
-            <li class="list-group-item d-flex justify-content-between fw-bold">
-              <span>Total serviço</span>
-              <span>R$ {{ valor_custo_total }}</span>
-            </li>
-          {% else %}
-            <li class="list-group-item">Nenhum serviço registrado.</li>
-          {% endif %}
-        </ul>
-
-        <!-- Lista de Materiais -->
-        <h6 class="text-muted">Materiais</h6>
-        <ul class="list-group">
-          {% for material in materiais %}
-            <li class="list-group-item d-flex justify-content-between">
-              <div>
-                <strong>{{ material.material }}</strong>
-                <br><small class="text-muted">{{ material.descricao }}</small>
-              </div>
-              <span>R$ {{ material.valor_material }}</span>
-            </li>
-          {% endfor %}
-          {% if materiais %}
-            <li class="list-group-item d-flex justify-content-between fw-bold">
-              <span>Total material</span>
-              <span>R$ {{ valor_custo_total }}</span>
-            </li>
-          {% else %}
-            <li class="list-group-item">Nenhum material registrado.</li>
-          {% endif %}
-        </ul>
-        <ul class="list-group">
-          <li class="list-group-item d-flex justify-content-between fw-bold">
-            <span>Total</span>
-            <span>R$ {{ valor_custo_total }}</span>
-          </li>
-
-        </ul>
-        
-
+        {% else %}
+          <p class="text-muted">Nenhum item de orçamento cadastrado.</p>
+        {% endif %}
       {% else %}
-        <p class="mt-2 text-muted">Nenhum orçamento registrado ainda.</p>
+        <p class="mt-3 text-muted"><i class="bi bi-info-circle me-1"></i>Nenhum orçamento registrado ainda.</p>
       {% endif %}
     </div>
   </div>
@@ -183,18 +170,25 @@
       <p><strong>Faturamento:</strong> R$ {{ valor_custo_total }}</p>
       <p><strong>Status:</strong>
         {% with ticket.status as s %}
-          <span class="badge 
-            {% if s == 'E' %}bg-warning text-dark
-            {% elif s == 'O' %}bg-info text-dark
-            {% elif s == 'A' %}bg-secondary
-            {% elif s == 'F' %}bg-dark
-            {% elif s == 'V' %}bg-success
-            {% elif s == 'R' %}bg-light text-dark
-            {% else %}bg-secondary
-            {% endif %}
-          ">
-            
-          </span>
+          {% if s == 'E' %}
+            <span class="badge text-bg-warning">Executado</span>
+          {% elif s == 'X' %}
+            <span class="badge text-bg-warning">Em execução</span>
+          {% elif s == 'C' %}
+            <span class="badge text-bg-info">Cotação</span>
+          {% elif s == 'L' %}
+            <span class="badge text-bg-info">Levantamento</span>
+          {% elif s == 'A' %}
+            <span class="badge text-bg-secondary">Aprovado</span>
+          {% elif s == 'F' %}
+            <span class="badge text-bg-dark">Finalizado</span>
+          {% elif s == 'V' %}
+            <span class="badge text-bg-success">Vistoriado</span>
+          {% elif s == 'R' %}
+            <span class="badge text-bg-light">Rejeitado</span>
+          {% else %}
+            <span class="badge bg-secondary">Desconhecido</span>
+          {% endif %}
         {% endwith %}
       </p>
       <p><strong>Descrição:</strong> {{ ticket.descricao }}</p>
@@ -215,13 +209,13 @@
           </div>
         </div>
         {% if ticket.data_finalizar %}
-        <div class="timeline-item">
-          <div class="timeline-marker">✓</div>
-          <div class="timeline-content">
-            <div class="timeline-date">{{ ticket.data_finalizar|date:"d/m/Y" }}</div>
-            <p>Data para finalizar</p>
+          <div class="timeline-item">
+            <div class="timeline-marker">✓</div>
+            <div class="timeline-content">
+              <div class="timeline-date">{{ ticket.data_finalizar|date:"d/m/Y" }}</div>
+              <p>Data para finalizar</p>
+            </div>
           </div>
-        </div>
         {% endif %}
       </div>
     </div>
@@ -229,12 +223,14 @@
 </div>
 
 <!-- Modais -->
+
 <!-- Orçamento -->
 <div class="modal fade" id="ModalOrcamento" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
       <form method="post">
         {% csrf_token %}
+        <input type="hidden" name="form_type" value="orcamento">
         <div class="modal-header">
           <h5 class="modal-title">Novo Orçamento</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -249,44 +245,48 @@
   </div>
 </div>
 
-<!-- Serviço -->
-<div class="modal fade" id="ModalServico" tabindex="-1" aria-hidden="true">
+<!-- Item de Orçamento -->
+<div class="modal fade" id="ModalItemOrcamento" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <form method="post">
+      <form method="post" id="form-itemorcamento">
         {% csrf_token %}
+        <input type="hidden" name="form_type" value="itemorcamento">
         <div class="modal-header">
-          <h5 class="modal-title">Novo Serviço</h5>
+          <h5 class="modal-title">Novo Item de Orçamento</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
-        <div class="modal-body">{{ formservico.as_p }}</div>
+        <div class="modal-body">
+          {{ itemorcamento.as_p }}
+        </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-          <button type="submit" class="btn btn-primary">Salvar</button>
+          <button type="submit" class="btn btn-primary">Salvar Item</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 
-<!-- Material -->
-<div class="modal fade" id="ModalMaterial" tabindex="-1" aria-hidden="true">
+<!-- Modal de confirmação -->
+<div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <form method="post">
-        {% csrf_token %}
-        <div class="modal-header">
-          <h5 class="modal-title">Novo Material</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">{{ formmaterial.as_p }}</div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-          <button type="submit" class="btn btn-primary">Salvar</button>
-        </div>
-      </form>
+      <div class="modal-header">
+        <h5 class="modal-title">Confirmar exclusão</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        Tem certeza que deseja deletar o ticket #{{ ticket.ticket }}? Esta ação é irreversível.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <form method="post" action="{% url 'deletar-ticket' ticket.key %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Deletar</button>
+        </form>
+      </div>
     </div>
   </div>
 </div>
-
 {% endblock %}

@@ -1,0 +1,119 @@
+{% extends '../_layout/base.html' %}
+
+{% block conteudo %}
+
+<div class="container-fluid">
+
+  <!-- Cabeçalho -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Cadastro de Insumos</h2>
+  </div>
+
+  <!-- Card do Formulário -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="card-title mb-3">Adicionar Novo Insumo</h5>
+      <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="row mb-3">
+          <div class="col-md-8">
+            <label for="id_insumo" class="form-label">Insumo</label>
+            <input type="text" name="insumo" id="id_insumo" class="form-control" value="{{ form.insumo.value|default_if_none:'' }}">
+            {% if form.insumo.errors %}
+              <div class="text-danger small">{{ form.insumo.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="col-md-4">
+            <label for="id_tipo" class="form-label">Tipo</label>
+            {{ form.tipo }}
+            {% if form.tipo.errors %}
+              <div class="text-danger small">{{ form.tipo.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="row mb-3">
+          <div class="col-md-3">
+            <label for="id_valor_unit" class="form-label">Valor Unitário</label>
+            <input type="number" step="0.01" name="valor_unit" id="id_valor_unit" class="form-control" value="{{ form.valor_unit.value|default_if_none:'' }}">
+            {% if form.valor_unit.errors %}
+              <div class="text-danger small">{{ form.valor_unit.errors.0 }}</div>
+            {% endif %}
+          </div>
+
+          <div class="col-md-3">
+            <label for="id_quant" class="form-label">Quantidade</label>
+            <input type="number" name="quant" id="id_quant" class="form-control" disabled value="{{ form.quant.value|default_if_none:'' }}">
+            {% if form.quant.errors %}
+              <div class="text-danger small">{{ form.quant.errors.0 }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Salvar</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Card da Tabela -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <h5 class="card-title mb-3">Insumos Cadastrados</h5>
+
+      <div class="table-responsive small">
+        <table class="table table-striped table-sm w-100" id="datatablesSimple">
+          <thead class="table-light">
+            <tr>
+              <th>Insumo</th>
+              <th>Código</th>
+              <th>Tipo</th>
+              <th>Valor Unitário</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for insumo in insumos %}
+              <tr>
+                <td>{{ insumo.insumo }}</td>
+                <td>{{ insumo.codigo }}</td>
+                <td>{{ insumo.get_tipo_display }}</td>
+                <td>R$ {{ insumo.valor_unit }}</td>
+                <td>
+                  <div class="d-flex gap-1 flex-wrap">
+                    <a href="#" class="btn btn-primary btn-sm"><i class="bi bi-eye"></i></a>
+                    <a href="" class="btn btn-success btn-sm"><i class="bi bi-pencil-square"></i></a>
+                  </div>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Scripts do DataTables -->
+<script>
+  $(document).ready(function () {
+    $('#datatablesSimple').DataTable({
+      language: {
+        search: "Pesquisar:",
+        lengthMenu: "Mostrar _MENU_ registros por página",
+        info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+        paginate: {
+          first: "Primeiro",
+          last: "Último",
+          next: "Próximo",
+          previous: "Anterior"
+        },
+        zeroRecords: "Nenhum resultado encontrado",
+      }
+    });
+  });
+</script>
+
+{% endblock %}
