@@ -50,7 +50,9 @@ INSTALLED_APPS = [
     'usuarios',
     'tickets',
     'insumos',
+    'clientes',
     # apps de terceiros
+    'rolepermissions',
 ]
 
 MIDDLEWARE = [
@@ -152,3 +154,5 @@ MESSAGE_STORAGE = "django.contrib.messages.storage.cookie.CookieStorage"
 MESSAGE_TAGS = {
     messages.ERROR: 'danger',
 }
+
+ROLEPERMISSI0NS_MOSULE = "usuarios.roles"

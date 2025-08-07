@@ -1,9 +1,14 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.models import User
 
 from django.contrib import messages
 
 from .forms import CustomUserCreationForm
+
+from rolepermissions.roles import assign_role
+
+from django.contrib.auth.models import Group
+from .forms import CustomUserEditForm
 
 def usuarios(request):
     usuarios = User.objects.all()
@@ -33,9 +38,40 @@ def register(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
-            form.save()
+            user = form.save()
+            group = form.cleaned_data.get('group')
+            if group:
+                user.groups.add(group)
             messages.success(request, 'Usuário cadastrado com sucesso!')
-            return redirect('login')  # ou redirecione para onde quiser
+            return redirect('login')
     else:
         form = CustomUserCreationForm()
     return render(request, 'usuarios/cadastro-usuarios.html', {'form': form})
+
+def editar_usuario(request, user_id):
+    user = get_object_or_404(User, id=user_id)
+    if request.method == 'POST':
+        form = CustomUserEditForm(request.POST, instance=user)
+        if form.is_valid():
+            user = form.save(commit=False)
+            user.save()
+
+            # Gerenciar grupo: limpar antigos e adicionar novo
+            user.groups.clear()
+            grupo = form.cleaned_data.get('groups')
+            if grupo:
+                user.groups.add(grupo)
+
+            messages.success(request, 'Usuário atualizado com sucesso.')
+            return redirect('index-usuarios')
+    else:
+        initial = {}
+        grupo_atual = user.groups.first()
+        if grupo_atual:
+            initial['groups'] = grupo_atual
+        form = CustomUserEditForm(instance=user, initial=initial)
+
+    return render(request, 'usuarios/editar-usuario.html', {'form': form, 'usuario': user})
+
+def perfil_usuario(request, id):
+    return render(request, 'usuarios/perfil-usuario.html')

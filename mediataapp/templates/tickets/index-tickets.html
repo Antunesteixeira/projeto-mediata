@@ -35,6 +35,7 @@
                 <th scope="col">Ticket</th>
                 <th scope="col">Colaborador</th>
                 <th scope="col">Cliente</th>
+                <th scope="col">Prestador</th>
                 <th scope="col">Criação</th>
                 <th scope="col">Finalização</th>
                 <th scope="col">Status</th>
@@ -47,8 +48,13 @@
                 <td>{{ ticket.ticket }}</td>
                 <td>Antunes Teixeira</td>
                 <td>MA 0094</td>
-                <td>{{ ticket.data_criacao|date:"d/m/Y H:i" }}</td>
-                <td>{{ ticket.data_finalizar|date:"d/m/Y" }}</td>
+                <td>{{ticket.usuario}}</td>
+                <td data-order="{{ ticket.data_criacao|date:'Y-m-d H:i:s' }}">
+                    {{ ticket.data_criacao|date:"d/m/Y H:i" }}
+                </td>
+                <td data-order="{{ ticket.data_finalizar|date:'Y-m-d' }}">
+                    {{ ticket.data_finalizar|date:"d/m/Y" }}
+                </td>
                 <td>
                     {% if ticket.status == 'E' %}
                     <span class="badge text-bg-warning">Executado</span>
@@ -92,6 +98,7 @@
 <script>
     $(document).ready(function () {
         const tabela = $('#datatablesSimple').DataTable({
+            order: [[4, 'desc']], // ordena por "Criação" mais recente primeiro
             language: {
                 search: "Pesquisar:",
                 lengthMenu: "Mostrar _MENU_ registros por página",
@@ -106,10 +113,10 @@
             }
         });
 
-        // Filtro por Status (coluna 4 – index começa em 0)
+        // Filtro por Status (coluna 6 – index começa em 0)
         $('#filtro-status').on('change', function () {
             let valor = $(this).val();
-            tabela.column(4).search(valor).draw();  // 4 = Status
+            tabela.column(6).search(valor).draw();  // 6 = Status
         });
     });
 </script>

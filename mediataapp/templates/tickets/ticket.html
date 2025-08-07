@@ -55,7 +55,7 @@
   <!-- Cabeçalho -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-      <h2 class="fs-4 mb-1">Ticket: #{{ ticket.ticket }} - <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
+      <h2 class="fs-4 mb-1">TICKET: #{{ ticket.ticket }} - <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
   <i class="bi bi-trash"></i> Excluir
 </button></h2>
       <p class="mb-1">Operador Mediata: <strong>Operador</strong></p>
@@ -92,7 +92,7 @@
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <h5 class="card-title mb-0"><i class="bi bi-receipt me-2"></i>Orçamento</h5>
+          <h5 class="card-title mb-0"><i class="bi bi-receipt me-2"></i>ORÇAMENTO</h5>
           {% if orcamento %}
             <small class="text-muted">#{{ orcamento }}{% if orcamento.descricao %} – {{ orcamento.descricao }}{% endif %}</small>
           {% endif %}
@@ -116,20 +116,25 @@
             <table class="table table-striped table-hover">
               <thead>
                 <tr>
+                  <th>#</th>
                   <th>Descrição</th>
-                  <th class="text-end">Quantidade</th>
-                  <th class="text-end">Valor Unitário</th>
-                  <th class="text-end">Tipo</th>
+                  <th>Quantidade</th>
+                  <th>Valor Unitário</th>
+                  <th>Tipo</th>
                   <th class="text-end">Subtotal</th>
                 </tr>
               </thead>
               <tbody>
                 {% for item in itens_orcamento %}
                   <tr>
-                    <td>{{ item.item }}</td>
-                    <td class="text-end">{{ item.quant }}</td>
-                    <td class="text-end">R$ {{ item.item.valor_unit }}</td>
-                    <td class="text-end">
+                    <td>{{ forloop.counter }}</td>
+                    <td>
+                      <a class="btn btn-sm btn-link text-danger" href="{% url 'deletar-item' item.id ticket.key %}" data-bs-toggle="tooltip" data-bs-placement="top" aria-label="Remove" data-bs-original-title="Remove"><i class="bi bi-trash"></i></a>
+                      {{ item.item }}
+                    </td>
+                    <td>{{ item.quant }}</td>
+                    <td>R$ {{ item.item.valor_unit }}</td>
+                    <td>
                       {% if item.item.tipo == 'M' %}
                         Material
                       {% elif item.item.tipo == 'S' %}
@@ -147,8 +152,8 @@
                     <td class="text-end">R$ {{ item.subtotal }}</td>
                   </tr>
                 {% endfor %}
-                <tr class="fw-bold bg-light">
-                  <td colspan="4">Total Itens</td>
+                <tr class="fw-bold text-bg-light">
+                  <td colspan="5">Total Itens</td>
                   <td class="text-end">R$ {{ total_itens }}</td>
                 </tr>
               </tbody>
@@ -166,7 +171,7 @@
   <!-- Informações adicionais -->
   <div class="card shadow-sm mb-4">
     <div class="card-body">
-      <h5 class="card-title">Informações Adicionais</h5>
+      <h5 class="card-title">INFORMAÇÕES ADICIONAIS</h5>
       <p><strong>Faturamento:</strong> R$ {{ valor_custo_total }}</p>
       <p><strong>Status:</strong>
         {% with ticket.status as s %}
@@ -188,7 +193,7 @@
             <span class="badge text-bg-light">Rejeitado</span>
           {% else %}
             <span class="badge bg-secondary">Desconhecido</span>
-          {% endif %}
+          {% endif %} <i type="submit" class="bi bi-pencil-square" data-bs-toggle="modal" data-bs-target="#myModal"></i>
         {% endwith %}
       </p>
       <p><strong>Descrição:</strong> {{ ticket.descricao }}</p>
@@ -196,10 +201,95 @@
     </div>
   </div>
 
+  <!-- Pagamentos -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h5 class="card-title mb-0">
+        <i class="bi bi-cash me-2"></i>Pagamentos
+      </h5>
+      <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#ModalPagamento">
+        <i class="bi bi-plus-circle me-1"></i>Adicionar Pagamento
+      </button>
+    </div>
+
+    {% if list_pagamento %}
+    <div class="table-responsive">
+      <table class="table table-striped table-hover align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Tipo</th>
+            <th>Data do pagamento</th>
+            <th>Valor</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for pag in list_pagamento %}
+          <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>
+                <a class="btn btn-sm btn-link text-danger" href="#" data-bs-toggle="tooltip" data-bs-placement="top" aria-label="Remove" data-bs-original-title="Remove"><i class="bi bi-trash"></i></a>
+                {% if pag.tipo == 'E'%}
+                  <span class="badge bg-secondary">Equipamento</span>
+                {% elif pag.tipo == 'O' %}
+                <span class="badge text-bg-dark">Mão de obra</span>
+                {% elif pag.tipo == 'M' %}
+                <span class="badge bg-info">Material</span>
+                {% else %}{% endif %}
+
+            </td>
+            <td>{{ pag.data_pagamento }}</td>
+            <td>R$ {{ pag.valor_pagamento|floatformat:2 }}</td>
+            <td>
+              {% if pag.status_pagamento == False %}
+                <span class="badge bg-danger">Pendente</span>
+              {% elif pag.status_pagamento == True %}
+                <span class="badge bg-success">Pago</span>
+              {% else %}
+                <span class="badge bg-secondary">Outro</span>
+              {% endif %}
+            </td>
+            <td>
+              <label for="upload-comprovante" class="btn btn-success">
+                <i class="bi bi-file-earmark-check me-2"></i> Comp.
+              </label>
+
+              <input type="file" id="upload-comprovante" class="input-upload" accept=".pdf,.jpg,.png">
+
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <p class="text-muted mb-0">Nenhum pagamento registrado ainda.</p>
+    {% endif %}
+  </div>
+</div>
+
+
+  <!-- Nota Fiscal -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-body">
+      <h5 class="card-title">NOTA FISCAL</h5>
+
+
+      <label for="upload-nfe" class="btn btn-primary">
+        <i class="bi bi-file-earmark-text me-2"></i> Enviar NFe
+      </label>
+
+      <input type="file" id="upload-nfe" class="input-upload" accept=".xml,.pdf">
+    </div>
+  </div>
+
   <!-- Timeline -->
   <div class="card shadow-sm">
     <div class="card-body">
-      <h5 class="card-title">Datas</h5>
+      <h5 class="card-title">DATAS</h5>
       <div class="timeline">
         <div class="timeline-item">
           <div class="timeline-marker">✓</div>
@@ -208,6 +298,17 @@
             <p>Data de criação</p>
           </div>
         </div>
+        
+        {% for data in historico %}
+          <div class="timeline-item">
+            <div class="timeline-marker">✓</div>
+            <div class="timeline-content">
+              <div class="timeline-date">{{ data.data_historico|date:"d/m/Y" }}</div>
+              <p>{{ data.descricao_historico }}</p>
+            </div>
+          </div>
+        {% endfor %}
+        
         {% if ticket.data_finalizar %}
           <div class="timeline-item">
             <div class="timeline-marker">✓</div>
@@ -217,6 +318,7 @@
             </div>
           </div>
         {% endif %}
+
       </div>
     </div>
   </div>
@@ -245,6 +347,30 @@
   </div>
 </div>
 
+<!-- Item de Orçamento
+<div class="modal fade" id="ModalItemOrcamento" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" id="form-itemorcamento">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="itemorcamento">
+        <div class="modal-header">
+          <h5 class="modal-title">Novo Item de Orçamento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          {{ itemorcamento.as_p }}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="submit" class="btn btn-primary">Salvar Item</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+-->
+
 <!-- Item de Orçamento -->
 <div class="modal fade" id="ModalItemOrcamento" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
@@ -268,6 +394,29 @@
   </div>
 </div>
 
+<!-- Pagamento  -->
+<div class="modal fade" id="ModalPagamento" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" id="form-pagamento">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="form-pagamento">
+        <div class="modal-header">
+          <h5 class="modal-title">Pagamento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          {{ pagamento.as_p }}
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="submit" class="btn btn-primary">Salvar Item</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- Modal de confirmação -->
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
@@ -277,7 +426,8 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        Tem certeza que deseja deletar o ticket #{{ ticket.ticket }}? Esta ação é irreversível.
+        Tem certeza que deseja deletar o ticket #{{ ticket.ticket }}? 
+        Esta ação é irreversível.
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -289,4 +439,40 @@
     </div>
   </div>
 </div>
+
+<!-- Modal -->
+<div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="myModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content rounded-2 shadow-sm">
+      <div class="modal-header">
+        <h5 class="modal-title" id="myModalLabel">Editar Status</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Exemplo de conteúdo -->
+        <form action="{% url 'update-historico' ticket.key %}" method="post">
+          {% csrf_token %}
+          {{ ticketformstatus.status }}
+          {% if ticketformstatus.status.errors %}
+            <div class="text-danger small">
+              {{ ticketformstatus.status.errors }}
+            </div>
+          {% endif %}
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Esconde o input file padrão */
+  .input-upload {
+    display: none;
+  }
+</style>
 {% endblock %}

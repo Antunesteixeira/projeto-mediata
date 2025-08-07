@@ -2,23 +2,21 @@
 
 {% block conteudo %}
 <!-- Main Content -->
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <span class="fs-2">Usuários</span>
+    
+    <a href="{% url 'registrar-usuarios' %}" class="btn btn-warning rounded-pill">
+        <i class="bi bi-person-plus-fill me-1"></i> Adicionar usuário
+    </a>
+</div>
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <span class="fs-2">Usuários</span>
-        
-        <a href="{% url 'registrar-usuarios' %}" class="btn btn-warning rounded-pill">
-            Adicionar usuário <i class="bi bi-plus-lg"></i>
-        </a>
-    </div>
-
-
-    <div class="table-responsive small">
+<div class="table-responsive small">
     <table class="table table-striped table-sm w-100" style="table-layout: fixed;">
         <thead>
             <tr>
                 <th scope="col">Usuário</th>
                 <th scope="col">Email</th>
-                <th scope="col" >Role</th>
+                <th scope="col">Role</th>
                 <th scope="col">Grupo</th>
                 <th scope="col">Data</th>
                 <th scope="col">Ações</th>
@@ -31,13 +29,15 @@
                 <td>{{ usuario.email }}</td>
                 <td>teste</td>
                 <td>placeholder</td>
-                <td>
-                    teste
-                </td>
+                <td>teste</td>
                 <td>
                     <div class="d-flex gap-1 flex-wrap">
-                        <a href="{% url 'editar-usuarios' %}" type="button" class="btn btn-primary btn-sm">Ver</a>
-                        <a href="{% url 'editar-usuarios' %}" type="button" class="btn btn-success btn-sm">Editar</a>
+                        <a href="{% url 'perfil-usuario' usuario.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="bi bi-person-lines-fill"></i>
+                        </a>
+                        <a href="{% url 'editar-usuario' usuario.id %}" class="btn btn-outline-success btn-sm">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
                     </div>
                 </td>
             </tr>
@@ -45,5 +45,5 @@
         </tbody>
     </table>
 </div>
-
 {% endblock %}
+

@@ -1,0 +1,62 @@
+{% extends '../_layout/base.html' %}
+
+{% block conteudo %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-4">
+                        <i class="bi bi-person-circle fs-1 me-3 text-primary"></i>
+                        <div>
+                            <h4 class="mb-0">{{ user.get_full_name|default:user.username }}</h4>
+                            <small class="text-muted">@{{ user.username }}</small>
+                        </div>
+                    </div>
+
+                    <hr>
+
+                    <h6 class="text-muted">Informações do Usuário</h6>
+                    <ul class="list-group list-group-flush mb-3">
+                        <li class="list-group-item d-flex justify-content-between">
+                            <strong>Email:</strong> <span>{{ user.email }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <strong>Data de cadastro:</strong> <span>{{ user.date_joined|date:"d/m/Y H:i" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <strong>Último login:</strong> <span>{{ user.last_login|default:"Nunca" }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <strong>Grupo:</strong>
+                            <span>
+                                {% if user.groups.all %}
+                                    {{ user.groups.first.name }}
+                                {% else %}
+                                    <span class="text-muted">Sem grupo</span>
+                                {% endif %}
+                            </span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between">
+                            <strong>Ativo:</strong>
+                            <span>
+                                {% if user.is_active %}
+                                    <span class="text-success">Sim</span>
+                                {% else %}
+                                    <span class="text-danger">Não</span>
+                                {% endif %}
+                            </span>
+                        </li>
+                    </ul>
+
+                    <div class="d-flex justify-content-end">
+                        <a href="{% url 'editar-usuario' user.id %}" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil-square me-1"></i> Editar Perfil
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

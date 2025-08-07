@@ -1,7 +1,11 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from .models import Insumos
 from .forms import InsumoForm
 from django.contrib import messages
+
+from django.contrib.auth.decorators import login_required
+
+from django.db.models import ProtectedError
 
 
 # Create your views here.
@@ -29,3 +33,40 @@ def insumos(request):
 
 def editar_insumos(request, id):
     insumo = Insumos.objects.get(id=id)
+    insumos = Insumos.objects.all()
+    form = InsumoForm(request.POST or None, instance=insumo)
+
+    if form.is_valid():
+        # Verifica se os dados do formulário foram alterados
+        if form.has_changed(): 
+            insumo = form.save(commit=False)
+            insumo.save()
+            messages.success(request, "Insumo atualizado com sucesso!")
+        else:
+            messages.info(request, "Nenhuma alteração foi detectada.")
+            
+        return redirect('index-insumos')
+
+    context = {
+        'form': form,
+        'insumo': insumo,
+        'insumos': insumos,
+    }
+
+    return render(request, 'insumos/index-insumos.html', context)
+
+@login_required
+def deletar_insumo(request, id):
+    insumo = get_object_or_404(Insumos, id=id)
+
+    # opcional: checar permissão extra, ex:
+    # if not request.user.has_perm('app.delete_ticket'):
+    #     messages.error(request, "Você não tem permissão para excluir este ticket.")
+    #     return redirect('exibir-ticket', key=key)
+
+    try:
+        insumo.delete()
+        messages.success(request, f"O Insumo #{insumo.insumo} foi deletado com sucesso!")
+    except ProtectedError:
+        messages.error(request, "Não foi possível deletar o ticket porque há objetos relacionados protegendo-o.")
+    return redirect('index-insumos') 

@@ -1,5 +1,5 @@
 from django import forms
-from .models import Ticket, Orcamento, Servico, Material, HistoricoTicket, ItemOrcamento
+from .models import Ticket, Orcamento, Servico, Material, HistoricoTicket, ItemOrcamento, Pagamentos
 
 class TicketForm(forms.ModelForm):
     data_finalizar = forms.DateField(
@@ -18,11 +18,10 @@ class TicketForm(forms.ModelForm):
         fields = [
             'ticket',
             'status',
-            'emergencial',
             'valor_material',
-            'valor_mao_obra',
             'valor_custo',
-            'valor_faturamento',
+            'valor_mao_obra',
+            'emergencial',
             'data_finalizar',
             'descricao'
         ]
@@ -31,7 +30,7 @@ class TicketForm(forms.ModelForm):
             'ticket': 'Número do Ticket',
             'status': 'Situação',
             'valor_material': 'Custo do Material',
-            'valor_custo': 'Custo com Material',
+            'valor_custo': 'Custo Total',
             'valor_mao_obra': 'Custo com Mão de Obra',
             'valor_faturamento': 'Valor a Faturar',
             'data_finalizar': 'Previsão de Finalização',
@@ -154,3 +153,12 @@ class ItemOrcamentoForm(forms.ModelForm):
                 'placeholder': 'Ex: 5'
             }),
         }
+
+class PagamentoForm(forms.ModelForm):
+    class Meta:
+        model = Pagamentos
+        fields = [
+                'tipo',
+                'valor_pagamento',
+                'status_pagamento',
+        ]

@@ -15,12 +15,12 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
     <!-- CSS do DataTables -->
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
 
-<!-- JS do jQuery e DataTables -->
-<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+    <!-- JS do jQuery e DataTables -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     <style>
         body {
@@ -74,10 +74,7 @@
             <li>
                 <a href="#" class="nav-link">Relatórios</a>
             </li>
-            <li>
-                <a href="{% url 'index-usuarios' %}" class="nav-link">Usuários</a>
-            </li>
-
+            
             <!-- Menu com submenu -->
             <li>
                 <a class="nav-link" data-bs-toggle="collapse" href="#submenuLayouts" role="button"
@@ -86,8 +83,9 @@
                 </a>
                 <div class="collapse" id="submenuLayouts">
                     <ul class="nav flex-column ms-3">
+                        <li><a href="{% url 'perfil-usuario' user.id %}" class="nav-link">Perfil Usuário</a></li>
                         <li><a href="{% url 'index-usuarios' %}" class="nav-link">Listar Usuários</a></li>
-                        <li><a href="{% url 'editar-usuarios' %}" class="nav-link">Editar Usuário</a></li>
+                        <li><a href="{% url 'editar-usuario' user.id %}" class="nav-link">Editar Usuário</a></li>
                     </ul>
                 </div>
             </li>

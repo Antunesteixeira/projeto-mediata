@@ -7,8 +7,10 @@ from django.db import transaction
 from django.db.models import F, ExpressionWrapper, DecimalField, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 
-from .models import Ticket, Orcamento, ItemOrcamento, Insumos  # ajuste se estiver em outro lugar
-from .forms import OrcamentoForm, ItemOrcamentoForm, TicketForm  # importe só os forms que usa
+from django.http import HttpResponse, HttpResponseBadRequest
+
+from .models import Ticket, Orcamento, ItemOrcamento, Insumos, HistoricoTicket, Pagamentos  # ajuste se estiver em outro lugar
+from .forms import OrcamentoForm, ItemOrcamentoForm, TicketForm, HistorcoTicketForm, PagamentoForm  # importe só os forms que usa
 
 from django.db.models import ProtectedError
 
@@ -16,7 +18,8 @@ from django.db import IntegrityError
 
 @login_required
 def tickets(request):
-    tickets = Ticket.objects.all()
+    usuario = request.user
+    tickets = Ticket.objects.filter(usuario=usuario.pk).order_by('-data_criacao')
 
     context = {
         'tickets': tickets,
@@ -31,7 +34,10 @@ def cadastro_ticket(request):
         form = TicketForm(request.POST)
         if form.is_valid():
             try:
+                ticket = form.save(commit=False)
+                ticket.usuario = request.user
                 ticket = form.save()  # se precisar manipular data_finalizar, faça antes do save com commit=False
+                
                 messages.success(request, "Ticket cadastrado! Deseja vincular um colaborador agora?")
                 return redirect('index-tickets')
             except IntegrityError as e:
@@ -61,6 +67,8 @@ def exibirticket(request, key):
 
     form = OrcamentoForm(prefix='orcamento')
     itemorcamento = ItemOrcamentoForm(prefix='itemorcamento')
+    ticketformstatus = TicketForm()
+    pagamento = PagamentoForm(prefix='form-pagamento')
 
     if request.method == 'POST':
         form_type = request.POST.get('form_type')
@@ -94,11 +102,20 @@ def exibirticket(request, key):
                             return redirect('exibir-ticket', key=ticket.key)
                         else:
                             messages.error(request, "Erro ao salvar item de orçamento.")
+                elif form_type == 'form-pagamento':
+                    pagamento = PagamentoForm(request.POST, prefix="form-pagamento")
+                    if pagamento.is_valid():
+                        pag = pagamento.save(commit=False)
+                        pag.ticket_pagamento = ticket
+                        pag.save()
+                        messages.info(request, "Pagamento realizado!")
+                        return redirect('exibir-ticket', key=ticket.key)
         except Exception:
             messages.error(request, "Ocorreu um erro ao processar a requisição.")
 
     # recarregar orçamento
     orcamento = Orcamento.objects.filter(ticket_orcamento=ticket).first()
+    list_pagamento = Pagamentos.objects.filter(ticket_pagamento=ticket.id)
 
     if orcamento:
         # anotando subtotal = quant * item__valor_unit (ajuste nome do campo de valor se for diferente)
@@ -115,7 +132,7 @@ def exibirticket(request, key):
 
     valor_custo_total = ticket.func_valor_custo_total()
     bdi = ticket.func_bdi()
-
+    historico = HistoricoTicket.objects.filter(ticket_historico=ticket.id)
     context = {
         'ticket': ticket,
         'valor_custo_total': valor_custo_total,
@@ -125,6 +142,10 @@ def exibirticket(request, key):
         'itemorcamento': itemorcamento,
         'itens_orcamento': itens_orcamento,
         'total_itens': total_itens,
+        'historico': historico,
+        'ticketformstatus': ticketformstatus,
+        'pagamento': pagamento,
+        'list_pagamento': list_pagamento,
         #'insumos_json': json.dumps(insumos),
     }
     return render(request, 'tickets/ticket.html', context)
@@ -132,13 +153,18 @@ def exibirticket(request, key):
 @login_required
 def editar_ticket(request, key):
     ticket = get_object_or_404(Ticket, key=key)
-    
+
     form = TicketForm(request.POST or None, instance=ticket)
 
     if form.is_valid():
-        ticket = form.save(commit=False)
-
-        ticket.save()
+        # Verifica se os dados do formulário foram alterados
+        if form.has_changed(): 
+            ticket = form.save(commit=False)
+            ticket.save()
+            messages.success(request, "O Ticket atualizado com sucesso!")
+        else:
+            messages.info(request, "Nenhuma alteração foi detectada.")
+            
         return redirect('index-tickets')
 
     context = {
@@ -173,4 +199,51 @@ def deletar_ticket(request, key):
         messages.success(request, f"Ticket #{ticket.ticket} deletado com sucesso.")
     except ProtectedError:
         messages.error(request, "Não foi possível deletar o ticket porque há objetos relacionados protegendo-o.")
-    return redirect('index-tickets')  # ajuste para o nome real da listagem
+    return redirect('index-tickets') 
+
+def deletar_itemorcamento(request, id, key):
+    itemorcamento =  get_object_or_404(ItemOrcamento, id=id)
+
+    try:
+        itemorcamento.delete()
+        messages.success(request, f"Item #{itemorcamento.item} deletado com sucesso.")
+    except ProtectedError:
+        messages.error(request, "Não foi possível deletar o ticket porque há objetos relacionados protegendo-o.")
+    return redirect('exibir-ticket', key)
+
+@login_required
+def update_historico(request, key):
+    STATUS_DICT = dict(Ticket.STATUS_CHOICES)
+    ticket = get_object_or_404(Ticket, key=key)
+
+    if request.method == 'POST':
+        new_status = request.POST.get('status')
+        if new_status is None:
+            # lidar com erro (ex.: reexibir com mensagem)
+            return redirect('exibir-ticket', key)
+
+        with transaction.atomic():
+            old_status = ticket.status
+            ticket.status = new_status
+            messages.success(request, "Status alterado com sucesso.")
+            ticket.save(update_fields=['status'])
+
+            old_label = STATUS_DICT.get(old_status, old_status)
+            new_label = STATUS_DICT.get(new_status, new_status)
+
+            safe_old = old_label.replace("'", "’")
+            safe_new = new_label.replace("'", "’")
+
+
+            HistoricoTicket.objects.create(
+                ticket_historico=ticket,
+                descricao_historico = f"Status alterado de {safe_old} para {safe_new}"
+            )
+
+        return redirect('exibir-ticket', key)  # ou 'meuapp:exibir-tickets' se tiver namespace
+
+    # GET: mostrar formulário/modal
+    return redirect('exibir-ticket', key)
+
+def teste(request):
+    return render(request, 'index.html')
