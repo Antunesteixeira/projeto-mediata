@@ -5,7 +5,7 @@ from django.contrib.auth.models import User
 from insumos.models import Insumos
 
 from clientes.models import Cliente
-#from colaborador.models import Colaborador
+from colaborador.models import Colaborador
 
 class Ticket(models.Model):
     
@@ -22,21 +22,22 @@ class Ticket(models.Model):
 
     ticket = models.CharField(max_length=6, unique=True)
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
-    #colaborador = models.ForeignKey(Colaborador, on_delete=models.SET_NULL, null=True)
+    colaborador = models.ForeignKey(Colaborador, on_delete=models.SET_NULL, null=True)
     cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='L')
     emergencial = models.BooleanField(default=False)
     descricao = models.TextField()
-    valor_material = models.DecimalField(max_digits=10, decimal_places=2, blank=True, default=1) # Foi criado um novo modelo para calcular essas informaçoes
-    valor_mao_obra = models.DecimalField(max_digits=10, decimal_places=2, blank=True, default=1) # Foi criado um novo modelo para calcular essas informaçoes
-    valor_custo = models.DecimalField(max_digits=10, decimal_places=2, blank=True, default=1) # Foi criado um novo modelo para calcular essas informaçoes
+    valor_material = models.DecimalField(max_digits=10, decimal_places=2, blank=True, default=0) # Foi criado um novo modelo para calcular essas informaçoes
+    valor_mao_obra = models.DecimalField(max_digits=10, decimal_places=2, blank=True, default=0) # Foi criado um novo modelo para calcular essas informaçoes
+    valor_custo = models.DecimalField(max_digits=10, decimal_places=2, blank=True, default=0) # Foi criado um novo modelo para calcular essas informaçoes
     valor_faturamento = models.DecimalField(max_digits=10, decimal_places=2, blank=True, default=1) # Foi criado um novo modelo para calcular essas informaçoes
-    # valor_equipamento = models.DecimalField(max_digits=10, decimal_places=2, blanck=True, decimal=1) Add no banco de dados 
+    valor_equipamento = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, null=True) # Add no banco de dados 
     data_criacao = models.DateTimeField(auto_now_add=True)
     ultimo_update = models.DateField(auto_now_add=True)
     finalizado = models.BooleanField(default=False, null=True) 
     data_finalizar = models.DateField(null=True, blank=True)
     key = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    nfe_path = models.CharField(max_length=255, null=True, blank=True)
 
     class Meta:
         ordering = ['-data_criacao']
@@ -46,9 +47,14 @@ class Ticket(models.Model):
             return self.valor_mao_obra + self.valor_custo + 1
         else:
             return self.valor_mao_obra + self.valor_custo
-    
+
     def func_bdi(self):
-        return self.valor_faturamento / self.func_valor_custo_total()
+        divisor = self.func_valor_custo_total()
+        if divisor == 0:
+            divisor = 1  # evita divisão por zero, sem alterar atributo
+
+        return self.valor_faturamento / divisor
+
 
     def func_finalizado(self):
         if self.status == 'F':
@@ -60,6 +66,9 @@ class Ticket(models.Model):
     
     def __str__(self):
         return self.ticket
+    
+    def func_soma_margem(self):
+        return self.valor_material + self.valor_mao_obra + self.valor_equipamento + self.valor_custo
     
 class Orcamento(models.Model):
     orcamento = models.CharField(max_length=255)
@@ -102,16 +111,20 @@ class HistoricoTicket(models.Model):
         return self.descricao_historico
     
 class Pagamentos(models.Model):
-    PAGAMENTOS_CHOICES = [
+    TIPO_CHOICES = (
         ('M', 'Material'),
-        ('O', 'Mão de Obra'), 
+        ('S', 'Serviço'),
+        ('O', 'Mão de Obra'),
         ('E', 'Equipamento'),
-    ]
+        ('T', 'Taxa'),
+    )
+    tipo = models.CharField(max_length=1, choices=TIPO_CHOICES)
+    valor_pagamento = models.DecimalField(max_digits=10, decimal_places=2)
+    data_pagamento = models.DateField()
+    status_pagamento = models.BooleanField(default=False)
+    ticket_pagamento = models.ForeignKey(Ticket, on_delete=models.CASCADE)
 
-    ticket_pagamento = models.ForeignKey(Ticket, on_delete=models.SET_NULL, null=True)
-    tipo = models.CharField(max_length=1, choices=PAGAMENTOS_CHOICES, blank=True, null=True)
-    data_pagamento = models.DateTimeField(auto_now_add=True)
-    valor_pagamento = models.DecimalField(max_digits=10, decimal_places=2, null=True)
-    status_pagamento = models.BooleanField(default=False) 
-
-
+    def __str__(self):
+        return f"Pagamento {self.id} - {self.get_tipo_display()}"
+    
+    

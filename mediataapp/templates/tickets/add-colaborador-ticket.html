@@ -1,0 +1,46 @@
+{% extends '_layout/base.html' %}
+
+{% block conteudo %}
+<div class="card shadow-lg border-0 mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="bi bi-people-fill me-2"></i>
+            {{ tiket.ticket }} — Adicionar Colaborador
+        </h5>
+    </div>
+
+    <div class="card-body">
+        <div class="table-responsive">
+            <table id="datatablesSimple" class="table table-hover align-middle text-center">
+                <thead class="table-light">
+                    <tr>
+                        <th>Colaborador</th>
+                        <th>Função</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for colaborador in colaboradores %}
+                    <tr>
+                        <td class="fw-semibold">{% if colaborador.nome_completo %}{{colaborador.nome_completo}}{% else %}{{colaborador.razao_social}}{% endif %}</td>
+                        <td>{{ colaborador.funcao }}</td>
+                        <td>
+                            <a href="{% url 'cadastrar-colaborador-ticket' id_ticket colaborador.pk %}" 
+                               class="btn btn-outline-success btn-sm" title="Adicionar ao ticket">
+                                <i class="bi bi-plus-circle-fill"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-muted fst-italic">
+                            Nenhum colaborador disponível para adicionar.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

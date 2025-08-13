@@ -1,0 +1,307 @@
+{% extends '_layout/base.html' %}
+
+{% block conteudo %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0"><i class="bi bi-person-plus me-2"></i>Cadastrar Novo Colaborador</h3>
+                </div>
+                
+                <div class="card-body">
+                    <form method="POST" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Seção de Tipo de Pessoa -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2"><i class="bi bi-person-vcard me-2"></i>Tipo de Pessoa</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    {{ form.tipo_pessoa.label_tag }}
+                                    <select name="{{ form.tipo_pessoa.name }}" id="{{ form.tipo_pessoa.id_for_label }}" 
+                                            class="form-select {% if form.tipo_pessoa.errors %}is-invalid{% endif %}">
+                                        <option value="">Selecione o tipo</option>
+                                        {% for value, label in form.tipo_pessoa.field.choices %}
+                                            {% if value %}
+                                                <option value="{{ value }}" {% if form.tipo_pessoa.value == value %}selected{% endif %}>
+                                                    {{ label }}
+                                                </option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
+                                    {% if form.tipo_pessoa.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.tipo_pessoa.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção Dinâmica para Pessoa Física -->
+                        <div id="pf-section" class="mb-4" style="display: none;">
+                            <h5 class="border-bottom pb-2"><i class="bi bi-person me-2"></i>Dados Pessoais</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    {{ form.nome_completo.label_tag }}
+                                    {{ form.nome_completo }}
+                                    {% if form.nome_completo.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.nome_completo.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.cpf.label_tag }}
+                                    {{ form.cpf }}
+                                    {% if form.cpf.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.cpf.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.data_nascimento.label_tag }}
+                                    {{ form.data_nascimento }}
+                                    {% if form.data_nascimento.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.data_nascimento.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.funcao.label_tag }}
+                                    {{ form.funcao }}
+                                    {% if form.funcao.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.funcao.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção Dinâmica para Pessoa Jurídica -->
+                        <div id="pj-section" class="mb-4" style="display: none;">
+                            <h5 class="border-bottom pb-2"><i class="bi bi-building me-2"></i>Dados da Empresa</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    {{ form.razao_social.label_tag }}
+                                    {{ form.razao_social }}
+                                    {% if form.razao_social.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.razao_social.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.nome_fantasia.label_tag }}
+                                    {{ form.nome_fantasia }}
+                                    {% if form.nome_fantasia.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.nome_fantasia.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.cnpj.label_tag }}
+                                    {{ form.cnpj }}
+                                    {% if form.cnpj.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.cnpj.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção de Contato -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2"><i class="bi bi-telephone me-2"></i>Contato</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    {{ form.email.label_tag }}
+                                    {{ form.email }}
+                                    {% if form.email.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.email.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.telefone.label_tag }}
+                                    {{ form.telefone }}
+                                    {% if form.telefone.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.telefone.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-12">
+                                    {{ form.endereco.label_tag }}
+                                    {{ form.endereco }}
+                                    {% if form.endereco.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.endereco.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção Bancária -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2"><i class="bi bi-bank me-2"></i>Dados Bancários</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    {{ form.banco.label_tag }}
+                                    {{ form.banco }}
+                                    {% if form.banco.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.banco.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    {{ form.agencia.label_tag }}
+                                    {{ form.agencia }}
+                                    {% if form.agencia.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.agencia.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-3">
+                                    {{ form.conta.label_tag }}
+                                    {{ form.conta }}
+                                    {% if form.conta.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.conta.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ form.tipo_conta.label_tag }}
+                                    {{ form.tipo_conta }}
+                                    {% if form.tipo_conta.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.tipo_conta.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ form.tipo_chave_pix.label_tag }}
+                                    {{ form.tipo_chave_pix }}
+                                    {% if form.tipo_chave_pix.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.tipo_chave_pix.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ form.chave_pix.label_tag }}
+                                    {{ form.chave_pix }}
+                                    {% if form.chave_pix.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.chave_pix.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status e Ações -->
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <div class="form-check form-switch">
+                                {{ form.ativo }}
+                                <label class="form-check-label ms-2" for="{{ form.ativo.id_for_label }}">
+                                    Colaborador Ativo
+                                </label>
+                            </div>
+                            
+                            <div>
+                                <a href="{% url 'lista_colaboradores' %}" class="btn btn-outline-secondary me-2">
+                                    <i class="bi bi-arrow-left me-1"></i> Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-check-circle me-1"></i> Cadastrar
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Mostrar/ocultar seções conforme tipo de pessoa
+    const tipoPessoa = document.getElementById('{{ form.tipo_pessoa.id_for_label }}');
+    const pfSection = document.getElementById('pf-section');
+    const pjSection = document.getElementById('pj-section');
+    
+    function toggleSections() {
+        if (tipoPessoa.value === 'PF') {
+            pfSection.style.display = 'block';
+            pjSection.style.display = 'none';
+        } else if (tipoPessoa.value === 'PJ') {
+            pfSection.style.display = 'none';
+            pjSection.style.display = 'block';
+        } else {
+            pfSection.style.display = 'none';
+            pjSection.style.display = 'none';
+        }
+    }
+    
+    // Inicializar
+    toggleSections();
+    
+    // Monitorar mudanças
+    tipoPessoa.addEventListener('change', toggleSections);
+    
+    // Adicionar classes de validação
+    const inputs = document.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        input.classList.add('form-control');
+        if (input.tagName === 'SELECT') {
+            input.classList.add('form-select');
+        }
+        
+        // Verificar erros
+        if (input.classList.contains('is-invalid')) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'invalid-feedback d-block';
+            errorDiv.textContent = input.dataset.error;
+            input.parentNode.appendChild(errorDiv);
+        }
+    });
+
+    // Máscaras para campos
+    $('#id_cpf').mask('000.000.000-00', {reverse: true});
+    $('#id_cnpj').mask('00.000.000/0000-00', {reverse: true});
+    $('#id_telefone').mask('(00) 0000-0000');
+});
+</script>
+
+<style>
+    .card {
+        border-radius: 10px;
+    }
+    .card-header {
+        border-radius: 10px 10px 0 0 !important;
+    }
+    textarea {
+        min-height: 100px;
+    }
+    .invalid-feedback {
+        display: block;
+    }
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+</style>
+{% endblock %}

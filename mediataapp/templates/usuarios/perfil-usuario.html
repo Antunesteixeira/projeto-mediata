@@ -1,5 +1,7 @@
 {% extends '../_layout/base.html' %}
 
+{% load permission_tags %}
+
 {% block conteudo %}
 <div class="container mt-5">
     <div class="row justify-content-center">
@@ -50,13 +52,42 @@
                     </ul>
 
                     <div class="d-flex justify-content-end">
-                        <a href="{% url 'editar-usuario' user.id %}" class="btn btn-outline-primary">
+                        <a href="{% url 'editar-usuario' user.id %}" class="btn btn-outline-primary me-2">
                             <i class="bi bi-pencil-square me-1"></i> Editar Perfil
                         </a>
+                        {% if user|has_role:'gerente' %}
+                        <!-- Botão para deletar o usuário, abre o modal de confirmação! Apenas o Gerente tem permissão de deletar o usuário -->
+                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmarDelecaoModal">
+                            <i class="bi bi-trash me-1"></i> Deletar
+                        </button>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
     </div>
+</div>
+
+<!-- Modal de confirmação de exclusão -->
+<div class="modal fade" id="confirmarDelecaoModal" tabindex="-1" aria-labelledby="confirmarDelecaoModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="confirmarDelecaoModalLabel">Confirmar Exclusão</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        Você tem certeza que deseja deletar o usuário <strong>{{ user.get_full_name|default:user.username }}</strong>? Esta ação é irreversível.
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <!-- Formulário para enviar a requisição POST de exclusão -->
+        <form action="" method="post">
+          {% csrf_token %}
+          <button type="submit" class="btn btn-danger">Sim, Deletar</button>
+        </form>
+      </div>
+    </div>
+  </div>
 </div>
 {% endblock %}

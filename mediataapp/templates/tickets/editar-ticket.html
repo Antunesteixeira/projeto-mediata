@@ -9,20 +9,26 @@
     <form method="post">
       {% csrf_token %}
       <div class="row">
-        <div class="col-md-4">{{ form.ticket.label_tag }} {{ form.ticket }}</div>
-        <div class="col-md-4">{{ form.status.label_tag }} {{ form.status }}</div>
-        <div class="col-md-4">
+        <div class="col-md-3">{{ form.ticket.label_tag }} {{ form.ticket }}</div>
+        <div class="col-md-3">{{ form.status.label_tag }} {{ form.status }}</div>
+        <div class="col-md-3">
           {{ form.data_finalizar.label_tag }}
           {{ form.data_finalizar }}
         </div>
-
+      </div>
+      <hr>
+      <div class="row">
+        <div class="col-md-3">
+          {{ form.emergencial.label_tag }}
+          {{ form.emergencial }}
+        </div>
       </div>
 
       <hr>
 
       <div class="row">
         <div class="col-md-3">{{ form.valor_mao_obra.label_tag }} {{ form.valor_mao_obra }}</div>
-        <div class="col-md-3">{{ form.valor_mao_obra.label_tag }} {{ form.valor_material }}</div>
+        <div class="col-md-3">{{ form.valor_material.label_tag }} {{ form.valor_material }}</div>
         <div class="col-md-3">{{ form.valor_custo.label_tag }} {{ form.valor_custo }}</div>
         <div class="col-md-3">{{ form.valor_faturamento.label_tag }} {{ form.valor_faturamento }}</div>
       </div>
@@ -34,7 +40,7 @@
         {{ form.descricao }}
       </div>
 
-      <button type="submit" class="btn btn-primary" class="btn btn-primary"><i class="bi bi-save-fill"></i></button>
+      <button type="submit" class="btn btn-primary" class="btn btn-primary"><i class="bi bi-save-fill"></i> Salvar Alterações</button>
                         
     </form>
 

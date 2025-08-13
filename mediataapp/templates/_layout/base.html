@@ -1,124 +1,443 @@
 {% load static %}
+{% load permission_tags %}
 <!DOCTYPE html>
 <html lang="pt-br">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Admin</title>
 
     <!-- Bootstrap CSS -->
     <link href="{% static 'bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
-    <!-- Bootstrap Icons (opcional) -->
+    
+    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-
+    
     <!-- CSS do DataTables -->
     <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-
+    
     <!-- JS do jQuery e DataTables -->
     <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     <style>
+        :root {
+            --sidebar-width: 250px;
+            --sidebar-collapsed-width: 70px;
+            --navbar-height: 56px;
+            --transition-speed: 0.3s;
+            --primary-bg: #343a40;
+            --secondary-bg: #495057;
+            --active-bg: #007bff;
+            --text-color: #f8f9fa;
+            --hover-bg: rgba(255, 255, 255, 0.1);
+        }
+
         body {
             min-height: 100vh;
             display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
+        .wrapper {
+            display: flex;
+            flex: 1;
+            position: relative;
+        }
+
+        /* Sidebar Styles */
         .sidebar {
-            width: 250px;
-            background-color: #343a40;
-            color: white;
-            min-height: 100vh;
+            width: var(--sidebar-width);
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            min-height: calc(100vh - var(--navbar-height));
+            transition: all var(--transition-speed) ease;
+            position: relative;
+            z-index: 1000;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
         }
 
-        .sidebar a {
-            color: white;
-            text-decoration: none;
+        .sidebar.collapsed {
+            width: var(--sidebar-collapsed-width);
+            overflow: hidden;
         }
 
-        .sidebar a:hover,
-        .sidebar .nav-link.active {
-            background-color: #495057;
+        .sidebar.collapsed .nav-link-text,
+        .sidebar.collapsed h4,
+        .sidebar.collapsed .bi-chevron-down {
+            display: none !important;
         }
 
+        .sidebar.collapsed .nav-link {
+            justify-content: center;
+        }
+
+        .sidebar.collapsed .nav-link i {
+            margin-right: 0;
+            font-size: 1.2rem;
+        }
+
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 1rem;
+        }
+
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0 0.5rem;
+        }
+
+        .sidebar-footer {
+            padding: 1rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nav-link {
+            color: var(--text-color);
+            border-radius: 4px;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            transition: all 0.2s;
+        }
+
+        .nav-link i {
+            margin-right: 0.75rem;
+            font-size: 1.1rem;
+            min-width: 20px;
+        }
+
+        .nav-link:hover,
+        .nav-link:focus {
+            background-color: var(--hover-bg);
+            color: var(--text-color);
+        }
+
+        .nav-link.active {
+            background-color: var(--active-bg);
+            font-weight: 500;
+        }
+
+        .nav-item .collapse {
+            margin-left: 1.5rem;
+        }
+
+        /* Main Content Styles */
         .main-content {
             flex: 1;
             padding: 2rem;
             background-color: #f8f9fa;
+            transition: margin-left var(--transition-speed) ease;
+            min-height: calc(100vh - var(--navbar-height));
         }
 
+        .main-content.expanded {
+            margin-left: var(--sidebar-collapsed-width);
+        }
+
+        /* Navbar Styles */
         .navbar {
             background-color: #fff;
             border-bottom: 1px solid #dee2e6;
+            height: var(--navbar-height);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+            z-index: 1001;
+        }
+
+        .toggle-btn {
+            background: none;
+            border: none;
+            color: var(--primary-bg);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: transform 0.2s;
+        }
+
+        .toggle-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            margin-right: 0.75rem;
+            background-color: var(--primary-bg);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* Responsive Styles */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: 0;
+                top: var(--navbar-height);
+                height: calc(100vh - var(--navbar-height));
+                transform: translateX(-100%);
+                z-index: 1000;
+            }
+
+            .sidebar.show {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                width: 100%;
+                padding: 1rem;
+            }
+
+            .toggle-btn {
+                display: block;
+            }
+        }
+
+        @media (min-width: 769px) {
+            .toggle-btn {
+                display: block;
+            }
+        }
+
+        /* Scrollbar Styles */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
         }
     </style>
 </head>
 
 <body>
-
-    <!-- Sidebar -->
-    <div class="sidebar d-flex flex-column p-3">
-        <h4 class="mb-4">Mediata Panel</h4>
-        <ul class="nav nav-pills flex-column mb-auto">
-
-            <li class="nav-item">
-                <a href="{% url 'dashboard' %}" class="nav-link active">Dashboard</a>
-            </li>
-            <li>
-                <a href="{% url 'index-tickets' %}" class="nav-link">Tickets</a>
-            </li>
-            <li>
-                <a href="#" class="nav-link">Relatórios</a>
-            </li>
-            
-            <!-- Menu com submenu -->
-            <li>
-                <a class="nav-link" data-bs-toggle="collapse" href="#submenuLayouts" role="button"
-                    aria-expanded="false" aria-controls="submenuLayouts">
-                    Usuários <i class="bi bi-chevron-down"></i>
-                </a>
-                <div class="collapse" id="submenuLayouts">
-                    <ul class="nav flex-column ms-3">
-                        <li><a href="{% url 'perfil-usuario' user.id %}" class="nav-link">Perfil Usuário</a></li>
-                        <li><a href="{% url 'index-usuarios' %}" class="nav-link">Listar Usuários</a></li>
-                        <li><a href="{% url 'editar-usuario' user.id %}" class="nav-link">Editar Usuário</a></li>
-                    </ul>
-                </div>
-            </li>
-            <li>
-                <a href="{% url 'index-insumos' %}" class="nav-link">Insumos</a>
-            </li>
-
-            <li>
-                <a href="#" class="nav-link">Configurações</a>
-            </li>
-        </ul>
-
-        <hr>
-
-        <a href="{% url 'logout' %}" class="nav-link text-danger mt-auto"><i class="bi bi-person"></i> Sair</a>
-    </div>
-
-    <!-- Main Content -->
-    <div class="main-content">
-        <nav class="navbar navbar-expand navbar-light mb-4">
-            <div class="container-fluid">
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-expand navbar-light">
+        <div class="container-fluid">
+            <button class="toggle-btn" id="sidebarToggle">
+                <i class="bi bi-list"></i>
+            </button>
+            <div class="user-info">
+                <div class="user-avatar">{{ user.username|first|upper }}</div>
                 <span class="navbar-brand mb-0 h5">Bem-vindo, {{ user.username }}</span>
             </div>
-        </nav>
+        </div>
+    </nav>
 
-        {% include '../paginas/menssagens.html' %}
+    <div class="wrapper">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h4 class="mb-0 text-center">Mediata</h4>
+            </div>
+            
+            <div class="sidebar-content">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a href="{% url 'dashboard' %}" class="nav-link active">
+                            <i class="bi bi-speedometer2"></i>
+                            <span class="nav-link-text">Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'index-tickets' %}" class="nav-link">
+                            <i class="bi bi-ticket-detailed"></i>
+                            <span class="nav-link-text">Tickets</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'lista_colaboradores' %}" class="nav-link">
+                            <i class="bi bi-people"></i>
+                            <span class="nav-link-text">Colaboradores</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'listar-clientes' %}" class="nav-link">
+                            <i class="bi bi-building"></i>
+                            <span class="nav-link-text">Clientes</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="bi bi-graph-up"></i>
+                            <span class="nav-link-text">Relatórios</span>
+                        </a>
+                    </li>
+                    
+                    <!-- Menu com submenu -->
+                    <li class="nav-item">
+                        <a class="nav-link" data-bs-toggle="collapse" href="#submenuLayouts" role="button"
+                            aria-expanded="false" aria-controls="submenuLayouts">
+                            <i class="bi bi-person-gear"></i>
+                            <span class="nav-link-text">Usuários</span>
+                            <i class="bi bi-chevron-down ms-auto"></i>
+                        </a>
+                        <div class="collapse" id="submenuLayouts">
+                            <ul class="nav flex-column ms-3">
+                                <li class="nav-item">
+                                    <a href="{% url 'perfil-usuario' user.id %}" class="nav-link">
+                                        <i class="bi bi-person"></i>
+                                        <span class="nav-link-text">Perfil Usuário</span>
+                                    </a>
+                                </li>
+                                {% if user|has_role:'gerente' %}
+                                <li class="nav-item">
+                                    <a href="{% url 'index-usuarios' %}" class="nav-link">
+                                        <i class="bi bi-people"></i>
+                                        <span class="nav-link-text">Listar Usuários</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item">
+                                    <a href="{% url 'editar-usuario' user.id %}" class="nav-link">
+                                        <i class="bi bi-pencil"></i>
+                                        <span class="nav-link-text">Editar Usuário</span>
+                                    </a>
+                                </li>
+                                {% endif %}
+                            </ul>
+                        </div>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'index-insumos' %}" class="nav-link">
+                            <i class="bi bi-box-seam"></i>
+                            <span class="nav-link-text">Insumos</span>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="bi bi-gear"></i>
+                            <span class="nav-link-text">Configurações</span>
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="sidebar-footer">
+                <a href="{% url 'logout' %}" class="nav-link text-danger">
+                    <i class="bi bi-box-arrow-right"></i>
+                    <span class="nav-link-text">Sair</span>
+                </a>
+            </div>
+        </div>
 
-        {% block conteudo %}
-        {% endblock %}
+        <!-- Main Content -->
+        <div class="main-content" id="mainContent">
+            {% include '../paginas/menssagens.html' %}
+
+            {% block conteudo %}
+            {% endblock %}
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js" crossorigin="anonymous"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.getElementById('sidebar');
+            const sidebarToggle = document.getElementById('sidebarToggle');
+            const mainContent = document.getElementById('mainContent');
+            const navLinks = document.querySelectorAll('.sidebar a:not([data-bs-toggle="collapse"])');
+            
+            // Verifica o estado inicial baseado no tamanho da tela e localStorage
+            function initSidebarState() {
+                const isMobile = window.innerWidth < 769;
+                const savedState = localStorage.getItem('sidebarCollapsed');
+                
+                if (isMobile) {
+                    // Em mobile, sempre começa fechado
+                    sidebar.classList.remove('show');
+                    sidebar.classList.remove('collapsed');
+                } else {
+                    // Em desktop, usa o estado salvo ou padrão (aberto)
+                    const shouldCollapse = savedState === 'true';
+                    sidebar.classList.toggle('collapsed', shouldCollapse);
+                    mainContent.classList.toggle('expanded', shouldCollapse);
+                }
+            }
+            
+            // Alternar sidebar
+            function toggleSidebar() {
+                const isMobile = window.innerWidth < 769;
+                
+                if (isMobile) {
+                    // Em mobile, usa show/hide
+                    sidebar.classList.toggle('show');
+                } else {
+                    // Em desktop, usa collapsed/expanded
+                    sidebar.classList.toggle('collapsed');
+                    mainContent.classList.toggle('expanded');
+                    
+                    // Salva o estado no localStorage apenas para desktop
+                    const isNowCollapsed = sidebar.classList.contains('collapsed');
+                    localStorage.setItem('sidebarCollapsed', isNowCollapsed);
+                }
+            }
+            
+            // Fechar sidebar ao clicar em um link (apenas mobile)
+            function closeSidebarOnLinkClick() {
+                if (window.innerWidth < 769) {
+                    navLinks.forEach(link => {
+                        link.addEventListener('click', () => {
+                            sidebar.classList.remove('show');
+                        });
+                    });
+                }
+            }
+            
+            // Manipulador de redimensionamento
+            function handleResize() {
+                const isMobile = window.innerWidth < 769;
+                
+                if (isMobile) {
+                    // Se mudou para mobile, remove collapsed
+                    sidebar.classList.remove('collapsed');
+                    mainContent.classList.remove('expanded');
+                } else {
+                    // Se mudou para desktop, aplica o estado salvo
+                    const shouldCollapse = localStorage.getItem('sidebarCollapsed') === 'true';
+                    sidebar.classList.toggle('collapsed', shouldCollapse);
+                    mainContent.classList.toggle('expanded', shouldCollapse);
+                }
+            }
+            
+            // Inicialização
+            initSidebarState();
+            closeSidebarOnLinkClick();
+            
+            // Event Listeners
+            sidebarToggle.addEventListener('click', toggleSidebar);
+            window.addEventListener('resize', handleResize);
+        });
+    </script>
 </body>
 
 </html>

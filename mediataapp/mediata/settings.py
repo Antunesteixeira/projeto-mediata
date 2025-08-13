@@ -13,6 +13,8 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 import os
 
+from datetime import timedelta
+
 from django.contrib.messages import constants as messages
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -51,8 +53,10 @@ INSTALLED_APPS = [
     'tickets',
     'insumos',
     'clientes',
+    'colaborador',
     # apps de terceiros
     'rolepermissions',
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [
@@ -63,6 +67,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django_auto_logout.middleware.auto_logout',
 ]
 
 ROOT_URLCONF = 'mediata.urls'
@@ -77,6 +82,8 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                # !!! Add this !!!
+                'django_auto_logout.context_processors.auto_logout_client',
             ],
         },
     },
@@ -155,4 +162,22 @@ MESSAGE_TAGS = {
     messages.ERROR: 'danger',
 }
 
-ROLEPERMISSI0NS_MOSULE = "usuarios.roles"
+ROLEPERMISSIONS_MODULE = 'usuarios.roles'
+
+handler404 = 'core.erro_404'
+
+# Tempo de vida da sessão em segundos (20 minutos)
+#SESSION_COOKIE_AGE = 5
+
+#SESSION_COOKIE_AGE = 900  # 15 minutos em segundos
+#SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# Salva a sessão em cada requisição para atualizar o tempo de expiração
+SESSION_SAVE_EVERY_REQUEST = True
+
+AUTO_LOGOUT = {
+    'IDLE_TIME': timedelta(minutes=20),
+    'SESSION_TIME': timedelta(minutes=30),
+    'MESSAGE': 'The session has expired. Please login again to continue.',
+    'REDIRECT_TO_LOGIN_IMMEDIATELY': True,
+}

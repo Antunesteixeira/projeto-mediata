@@ -7,6 +7,7 @@ from django.contrib.auth.decorators import login_required
 
 from django.db.models import ProtectedError
 
+from django.http import JsonResponse
 
 # Create your views here.
 def insumos(request):
@@ -70,3 +71,15 @@ def deletar_insumo(request, id):
     except ProtectedError:
         messages.error(request, "Não foi possível deletar o ticket porque há objetos relacionados protegendo-o.")
     return redirect('index-insumos') 
+
+def buscar_insumos(request):
+    termo = request.GET.get('q', '')
+    insumos = Insumos.objects.filter(insumo__icontains=termo)[:20]  # até 20 resultados
+
+    results = []
+    for insumo in insumos:
+        results.append({
+            "id": insumo.id,
+            "text": f"{insumo.insumo} — R$ {insumo.valor_unit:.2f}"
+        })
+    return JsonResponse({"results": results})

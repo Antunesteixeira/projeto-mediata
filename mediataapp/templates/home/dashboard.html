@@ -1,184 +1,328 @@
 {% extends '_layout/base.html' %}
+{% load permission_tags %}
 
 {% block conteudo %}
-  <h2>Visão Geral</h2>
-  <div class="row g-4 mt-3">
-    <!-- Tickets -->
-    <div class="col-md-3">
-      <a href="{% url 'index-tickets' %}" class="text-decoration-none">
-        <div class="card shadow-sm bg-primary text-white h-100">
-          <div class="card-body">
-            <div class="d-flex align-items-center mb-2">
-              <i class="bi bi-ticket-detailed-fill fs-1 me-3"></i>
-              <h5 class="card-title mb-0">Tickets</h5>
-            </div>
-            <p class="card-text">{{ tickets_total }} registrados</p>
-          </div>
-        </div>
-      </a>
-    </div>
-
-    <!-- Vendas -->
-    <div class="col-md-3">
-      <a href="#" class="text-decoration-none">
-        <div class="card shadow-sm bg-success text-white h-100">
-          <div class="card-body">
-            <div class="d-flex align-items-center mb-2">
-              <i class="bi bi-graph-up-arrow fs-1 me-3"></i>
-              <h5 class="card-title mb-0">Relatorios</h5>
-            </div>
-            <p class="card-text">R$ 15.300 este mês</p>
-          </div>
-        </div>
-      </a>
-    </div>
-
-    <!-- Orçamentos -->
-    <div class="col-md-3">
-      <a href="#" class="text-decoration-none">
-        <div class="card shadow-sm bg-danger text-white h-100">
-          <div class="card-body">
-            <div class="d-flex align-items-center mb-2">
-              <i class="bi bi-cash-coin fs-1 me-3"></i>
-              <h5 class="card-title mb-0">Orçamentos</h5>
-            </div>
-            <p class="card-text">R$ 15.300 este mês</p>
-          </div>
-        </div>
-      </a>
-    </div>
-
-    <!-- Suporte -->
-    <div class="col-md-3">
-      <a href="#" class="text-decoration-none">
-        <div class="card shadow-sm bg-warning text-dark h-100">
-          <div class="card-body">
-            <div class="d-flex align-items-center mb-2">
-              <i class="bi bi-headset fs-1 me-3"></i>
-              <h5 class="card-title mb-0">Suporte</h5>
-            </div>
-            <p class="card-text">8 chamados abertos</p>
-          </div>
-        </div>
-      </a>
-    </div>
-
-    <br>
-
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <span class="fs-2">Tickets</span>
-    </div>
-
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <label for="filtro-status" class="form-label">Filtrar por Status</label>
-            <select id="filtro-status" class="form-select">
-                <option value="">Todos</option>
-                <option value="Executado">Executado</option>
-                <option value="Em execução">Em execução</option>
-                <option value="Cotação">Cotação</option>
-                <option value="Levantamento">Levantamento</option>
-                <option value="Aprovado">Aprovado</option>
-                <option value="Finalizado">Finalizado</option>
-                <option value="Vistoriado">Vistoriado</option>
-                <option value="Rejeitado">Rejeitado</option>
-            </select>
-        </div>
-    </div>
-
-    <div class="table-responsive small">
-        <table class="table table-striped table-sm w-100" style="table-layout: fixed;" id="datatablesSimple">
-            <thead>
-                <tr>
-                    <th scope="col">Ticket</th>
-                    <th scope="col">Colaborador</th>
-                    <th scope="col">Cliente</th>
-                    <th scope="col">Prestador</th>
-                    <th scope="col">Criação</th>
-                    <th scope="col">Finalização</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for ticket in tickets %}
-                <tr>
-                    <td>{{ ticket.ticket }}</td>
-                    <td>Antunes Teixeira</td>
-                    <td>MA 0094</td>
-                    <td>Antônio Luis</td>
-                    <td data-order="{{ ticket.data_criacao|date:'Y-m-d H:i:s' }}">
-                        {{ ticket.data_criacao|date:"d/m/Y H:i" }}
-                    </td>
-                    <td data-order="{{ ticket.data_finalizar|date:'Y-m-d' }}">
-                        {{ ticket.data_finalizar|date:"d/m/Y" }}
-                    </td>
-                    <td>
-                        {% if ticket.status == 'E' %}
-                        <span class="badge text-bg-warning">Executado</span>
-                        {% endif %}
-                        {% if ticket.status == 'X' %}
-                        <span class="badge text-bg-warning">Em execução</span>
-                        {% endif %}
-                        {% if ticket.status == 'C' %}
-                        <span class="badge text-bg-info">Cotação</span>
-                        {% endif %}
-                        {% if ticket.status == 'L' %}
-                        <span class="badge text-bg-info">Levantamento</span>
-                        {% endif %}
-                        {% if ticket.status == 'A' %}
-                        <span class="badge text-bg-secondary">Aprovado</span>
-                        {% endif %}
-                        {% if ticket.status == 'F' %}
-                        <span class="badge text-bg-dark">Finalizado</span>
-                        {% endif %}
-                        {% if ticket.status == 'V' %}
-                        <span class="badge text-bg-success">Vistoriado</span>
-                        {% endif %}
-                        {% if ticket.status == 'R' %}
-                        <span class="badge text-bg-light">Rejeitado</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <div class="d-flex gap-1 flex-wrap">
-                            <a href="{% url 'exibir-ticket' ticket.key %}" class="btn btn-primary btn-sm"><i
-                                    class="bi bi-eye"></i></a>
-                            <a href="{% url 'editar-ticket' ticket.key %}" class="btn btn-success btn-sm"><i
-                                    class="bi bi-pencil-square"></i></a>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-
-    <script>
-        $(document).ready(function () {
-            const tabela = $('#datatablesSimple').DataTable({
-                order: [[4, 'desc']], // ordena por "Criação" mais recente primeiro
-                language: {
-                    search: "Pesquisar:",
-                    lengthMenu: "Mostrar _MENU_ registros por página",
-                    info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                    paginate: {
-                        first: "Primeiro",
-                        last: "Último",
-                        next: "Próximo",
-                        previous: "Anterior"
-                    },
-                    zeroRecords: "Nenhum resultado encontrado",
-                }
-            });
-
-            // Filtro por Status (coluna 6 – index começa em 0)
-            $('#filtro-status').on('change', function () {
-                let valor = $(this).val();
-                tabela.column(6).search(valor).draw();  // 6 = Status
-            });
-        });
-    </script>
-
+<div class="container-fluid px-4">
+    <h2 class="mt-4"><i class="bi bi-speedometer2 me-2"></i>Visão Geral</h2>
     
-  </div>
+    <!-- Cards de Métricas -->
+    <div class="row g-4 mt-3">
+        <!-- Tickets -->
+        <div class="col-xl-3 col-md-6">
+            <a href="{% url 'index-tickets' %}" class="text-decoration-none">
+                <div class="card bg-primary text-white h-100 shadow-lg border-0">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title mb-2">Tickets</h5>
+                                <h2 class="mb-0">{{ tickets_total }}</h2>
+                                <p class="small mb-0">Total registrados</p>
+                            </div>
+                            <i class="bi bi-ticket-detailed-fill fs-1 opacity-50"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-primary-dark bg-opacity-10 d-flex justify-content-between align-items-center">
+                        <span class="small">Ver todos</span>
+                        <i class="bi bi-arrow-right-short"></i>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Relatórios -->
+        <div class="col-xl-3 col-md-6">
+            <a href="#" class="text-decoration-none">
+                <div class="card bg-success text-white h-100 shadow-lg border-0">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title mb-2">Relatórios</h5>
+                                <h2 class="mb-0">R$ 15.300</h2>
+                                <p class="small mb-0">Este mês</p>
+                            </div>
+                            <i class="bi bi-graph-up-arrow fs-1 opacity-50"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-success-dark bg-opacity-10 d-flex justify-content-between align-items-center">
+                        <span class="small">Ver relatórios</span>
+                        <i class="bi bi-arrow-right-short"></i>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Orçamentos -->
+        <div class="col-xl-3 col-md-6">
+            <a href="#" class="text-decoration-none">
+                <div class="card bg-danger text-white h-100 shadow-lg border-0">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title mb-2">Orçamentos</h5>
+                                <h2 class="mb-0">R$ 15.300</h2>
+                                <p class="small mb-0">Este mês</p>
+                            </div>
+                            <i class="bi bi-cash-coin fs-1 opacity-50"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-danger-dark bg-opacity-10 d-flex justify-content-between align-items-center">
+                        <span class="small">Ver orçamentos</span>
+                        <i class="bi bi-arrow-right-short"></i>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Suporte -->
+        <div class="col-xl-3 col-md-6">
+            <a href="#" class="text-decoration-none">
+                <div class="card bg-warning text-dark h-100 shadow-lg border-0">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="card-title mb-2">Suporte</h5>
+                                <h2 class="mb-0">(98) 98477-8810</h2>
+                                <p class="small mb-0">Contato direto</p>
+                            </div>
+                            <i class="bi bi-headset fs-1 opacity-50"></i>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-warning-dark bg-opacity-10 d-flex justify-content-between align-items-center">
+                        <span class="small">Ligar agora</span>
+                        <i class="bi bi-arrow-right-short"></i>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Seção de Tickets -->
+    <div class="card mt-4 shadow-lg border-0">
+        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
+            <h3 class="mb-0"><i class="bi bi-ticket-detailed me-2"></i>Tickets Recentes</h3>
+            <a href="{% url 'index-tickets' %}" class="btn btn-outline-primary btn-sm">
+                Ver todos <i class="bi bi-arrow-right ms-1"></i>
+            </a>
+        </div>
+        
+        <div class="card-body">
+            <!-- Filtros -->
+            <div class="row mb-4 g-3 align-items-end">
+                <div class="col-md-4">
+                    <label for="filtro-status" class="form-label">Filtrar por Status</label>
+                    <select id="filtro-status" class="form-select">
+                        <option value="">Todos os Status</option>
+                        <option value="Executado">Executado</option>
+                        <option value="Em execução">Em execução</option>
+                        <option value="Cotação">Cotação</option>
+                        <option value="Levantamento">Levantamento</option>
+                        <option value="Aprovado">Aprovado</option>
+                        <option value="Finalizado">Finalizado</option>
+                        <option value="Vistoriado">Vistoriado</option>
+                        <option value="Rejeitado">Rejeitado</option>
+                    </select>
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-search"></i></span>
+                        <input type="text" id="search-box" class="form-control" placeholder="Pesquisar tickets...">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela -->
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="datatablesSimple">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col" width="10%">Ticket</th>
+                            <th scope="col">Colaborador</th>
+                            <th scope="col">Cliente</th>
+                            {% if user|has_role:'gerente' %}
+                            <th scope="col">Prestador</th>
+                            {% endif %}
+                            <th scope="col" width="12%">Criação</th>
+                            <th scope="col" width="10%">Finalização</th>
+                            <th scope="col" width="12%">Status</th>
+                            <th scope="col" width="10%">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets %}
+                        <tr class="clickable-row" data-href="{% url 'exibir-ticket' ticket.key %}">
+                            <td><strong>#{{ ticket.ticket }}</strong></td>
+                            <td>
+                                {% if not ticket.colaborador %}
+                                    <a href="{% url 'add-colaborador-ticket' ticket.id %}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-person-plus"></i> Atribuir
+                                    </a>
+                                {% else %}
+                                    <a class="link-primary" href="{% url 'add-colaborador-ticket' ticket.id %}">
+                                        <i class="bi bi-people me-1"></i>{{ ticket.colaborador }}
+                                    </a>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if not ticket.cliente %}
+                                    <a href="{% url 'add-cliente-ticket' ticket.id %}" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-person-plus"></i> Atribuir
+                                    </a>
+                                {% else %}
+                                    <a class="link-primary" href="{% url 'add-cliente-ticket' ticket.id %}">
+                                        <i class="bi bi-building me-1"></i>{{ ticket.cliente }}
+                                    </a>
+                                {% endif %}
+                            </td>
+                            {% if user|has_role:'gerente' %}
+                            <td>
+                                <span class="text-muted">{{ ticket.usuario }}</span>
+                            </td>
+                            {% endif %}
+                            <td>
+                                <small class="text-muted">{{ ticket.data_criacao|date:"d/m/Y H:i" }}</small>
+                            </td>
+                            <td>
+                                <small class="text-muted">{{ ticket.data_finalizar|date:"d/m/Y" }}</small>
+                            </td>
+                            <td>
+                                {% if ticket.status == 'E' %}
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-gear-wide-connected me-1"></i>Em execução
+                                </span>
+                                {% elif ticket.status == 'X' %}
+                                <span class="badge bg-warning text-white">
+                                    <i class="bi bi-check-circle me-1"></i>Executado
+                                </span>
+                                {% elif ticket.status == 'C' %}
+                                <span class="badge bg-info text-dark">
+                                    <i class="bi bi-file-earmark-text me-1"></i>Cotação
+                                </span>
+                                {% elif ticket.status == 'L' %}
+                                <span class="badge bg-info text-dark">
+                                    <i class="bi bi-clipboard-data me-1"></i>Levantamento
+                                </span>
+                                {% elif ticket.status == 'A' %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-check-all me-1"></i>Aprovado
+                                </span>
+                                {% elif ticket.status == 'F' %}
+                                <span class="badge bg-dark">
+                                    <i class="bi bi-flag-fill me-1"></i>Finalizado
+                                </span>
+                                {% elif ticket.status == 'V' %}
+                                <span class="badge bg-success">
+                                    <i class="bi bi-eye-fill me-1"></i>Vistoriado
+                                </span>
+                                {% elif ticket.status == 'R' %}
+                                <span class="badge bg-light text-dark">
+                                    <i class="bi bi-x-circle-fill me-1"></i>Rejeitado
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex gap-2">
+                                    <a href="{% url 'exibir-ticket' ticket.key %}" class="btn btn-sm btn-outline-primary" 
+                                       data-bs-toggle="tooltip" title="Visualizar">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{% url 'editar-ticket' ticket.key %}" class="btn btn-sm btn-outline-success"
+                                       data-bs-toggle="tooltip" title="Editar">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        // Inicializa DataTable
+        const tabela = $('#datatablesSimple').DataTable({
+            order: [[4, 'desc']], // ordena por "Criação" mais recente primeiro
+            language: {
+                search: "Pesquisar:",
+                lengthMenu: "Mostrar _MENU_ registros por página",
+                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+                paginate: {
+                    first: "Primeiro",
+                    last: "Último",
+                    next: "Próximo",
+                    previous: "Anterior"
+                },
+                zeroRecords: "Nenhum resultado encontrado",
+            },
+            dom: '<"top"f>rt<"bottom"lip><"clear">',
+            responsive: true
+        });
+
+        // Filtro por Status
+        $('#filtro-status').on('change', function () {
+            tabela.column(5).search(this.value).draw(); // 5 = Status (índice começa em 0)
+        });
+
+        // Pesquisa geral
+        $('#search-box').on('keyup', function() {
+            tabela.search(this.value).draw();
+        });
+
+        // Ativa tooltips
+        $('[data-bs-toggle="tooltip"]').tooltip();
+        
+        // Linhas clicáveis
+        $('.clickable-row').on('click', function() {
+            window.location = $(this).data('href');
+        });
+    });
+</script>
+
+<style>
+    .card {
+        border-radius: 0.5rem;
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .card:hover {
+        transform: translateY(-2px);
+    }
+    
+    .card-header {
+        border-radius: 0.5rem 0.5rem 0 0 !important;
+    }
+    
+    .card-footer {
+        border-radius: 0 0 0.5rem 0.5rem !important;
+    }
+    
+    .bg-primary-dark {
+        background-color: rgba(0, 0, 0, 0.1);
+    }
+    
+    .bg-success-dark, .bg-danger-dark, .bg-warning-dark {
+        background-color: rgba(0, 0, 0, 0.1);
+    }
+    
+    .table-hover tbody tr:hover {
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+    
+    .badge {
+        font-weight: 500;
+        padding: 0.35em 0.65em;
+    }
+    
+    .clickable-row {
+        cursor: pointer;
+    }
+    
+    .clickable-row:hover td {
+        background-color: rgba(13, 110, 253, 0.05);
+    }
+</style>
 {% endblock %}

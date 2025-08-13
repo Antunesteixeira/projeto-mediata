@@ -21,6 +21,8 @@ class TicketForm(forms.ModelForm):
             'valor_material',
             'valor_custo',
             'valor_mao_obra',
+            'valor_faturamento',
+            'valor_equipamento',
             'emergencial',
             'data_finalizar',
             'descricao'
@@ -33,6 +35,8 @@ class TicketForm(forms.ModelForm):
             'valor_custo': 'Custo Total',
             'valor_mao_obra': 'Custo com Mão de Obra',
             'valor_faturamento': 'Valor a Faturar',
+            'valor_equipamento': 'Custo com equipamento',
+            'emergencial': 'Emergencial',
             'data_finalizar': 'Previsão de Finalização',
             'descricao': 'Descrição do Serviço'
         }
@@ -45,7 +49,9 @@ class TicketForm(forms.ModelForm):
             'status': forms.Select(attrs={
                 'class': 'form-select'
             }),
-            'emergencial': forms.HiddenInput(),
+            'emergencial': forms.CheckboxInput(attrs={
+                'class': 'form-check-input' # Classe do Bootstrap para checkboxes
+            }),
             'valor_mao_obra': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Ex: R$ 150,00'
@@ -61,6 +67,10 @@ class TicketForm(forms.ModelForm):
             'valor_faturamento': forms.NumberInput(attrs={
                 'class': 'form-control',
                 'placeholder': 'Ex: R$ 230,00'
+            }),
+            'valor_equipamento': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: R$ 250,00'
             }),
             'descricao': forms.Textarea(attrs={
                 'class': 'form-control',
@@ -156,9 +166,23 @@ class ItemOrcamentoForm(forms.ModelForm):
 
 class PagamentoForm(forms.ModelForm):
     class Meta:
-        model = Pagamentos
+        model = Pagamentos  # Nome do modelo corrigido para 'Pagamento'
         fields = [
-                'tipo',
-                'valor_pagamento',
-                'status_pagamento',
+            'tipo',
+            'valor_pagamento',
+            'status_pagamento',
+            'data_pagamento'
         ]
+        widgets = {
+            'tipo': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'valor_pagamento': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ex: R$ 100,00'
+            }),
+            'status_pagamento': forms.CheckboxInput(attrs={
+                'class': 'form-check-input' # Classe do Bootstrap para checkboxes
+            }),
+            'data_pagamento': forms.DateInput(attrs={'type': 'date', 'class': 'form-control',}),
+        }

@@ -1,37 +1,221 @@
 {% extends '_layout/base.html' %}
 
 {% block conteudo %}
-<div class="container mt-5">
-    <div class="card shadow-sm">
-        <div class="card-body">
-            <h2 class="mb-4"><i class="bi bi-person-plus-fill me-2"></i>Cadastro de Cliente</h2>
-
-            <form method="POST">
-                {% csrf_token %}
-                <div class="row g-3">
-                    {% for field in form.visible_fields %}
-                        <div class="col-md-6">
-                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                            {{ field }}
-                            {% if field.errors %}
-                                <div class="text-danger small">{{ field.errors }}</div>
-                            {% endif %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h3 class="mb-0"><i class="bi bi-person-plus-fill me-2"></i>Cadastrar Novo Cliente</h3>
+                </div>
+                
+                <div class="card-body">
+                    <form method="POST" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Seção de Tipo de Pessoa -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2"><i class="bi bi-person-vcard me-2"></i>Tipo de Pessoa</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="{{ form.tipo_pessoa.id_for_label }}" class="form-label">Tipo de Pessoa *</label>
+                                        <select name="{{ form.tipo_pessoa.name }}" id="{{ form.tipo_pessoa.id_for_label }}" 
+                                                class="form-select {% if form.tipo_pessoa.errors %}is-invalid{% endif %}">
+                                            {% for value, label in form.tipo_pessoa.field.choices %}
+                                                <option value="{{ value }}" 
+                                                    {% if form.tipo_pessoa.value|stringformat:"s" == value|stringformat:"s" %}selected{% endif %}>
+                                                    {{ label }}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                        {% if form.tipo_pessoa.errors %}
+                                            <div class="invalid-feedback d-block">
+                                                {{ form.tipo_pessoa.errors }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    {% endfor %}
-                </div>
 
-                <div class="form-check form-switch mt-4">
-                    {{ form.ativo }}
-                    <label class="form-check-label ms-2" for="{{ form.ativo.id_for_label }}">
-                        Cliente Ativo
-                    </label>
-                </div>
+                        <!-- Seção de Dados Pessoais/Jurídicos -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2"><i class="bi bi-file-earmark-text me-2"></i>Dados Cadastrais</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    {{ form.nome_razao_social.label_tag }}
+                                    {{ form.nome_razao_social }}
+                                    <small class="text-muted">Nome completo (PF) ou Razão Social (PJ)</small>
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.sobrenome_nome_fantasia.label_tag }}
+                                    {{ form.sobrenome_nome_fantasia }}
+                                    <small class="text-muted">Sobrenome (PF) ou Nome Fantasia (PJ)</small>
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.cpf_cnpj.label_tag }}
+                                    {{ form.cpf_cnpj }}
+                                </div>
+                                <div class="col-md-6">
+                                    {{ form.rg_ie.label_tag }}
+                                    {{ form.rg_ie }}
+                                    <small class="text-muted">RG (PF) ou Inscrição Estadual (PJ)</small>
+                                </div>
+                            </div>
+                        </div>
 
-                <button type="submit" class="btn btn-primary mt-4">
-                    <i class="bi bi-save me-2"></i>Salvar Cliente
-                </button>
-            </form>
+                        <!-- Seção de Contato -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2"><i class="bi bi-telephone me-2"></i>Contato</h5>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    {{ form.email.label_tag }}
+                                    {{ form.email }}
+                                </div>
+                                <div class="col-md-3">
+                                    {{ form.telefone.label_tag }}
+                                    {{ form.telefone }}
+                                </div>
+                                <div class="col-md-3">
+                                    {{ form.celular.label_tag }}
+                                    {{ form.celular }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção de Endereço -->
+                        <div class="mb-4">
+                            <h5 class="border-bottom pb-2"><i class="bi bi-geo-alt me-2"></i>Endereço</h5>
+                            <div class="row g-3">
+                                <div class="col-md-3">
+                                    {{ form.cep.label_tag }}
+                                    {{ form.cep }}
+                                </div>
+                                <div class="col-md-7">
+                                    {{ form.endereco.label_tag }}
+                                    {{ form.endereco }}
+                                </div>
+                                <div class="col-md-2">
+                                    {{ form.numero.label_tag }}
+                                    {{ form.numero }}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ form.complemento.label_tag }}
+                                    {{ form.complemento }}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ form.bairro.label_tag }}
+                                    {{ form.bairro }}
+                                </div>
+                                <div class="col-md-3">
+                                    {{ form.cidade.label_tag }}
+                                    {{ form.cidade }}
+                                </div>
+                                <div class="col-md-1">
+                                    {{ form.estado.label_tag }}
+                                    {{ form.estado }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status e Ações -->
+                        <div class="d-flex justify-content-between align-items-center mt-4">
+                            <div class="form-check form-switch">
+                                {{ form.ativo }}
+                                <label class="form-check-label ms-2" for="{{ form.ativo.id_for_label }}">
+                                    Cliente Ativo
+                                </label>
+                            </div>
+                            
+                            <div>
+                                <a href="{% url 'listar-clientes' %}" class="btn btn-outline-secondary me-2">
+                                    <i class="bi bi-arrow-left me-1"></i> Cancelar
+                                </a>
+                                <button type="submit" class="btn btn-success">
+                                    <i class="bi bi-check-circle me-1"></i> Cadastrar Cliente
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Adicionar classes de validação
+    const inputs = document.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        if (input.tagName === 'SELECT') {
+            input.classList.add('form-select');
+        } else if (input.type !== 'checkbox') {
+            input.classList.add('form-control');
+        }
+        
+        // Verificar erros
+        if (input.classList.contains('is-invalid')) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'invalid-feedback d-block';
+            errorDiv.textContent = input.dataset.error;
+            input.parentNode.appendChild(errorDiv);
+        }
+    });
+
+    // Máscaras para campos específicos
+    $('#id_telefone').mask('(00) 0000-0000');
+    $('#id_celular').mask('(00) 00000-0000');
+    $('#id_cep').mask('00000-000');
+
+    // Função para aplicar máscara conforme tipo de pessoa
+    function aplicarMascaraDocumento() {
+        const tipoPessoa = $('#id_tipo_pessoa').val();
+        if (tipoPessoa === 'PF') {
+            $('#id_cpf_cnpj').mask('000.000.000-00', {reverse: true});
+        } else {
+            $('#id_cpf_cnpj').mask('00.000.000/0000-00', {reverse: true});
+        }
+    }
+
+    // Aplicar máscara inicial
+    aplicarMascaraDocumento();
+
+    // Monitorar mudanças no tipo de pessoa
+    $('#id_tipo_pessoa').change(aplicarMascaraDocumento);
+});
+</script>
+
+<style>
+    .card {
+        border-radius: 10px;
+    }
+    .card-header {
+        border-radius: 10px 10px 0 0 !important;
+    }
+    .invalid-feedback {
+        display: block;
+    }
+    .text-muted {
+        font-size: 0.8rem;
+    }
+    .form-select {
+        display: block;
+        width: 100%;
+        padding: 0.375rem 2.25rem 0.375rem 0.75rem;
+        font-size: 1rem;
+        font-weight: 400;
+        line-height: 1.5;
+        color: #212529;
+        background-color: #fff;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right 0.75rem center;
+        background-size: 16px 12px;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+</style>
 {% endblock %}

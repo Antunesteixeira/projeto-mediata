@@ -4,13 +4,13 @@
 <div class="container-fluid px-4">
     <div class="card mb-4 shadow-sm border-0">
         <!-- Cabeçalho -->
-        <div class="card-header bg-success text-white d-flex justify-content-between align-items-center py-3">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center py-3">
             <div>
-                <h3 class="mb-0"><i class="bi bi-building me-2"></i>Clientes Cadastrados</h3>
-                <small class="opacity-75">Visualize e gerencie todos os clientes do sistema</small>
+                <h3 class="mb-0"><i class="bi bi-people-fill me-2"></i>Colaboradores Cadastrados</h3>
+                <small class="opacity-75">Visualize e gerencie todos os colaboradores do sistema</small>
             </div>
-            <a href="{% url 'cadastrar-cliente' %}" class="btn btn-light rounded-pill">
-                <i class="bi bi-person-plus-fill me-1"></i> Novo Cliente
+            <a href="{% url 'cadastrar_colaborador' %}" class="btn btn-light rounded-pill">
+                <i class="bi bi-person-plus-fill me-1"></i> Novo Colaborador
             </a>
         </div>
 
@@ -19,89 +19,98 @@
             <!-- Filtros -->
             <div class="row mb-4 g-3 align-items-end">
                 <div class="col-md-4">
-                    <label for="filtro-status" class="form-label">Filtrar por Status</label>
-                    <select id="filtro-status" class="form-select">
+                    <label for="filtro-tipo" class="form-label">Filtrar por Tipo</label>
+                    <select id="filtro-tipo" class="form-select">
                         <option value="">Todos</option>
-                        <option value="ativo">Ativos</option>
-                        <option value="inativo">Inativos</option>
+                        <option value="PF">Pessoa Física</option>
+                        <option value="PJ">Pessoa Jurídica</option>
                     </select>
                 </div>
                 
                 <div class="col-md-4">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" id="search-box" class="form-control" placeholder="Pesquisar clientes...">
+                        <input type="text" id="search-box" class="form-control" placeholder="Pesquisar colaboradores...">
                     </div>
                 </div>
             </div>
 
             <!-- Tabela -->
-            {% if clientes %}
+            {% if colaboradores %}
             <div class="table-responsive">
-                <table class="table table-hover align-middle" id="tabelaClientes">
+                <table class="table table-hover align-middle" id="tabelaColaboradores">
                     <thead class="table-light">
                         <tr>
-                            <th width="25%">Tipo</th>
+                            <th width="10%">Tipo</th>
                             <th width="25%">Nome/Razão Social</th>
                             <th width="15%">CPF/CNPJ</th>
                             <th width="20%">Contato</th>
-                            <th width="10%">Status</th>
-                            <th width="15%">Cadastro</th>
-                            <th width="15%" class="text-end">Ações</th>
+                            <th width="20%">Dados Bancários</th>
+                            <th width="10%" class="text-end">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for cliente in clientes %}
-                        <tr class="clickable-row" data-href="{% url 'editar-cliente' cliente.id %}">
+                        {% for colaborador in colaboradores %}
+                        <tr class="clickable-row" data-href="{% url 'editar-colaborador' colaborador.pk %}">
                             <td>
-                                <span class="badge {% if cliente.tipo_pessoa == 'PF' %}bg-primary{% else %}bg-info{% endif %}">
-                                    {{ cliente.get_tipo_pessoa_display }}
+                                <span class="badge {% if colaborador.tipo_pessoa == 'PF' %}bg-primary{% else %}bg-info{% endif %}">
+                                    {{ colaborador.get_tipo_pessoa_display }}
                                 </span>
                             </td>
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div class="avatar-sm me-2">
-                                        <span class="avatar-title bg-primary rounded-circle">
-                                            {{ cliente.nome_razao_social|first|upper }}
+                                        <span class="avatar-title bg-{% if colaborador.tipo_pessoa == 'PF' %}primary{% else %}info{% endif %} rounded-circle">
+                                            {% if colaborador.tipo_pessoa == 'PF' %}
+                                                {{ colaborador.nome_completo|first|upper }}
+                                            {% else %}
+                                                {{ colaborador.razao_social|first|upper }}
+                                            {% endif %}
                                         </span>
                                     </div>
                                     <div>
-                                        <h6 class="mb-0">{{ cliente.nome_razao_social }}</h6>
-                                        <small class="text-muted">{{ cliente.nome_fantasia|default:"" }}</small>
+                                        <h6 class="mb-0">
+                                            {% if colaborador.tipo_pessoa == 'PF' %}
+                                                {{ colaborador.nome_completo }}
+                                            {% else %}
+                                                {{ colaborador.razao_social }}
+                                            {% endif %}
+                                        </h6>
+                                        {% if colaborador.tipo_pessoa == 'PJ' %}
+                                            <small class="text-muted">{{ colaborador.nome_fantasia|default:"" }}</small>
+                                        {% endif %}
                                     </div>
                                 </div>
                             </td>
-                            <td>{{ cliente.cpf_cnpj|default:"—" }}</td>
                             <td>
-                                <div>
-                                    <div><i class="bi bi-envelope me-1"></i> {{ cliente.email|default:"—" }}</div>
-                                    <small><i class="bi bi-telephone me-1"></i> {{ cliente.telefone|default:cliente.celular|default:"—" }}</small>
-                                </div>
-                            </td>
-                            <td>
-                                {% if cliente.ativo %}
-                                    <span class="badge bg-success">
-                                        <i class="bi bi-check-circle me-1"></i> Ativo
-                                    </span>
+                                {% if colaborador.tipo_pessoa == 'PF' %}
+                                    {{ colaborador.cpf|default:"—" }}
                                 {% else %}
-                                    <span class="badge bg-secondary">
-                                        <i class="bi bi-x-circle me-1"></i> Inativo
-                                    </span>
+                                    {{ colaborador.cnpj|default:"—" }}
                                 {% endif %}
                             </td>
                             <td>
-                                <small class="text-muted">{{ cliente.data_cadastro|date:"d/m/Y H:i" }}</small>
+                                <div>
+                                    <div><i class="bi bi-envelope me-1"></i> {{ colaborador.email|default:"—" }}</div>
+                                    <small><i class="bi bi-telephone me-1"></i> {{ colaborador.telefone|default:"—" }}</small>
+                                </div>
+                            </td>
+                            <td>
+                                <div>
+                                    <div><i class="bi bi-bank me-1"></i> {{ colaborador.banco|default:"—" }}</div>
+                                    <small><i class="bi bi-wallet me-1"></i> {{ colaborador.chave_pix|default:"—" }}</small>
+                                </div>
                             </td>
                             <td class="text-end">
                                 <div class="d-flex gap-2 justify-content-end">
-                                    <a href="{% url 'editar-cliente' cliente.id %}" class="btn btn-sm btn-outline-success" 
+                                    <a href="{% url 'editar-colaborador' colaborador.pk %}" class="btn btn-sm btn-outline-success" 
                                        data-bs-toggle="tooltip" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                     <button class="btn btn-sm btn-outline-danger" 
-                                            data-bs-toggle="tooltip" title="Desativar"
-                                            onclick="confirmarDesativacao({{ cliente.id }})">
-                                        <i class="bi bi-person-x"></i>
+                                            data-bs-toggle="tooltip" title="Excluir"
+                                            onclick="confirmarExclusao({{ colaborador.pk }})">
+                                        <i class="bi bi-trash"></i>
                                     </button>
                                 </div>
                             </td>
@@ -112,37 +121,37 @@
             </div>
             {% else %}
             <div class="alert alert-info text-center py-4">
-                <i class="bi bi-info-circle-fill me-2"></i>Nenhum cliente cadastrado até o momento.
+                <i class="bi bi-info-circle-fill me-2"></i>Nenhum colaborador cadastrado até o momento.
             </div>
             {% endif %}
         </div>
 
         <!-- Rodapé com paginação -->
-        {% if clientes.has_other_pages %}
+        {% if colaboradores.has_other_pages %}
         <div class="card-footer bg-white d-flex justify-content-between align-items-center">
             <div class="text-muted small">
-                Mostrando {{ clientes.start_index }} a {{ clientes.end_index }} de {{ clientes.paginator.count }} registros
+                Mostrando {{ colaboradores.start_index }} a {{ colaboradores.end_index }} de {{ colaboradores.paginator.count }} registros
             </div>
             
             <nav>
                 <ul class="pagination pagination-sm mb-0">
-                    {% if clientes.has_previous %}
+                    {% if colaboradores.has_previous %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ clientes.previous_page_number }}">Anterior</a>
+                        <a class="page-link" href="?page={{ colaboradores.previous_page_number }}">Anterior</a>
                     </li>
                     {% endif %}
                     
-                    {% for num in clientes.paginator.page_range %}
-                    {% if clientes.number == num %}
+                    {% for num in colaboradores.paginator.page_range %}
+                    {% if colaboradores.number == num %}
                     <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                     {% else %}
                     <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
                     {% endif %}
                     {% endfor %}
                     
-                    {% if clientes.has_next %}
+                    {% if colaboradores.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ clientes.next_page_number }}">Próximo</a>
+                        <a class="page-link" href="?page={{ colaboradores.next_page_number }}">Próximo</a>
                     </li>
                     {% endif %}
                 </ul>
@@ -157,11 +166,11 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Confirmar Ação</h5>
+                <h5 class="modal-title">Confirmar Exclusão</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p id="modalMessage">Tem certeza que deseja desativar este cliente?</p>
+                <p id="modalMessage">Tem certeza que deseja excluir este colaborador?</p>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -177,8 +186,8 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Inicializa DataTable
-    const tabela = $('#tabelaClientes').DataTable({
-        order: [[4, 'desc']], // Ordena por data de cadastro
+    const tabela = $('#tabelaColaboradores').DataTable({
+        order: [[1, 'asc']], // Ordena por nome
         language: {
             search: "Pesquisar:",
             lengthMenu: "Mostrar _MENU_ registros por página",
@@ -189,20 +198,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 next: "Próximo",
                 previous: "Anterior"
             },
-            zeroRecords: "Nenhum cliente encontrado",
+            zeroRecords: "Nenhum colaborador encontrado",
         },
         dom: '<"top">rt<"bottom"lip><"clear">',
         responsive: true
     });
 
-    // Filtro por Status
-    $('#filtro-status').on('change', function() {
-        if (this.value === 'ativo') {
-            tabela.column(3).search('^Ativo$', true, false).draw();
-        } else if (this.value === 'inativo') {
-            tabela.column(3).search('^Inativo$', true, false).draw();
+    // Filtro por Tipo
+    $('#filtro-tipo').on('change', function() {
+        if (this.value === 'PF') {
+            tabela.column(0).search('^Pessoa Física$', true, false).draw();
+        } else if (this.value === 'PJ') {
+            tabela.column(0).search('^Pessoa Jurídica$', true, false).draw();
         } else {
-            tabela.column(3).search('').draw();
+            tabela.column(0).search('').draw();
         }
     });
 
@@ -222,11 +231,11 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function confirmarDesativacao(clienteId) {
+function confirmarExclusao(colaboradorId) {
     const modal = new bootstrap.Modal(document.getElementById('confirmModal'));
     const form = document.getElementById('actionForm');
-    form.action = `/clientes/deletar/${clienteId}/`;
-    document.getElementById('modalMessage').textContent = 'Tem certeza que deseja desativar este cliente?';
+    form.action = `/colaborador/deletar/${colaboradorId}/`;
+    document.getElementById('modalMessage').textContent = 'Tem certeza que deseja excluir este colaborador?';
     modal.show();
 }
 </script>

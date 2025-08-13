@@ -27,7 +27,8 @@ urlpatterns = [
     path('tickets/', include('tickets.urls')),
     path('insumos/', include('insumos.urls')),
     path('clientes/', include('clientes.urls')),
-]
+    path('colaborador/', include('colaborador.urls')),
+] 
 
 if settings.DEBUG:
     urlpatterns += static(

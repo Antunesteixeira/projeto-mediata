@@ -1,30 +1,54 @@
 {% extends '../_layout/base.html' %}
+{% load permission_tags %}
+{% load widget_tweaks %}
 
 {% block conteudo %}
 <div class="container mt-5">
     <div class="row justify-content-center">
         <div class="col-md-6">
-            <h2 class="mb-4">Editar Usuário</h2>
+            <h2 class="mb-4 text-center">Editar Usuário</h2>
             <form method="post" novalidate>
                 {% csrf_token %}
+
+                {# Campos normais exceto grupo e ativo #}
                 {% for field in form %}
-                    {% if field.name == 'is_active' %}
-                        <div class="form-check mb-3">
-                            {{ field }}
-                            <label for="{{ field.id_for_label }}" class="form-check-label">{{ field.label }}</label>
-                        </div>
-                    {% else %}
+                    {% if field.name != 'groups' and field.name != 'is_active' %}
                         <div class="mb-3">
                             <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
                             {{ field }}
                             {% if field.errors %}
-                                <div class="text-danger small">
+                                <div class="text-danger small mt-1">
                                     {{ field.errors }}
                                 </div>
                             {% endif %}
                         </div>
                     {% endif %}
                 {% endfor %}
+                
+                <div class="mb-3">
+                    <label for="{{ form.groups.id_for_label }}" class="form-label">Grupo</label>
+                    {% if user|has_role:'gerente' %}
+                    {{ form.groups }}
+                    {% else %}
+                    {{ form.groups|attr:"disabled:true" }}
+                    {% endif %}
+                    {% if form.groups.errors %}
+                        <div class="text-danger small mt-1">
+                            {{ form.groups.errors }}
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-check mb-3">
+                    {% if user|has_role:'gerente' %}
+                    {{ form.is_active }}
+                    {% else %}
+                    {{ form.is_active|attr:"disabled:true" }}
+                    {% endif %}
+                    <label for="{{ form.is_active.id_for_label }}" class="form-check-label">{{ form.is_active.label }}</label>
+                </div>
+
+                
                 <button type="submit" class="btn btn-success w-100">Salvar Alterações</button>
             </form>
         </div>

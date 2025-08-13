@@ -1,5 +1,6 @@
 from decimal import Decimal
 import json
+import uuid
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -7,20 +8,33 @@ from django.db import transaction
 from django.db.models import F, ExpressionWrapper, DecimalField, Sum
 from django.shortcuts import get_object_or_404, redirect, render
 
+from django.contrib.auth.models import User, Group
+from colaborador.models import Colaborador
+from clientes.models import Cliente
+
 from django.http import HttpResponse, HttpResponseBadRequest
 
 from .models import Ticket, Orcamento, ItemOrcamento, Insumos, HistoricoTicket, Pagamentos  # ajuste se estiver em outro lugar
 from .forms import OrcamentoForm, ItemOrcamentoForm, TicketForm, HistorcoTicketForm, PagamentoForm  # importe só os forms que usa
 
+from rolepermissions.checkers import has_role
+
 from django.db.models import ProtectedError
 
 from django.db import IntegrityError
 
+import os
+from django.conf import settings
+
+
 @login_required
 def tickets(request):
     usuario = request.user
-    tickets = Ticket.objects.filter(usuario=usuario.pk).order_by('-data_criacao')
-
+    
+    if has_role(usuario, [User, 'gerente']):
+        tickets = Ticket.objects.all().order_by('-data_criacao')
+    else:
+        tickets = Ticket.objects.filter(usuario=usuario.pk).order_by('-data_criacao')
     context = {
         'tickets': tickets,
     }
@@ -58,8 +72,10 @@ def cadastro_ticket(request):
 @login_required
 def exibirticket(request, key):
     ticket = get_object_or_404(Ticket, key=key)
+    # No início da view (junto com os outros forms):
+    pagamento = PagamentoForm(prefix='pagamento')  # Mude o prefix para ser único
 
-    insumos = list(Insumos.objects.values('id', 'insumo', 'codigo', 'tipo', 'valor_unit'))
+    insumos = list(Insumos.objects.values('id', 'insumo', 'valor_unit'))
     for insumo in insumos:
         insumo['valor_unit'] = str(insumo['valor_unit'])
 
@@ -91,25 +107,36 @@ def exibirticket(request, key):
                         if itemorcamento.is_valid():
                             item = itemorcamento.save(commit=False)
                             item.orcamento = orcamento
-                            # se você armazena subtotal no modelo, calcule aqui; caso contrário a annotate abaixo cuidará
                             try:
                                 quantidade = getattr(item, 'quant', 0) or 0
-                                valor_unitario = getattr(item.item, 'valor_unit', Decimal('0')) or Decimal('0')  # ajuste se o campo for outro
-                                item.subtotal = quantidade * valor_unitario  # apenas se existir esse campo
+                                valor_unitario = getattr(item.item, 'valor_unit', Decimal('0')) or Decimal('0')
+                                item.subtotal = quantidade * valor_unitario
                             except Exception:
                                 pass
                             item.save()
                             return redirect('exibir-ticket', key=ticket.key)
                         else:
                             messages.error(request, "Erro ao salvar item de orçamento.")
-                elif form_type == 'form-pagamento':
-                    pagamento = PagamentoForm(request.POST, prefix="form-pagamento")
-                    if pagamento.is_valid():
-                        pag = pagamento.save(commit=False)
-                        pag.ticket_pagamento = ticket
-                        pag.save()
-                        messages.info(request, "Pagamento realizado!")
+                if form_type == 'form-pagamento':
+        
+                    valor = request.POST.get('valor_pagamento')
+                    data = request.POST.get('data_pagamento')
+                    status = 'status_pagamento' in request.POST
+                    
+                    # Validação básica
+                    if not all([valor, data]):
+                        messages.error(request, "Preencha todos os campos obrigatórios!")
+                    else:
+                        Pagamentos.objects.create(
+                            ticket_pagamento=ticket,
+                            tipo=request.POST.get('tipo'),
+                            valor_pagamento=valor,
+                            data_pagamento=data,
+                            status_pagamento=status
+                        )
+                        messages.success(request, "Pagamento adicionado com sucesso!")
                         return redirect('exibir-ticket', key=ticket.key)
+                
         except Exception:
             messages.error(request, "Ocorreu um erro ao processar a requisição.")
 
@@ -118,7 +145,6 @@ def exibirticket(request, key):
     list_pagamento = Pagamentos.objects.filter(ticket_pagamento=ticket.id)
 
     if orcamento:
-        # anotando subtotal = quant * item__valor_unit (ajuste nome do campo de valor se for diferente)
         itens_orcamento = ItemOrcamento.objects.filter(orcamento=orcamento).annotate(
             subtotal=ExpressionWrapper(
                 F('quant') * F('item__valor_unit'),
@@ -130,9 +156,56 @@ def exibirticket(request, key):
         itens_orcamento = ItemOrcamento.objects.none()
         total_itens = Decimal('0')
 
+    # Calcular resumo de pagamentos por tipo
+    resumo_pagamentos = {
+        'M': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},  # Material
+        'S': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},  # Serviço
+        'O': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},  # Mão de Obra
+        'E': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},  # Equipamento
+        'T': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},  # Taxa
+    }
+    
+    # Calcular totais orçados por tipo
+    if itens_orcamento:
+        for item in itens_orcamento:
+            tipo = item.item.tipo
+            if tipo in resumo_pagamentos:
+                resumo_pagamentos[tipo]['total_orcado'] += item.subtotal
+    
+    # Calcular totais pagos e pendentes por tipo
+    if list_pagamento:
+        for pagamento in list_pagamento:
+            tipo = pagamento.tipo
+            if tipo in resumo_pagamentos:
+                if pagamento.status_pagamento:
+                    resumo_pagamentos[tipo]['total_pago'] += pagamento.valor_pagamento
+                else:
+                    resumo_pagamentos[tipo]['total_pendente'] += pagamento.valor_pagamento
+    
+    # Calcular saldos
+    for tipo in resumo_pagamentos:
+        resumo_pagamentos[tipo]['saldo'] = (
+            resumo_pagamentos[tipo]['total_orcado'] - 
+            resumo_pagamentos[tipo]['total_pago'] - 
+            resumo_pagamentos[tipo]['total_pendente']
+        )
+    
+    # Calcular totais gerais
+    resumo_geral = {
+        'total_orcado': sum(v['total_orcado'] for v in resumo_pagamentos.values()),
+        'total_pago': sum(v['total_pago'] for v in resumo_pagamentos.values()),
+        'total_pendente': sum(v['total_pendente'] for v in resumo_pagamentos.values()),
+        'saldo': sum(v['saldo'] for v in resumo_pagamentos.values()),
+    }
+
     valor_custo_total = ticket.func_valor_custo_total()
     bdi = ticket.func_bdi()
+    if resumo_geral['saldo'] != 0:
+        margem = ticket.func_soma_margem() / resumo_geral['saldo']
+    else:
+        margem = Decimal('0')
     historico = HistoricoTicket.objects.filter(ticket_historico=ticket.id)
+    
     context = {
         'ticket': ticket,
         'valor_custo_total': valor_custo_total,
@@ -146,7 +219,9 @@ def exibirticket(request, key):
         'ticketformstatus': ticketformstatus,
         'pagamento': pagamento,
         'list_pagamento': list_pagamento,
-        #'insumos_json': json.dumps(insumos),
+        'resumo_pagamentos': resumo_pagamentos,
+        'resumo_geral': resumo_geral,
+        'insumos_json': json.dumps(insumos, ensure_ascii=False),
     }
     return render(request, 'tickets/ticket.html', context)
 
@@ -174,11 +249,12 @@ def editar_ticket(request, key):
 
     return render(request, 'tickets/editar-ticket.html', context)
 
-
+@login_required
 def selecionar_ticket(request):
     tickets = Ticket.objects.all()
     return render(request, 'index.html', {'tickets': tickets})
 
+@login_required
 def buscar_tickets(request):
     tickets = list(Ticket.objects.values('id', 'ticket'))
     return render(request, 'index.html', {
@@ -201,6 +277,7 @@ def deletar_ticket(request, key):
         messages.error(request, "Não foi possível deletar o ticket porque há objetos relacionados protegendo-o.")
     return redirect('index-tickets') 
 
+@login_required
 def deletar_itemorcamento(request, id, key):
     itemorcamento =  get_object_or_404(ItemOrcamento, id=id)
 
@@ -245,5 +322,142 @@ def update_historico(request, key):
     # GET: mostrar formulário/modal
     return redirect('exibir-ticket', key)
 
-def teste(request):
-    return render(request, 'index.html')
+@login_required
+def deletar_pagamento(request, id, key):
+    pagamento =  get_object_or_404(Pagamentos, id=id)
+
+    try:
+        pagamento.delete()
+        messages.success(request, f"Pagamento deletado com sucesso.")
+    except ProtectedError:
+        messages.error(request, "Não foi possível deletar o pagamento porque há objetos relacionados protegendo-o.")
+    return redirect('exibir-ticket', key)
+
+@login_required
+def addTicketColaborador(request, id_ticket):
+    usuario = request.user
+    if request.method == 'GET':
+        colaboradores = Colaborador.objects.all()
+
+    origem = request.GET.get('origem', None)
+
+    context = {
+        'colaboradores':colaboradores, 
+        'id_ticket':id_ticket,
+        'title': 'Adicionar Colaborador ao Ticket',
+        'origem': origem,
+    }
+    return render(request, 'tickets/add-colaborador-ticket.html', context)
+
+@login_required
+def cadastrarColaboradorTicket(request, id_ticket, id_colaborador):
+    if request.method == 'GET':
+        # Obtém o ticket ou retorna 404 se não existir
+        ticket = get_object_or_404(Ticket, id=id_ticket)
+        
+        # Obtém o colaborador ou retorna 404 se não existir
+        col = get_object_or_404(Colaborador, id=id_colaborador)
+
+        # Associa o colaborador ao ticket
+        ticket.colaborador = col
+        ticket.save()
+    
+        messages.add_message(request, messages.INFO, f"O Colaborador: {ticket.colaborador} foi adicionado ao Ticket: {ticket.ticket} com sucesso!")
+        #return HttpResponse(request.POST['editar-colaborador'] == 'editar-colaborador')
+        
+        return redirect('index-tickets')
+    
+@login_required    
+def addTicketCliente(request, id_ticket):
+    usuario = request.user
+    if request.method == 'GET':
+        clientes = Cliente.objects.all()    
+    
+    return render(request, 'tickets/add-cliente-ticket.html', {'clientes':clientes, 'id_ticket':id_ticket})
+
+@login_required
+def cadastrarTicketCliente(request, id_cliente, id_ticket):
+    if request.method == 'GET':
+        # Obtém o ticket ou retorna 404 se não existir
+        ticket = get_object_or_404(Ticket, id=id_ticket)
+        
+        # Obtém o cliente ou retorna 404 se não existir
+        cli = get_object_or_404(Cliente, id=id_cliente)
+
+        # Associa o clinete ao ticket
+        ticket.cliente = cli
+        ticket.save()
+    
+        messages.add_message(request, messages.INFO, f"O Clinete: {ticket.cliente} foi adicionado ao Ticket: {ticket.ticket} com sucesso!")
+
+        return redirect('index-tickets')
+
+@login_required
+def editar_pagamento(request, pagamento_id, key):
+    #return HttpResponse(request.POST)
+    pagamento = get_object_or_404(Pagamentos, id=pagamento_id)
+    ticket = get_object_or_404(Ticket, key=key)
+
+    if request.method == 'POST':
+        form = PagamentoForm(request.POST, instance=pagamento)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Pagamento atualizado com sucesso!")
+            return redirect('exibir-ticket', key=ticket.key)  # ajuste para sua url de detalhe
+    else:
+        return redirect('exibir-ticket', key=ticket.key)
+        #form = PagamentoForm(instance=pagamento)
+
+    '''
+    return render(request, 'tickets/editar_pagamento.html', {
+        'form': form,
+        'pagamento': pagamento,
+        'ticket': ticket,
+    })'''
+
+@login_required
+def add_pagamento(request, key):
+    ticket = get_object_or_404(Ticket, key=key)
+    if request.method == 'POST':
+        form = PagamentoForm(request.POST)
+        if form.is_valid():
+            pagamento = form.save(commit=False)
+            pagamento.ticket_pagamento = ticket  # Corrija aqui!
+            pagamento.save()
+            messages.success(request, "Pagamento adicionado com sucesso!")
+            return redirect('exibir-ticket', key=ticket.key)
+    else:
+        form = PagamentoForm()
+    return render(request, 'tickets/ticket.html', {
+        'form': form,
+        'ticket': ticket,
+        # inclua outros contextos necessários
+    })
+
+
+@login_required
+def upload_nfe(request, key):
+    ticket = get_object_or_404(Ticket, key=key)
+    if request.method == 'POST' and request.FILES.get('arquivo'):
+        arquivo = request.FILES['arquivo']
+        extensao = os.path.splitext(arquivo.name)[1].lower()  # pega a extensão do arquivo e deixa minúscula
+        tipos_permitidos = ['.jpg', '.jpeg', '.png', '.pdf']
+
+        if extensao not in tipos_permitidos:
+            messages.error(request, "Só é permitido enviar imagens (.jpg, .jpeg, .png) ou PDF.")
+            return redirect('exibir-ticket', key=key)
+
+        nome_aleatorio = f"{uuid.uuid4().hex}{extensao}"
+        pasta_destino = os.path.join(settings.MEDIA_ROOT, 'nfe')
+        os.makedirs(pasta_destino, exist_ok=True)
+        caminho_arquivo = os.path.join(pasta_destino, nome_aleatorio)
+        with open(caminho_arquivo, 'wb+') as destino:
+            for chunk in arquivo.chunks():
+                destino.write(chunk)
+        # Salva apenas o caminho relativo
+        ticket.nfe_path = f'nfe/{nome_aleatorio}'
+        ticket.save()
+        messages.success(request, "Nota Fiscal enviada com sucesso!")
+    else:
+        messages.error(request, "Selecione um arquivo válido para enviar.")
+    return redirect('exibir-ticket', key=key)

@@ -2,93 +2,229 @@
 
 {% block conteudo %}
 <style>
+  /* Estilos melhorados para a timeline */
   .timeline {
     position: relative;
-    padding-left: 40px;
+    padding-left: 2.5rem;
     margin: 2rem 0;
   }
+  
   .timeline::before {
     content: '';
     position: absolute;
-    top: 10px;
-    bottom: 10px;
-    left: 18px;
-    width: 4px;
-    background: #dee2e6;
+    top: 0;
+    bottom: 0;
+    left: 1rem;
+    width: 3px;
+    background: linear-gradient(to bottom, #dee2e6, #0d6efd, #dee2e6);
+    border-radius: 3px;
   }
+  
   .timeline-item {
     position: relative;
-    margin-bottom: 30px;
-    transition: background 0.3s;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px dashed #e9ecef;
   }
+  
+  .timeline-item:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+  
   .timeline-marker {
     position: absolute;
-    left: -2px;
+    left: 0;
     top: 0;
-    width: 20px;
-    height: 20px;
+    width: 1.5rem;
+    height: 1.5rem;
     background-color: #0d6efd;
+    border: 3px solid white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     color: white;
-    font-size: 12px;
+    font-size: 0.7rem;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
   }
+  
   .timeline-content {
-    padding-left: 30px;
+    padding-left: 1.5rem;
   }
+  
   .timeline-date {
-    font-weight: bold;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9rem;
+    margin-bottom: 0.3rem;
+  }
+  
+  /* Estilos para cards */
+  .info-card {
+    border-radius: 0.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.03);
+    transition: all 0.2s ease;
+  }
+  
+  .info-card:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
+    transform: translateY(-2px);
+  }
+  
+  .info-card .card-title {
+    font-size: 1rem;
+    color: #495057;
+    border-bottom: 1px solid #f1f3f5;
+    padding-bottom: 0.75rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+  }
+  
+  .info-card .card-title i {
+    margin-right: 0.5rem;
+    color: #0d6efd;
+  }
+  
+  /* Estilos para tabelas */
+  .data-table {
+    border-radius: 0.5rem;
+    overflow: hidden;
+  }
+  
+  .data-table thead th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    border-bottom-width: 2px;
+  }
+  
+  .data-table tbody tr {
+    transition: background-color 0.15s ease;
+  }
+  
+  .data-table tbody tr:hover {
+    background-color: rgba(13, 110, 253, 0.03);
+  }
+  
+  /* Badges melhorados */
+  .status-badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+    letter-spacing: 0.5px;
+    border-radius: 0.25rem;
+  }
+  
+  /* Botões de ação */
+  .action-btn {
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+  }
+  
+  /* Header do ticket */
+  .ticket-header {
+    background-color: #f8fafc;
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+  }
+  
+  .ticket-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 0.5rem;
+  }
+  
+  .ticket-meta {
+    font-size: 0.9rem;
     color: #6c757d;
-    font-size: 14px;
   }
-  .card-title button {
-    margin-left: 10px;
+  
+  /* Uploader de arquivos */
+  .file-upload-label {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    background-color: #f8f9fa;
+    border: 1px dashed #dee2e6;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
-  .list-group-item p {
-    margin: 0;
+  
+  .file-upload-label:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
   }
 </style>
 
 <div class="container py-4">
   <!-- Cabeçalho -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <div>
-      <h2 class="fs-4 mb-1">TICKET: #{{ ticket.ticket }} - <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
-  <i class="bi bi-trash"></i> Excluir
-</button></h2>
-      <p class="mb-1">Operador Mediata: <strong>Operador</strong></p>
-      {% if ticket.emergencial %}
-        <span class="badge bg-danger">Emergencial</span>
-      {% endif %}
+  <div class="ticket-header">
+    <div class="d-flex justify-content-between align-items-start">
+      <div>
+        <h1 class="ticket-title">TICKET: #{{ ticket.ticket }}</h1>
+        <div class="ticket-meta">
+          <span class="me-3">Operador Mediata: <strong>Operador</strong></span>
+          {% if ticket.emergencial %}
+            <span class="status-badge bg-danger bg-opacity-10 text-danger">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>Emergencial
+            </span>
+          {% endif %}
+        </div>
+      </div>
+      <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
+        <i class="bi bi-trash"></i>
+      </button>
     </div>
   </div>
 
   <!-- Informações Gerais -->
   <div class="row g-3 mb-4">
     <div class="col-md-6">
-      <div class="card shadow-sm h-100">
+      <div class="info-card card h-100">
         <div class="card-body">
-          <h5 class="card-title">Colaborador</h5>
-          <p><strong>Nome:</strong></p>
-          <p><strong>Função:</strong></p>
+          <h5 class="card-title"><i class="bi bi-person-badge"></i>Colaborador</h5>
+          <div class="d-flex align-items-center mb-2">
+            <i class="bi bi-person me-2 text-muted"></i>
+            <span>{% if ticket.colaborador %}{{ ticket.colaborador }}{% else %}<a href="{% url 'add-colaborador-ticket' ticket.id %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-person-plus me-1"></i>Atribuir</a>{% endif %}</span>
+          </div>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-briefcase me-2 text-muted"></i>
+            <span>{{ ticket.colaborador.funcao|default:"-" }}</span>
+          </div>
         </div>
       </div>
     </div>
     <div class="col-md-6">
-      <div class="card shadow-sm h-100">
+      <div class="info-card card h-100">
         <div class="card-body">
-          <h5 class="card-title">Cliente</h5>
-          <p><strong>Serviço para:</strong></p>
-          <p><strong>Telefone:</strong></p>
+          <h5 class="card-title"><i class="bi bi-building"></i>Cliente</h5>
+          <div class="d-flex align-items-center mb-2">
+            <i class="bi bi-building me-2 text-muted"></i>
+            <span>{% if ticket.cliente %}{{ ticket.cliente }}{% else %}<a href="{% url 'add-cliente-ticket' ticket.id %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-person-plus me-1"></i>Atribuir</a>{% endif %}</span>
+          </div>
+          <div class="d-flex align-items-center">
+            <i class="bi bi-telephone me-2 text-muted"></i>
+            <span>{{ ticket.cliente.telefone|default:"-" }}</span>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
   <!-- Orçamento e Itens -->
-  <div class="card shadow-sm mb-4">
+  <div class="info-card card mb-4">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
@@ -110,11 +246,11 @@
       </div>
 
       {% if orcamento %}
-        <h6 class="text-muted"><i class="bi bi-list-check me-1"></i>Itens de Orçamento</h6>
+        <h6 class="text-muted mb-3"><i class="bi bi-list-check me-1"></i>Itens de Orçamento</h6>
         {% if itens_orcamento %}
           <div class="table-responsive mb-3">
-            <table class="table table-striped table-hover">
-              <thead>
+            <table class="table data-table">
+              <thead class="table-light">
                 <tr>
                   <th>#</th>
                   <th>Descrição</th>
@@ -129,22 +265,24 @@
                   <tr>
                     <td>{{ forloop.counter }}</td>
                     <td>
-                      <a class="btn btn-sm btn-link text-danger" href="{% url 'deletar-item' item.id ticket.key %}" data-bs-toggle="tooltip" data-bs-placement="top" aria-label="Remove" data-bs-original-title="Remove"><i class="bi bi-trash"></i></a>
+                      <a class="btn btn-sm btn-link text-danger p-0 me-1" href="{% url 'deletar-item' item.id ticket.key %}" data-bs-toggle="tooltip" title="Remover">
+                        <i class="bi bi-trash"></i>
+                      </a>
                       {{ item.item }}
                     </td>
                     <td>{{ item.quant }}</td>
                     <td>R$ {{ item.item.valor_unit }}</td>
                     <td>
                       {% if item.item.tipo == 'M' %}
-                        Material
+                        <span class="status-badge bg-info bg-opacity-10 text-info">Material</span>
                       {% elif item.item.tipo == 'S' %}
-                        Serviço
+                        <span class="status-badge bg-primary bg-opacity-10 text-primary">Serviço</span>
                       {% elif item.item.tipo == 'O' %}
-                        Mão de Obra
+                        <span class="status-badge bg-dark bg-opacity-10 text-dark">Mão de Obra</span>
                       {% elif item.item.tipo == 'E' %}
-                        Equipamento
+                        <span class="status-badge bg-secondary bg-opacity-10 text-secondary">Equipamento</span>
                       {% elif item.item.tipo == 'T' %}
-                        Taxa
+                        <span class="status-badge bg-warning bg-opacity-10 text-warning">Taxa</span>
                       {% else %}
                         —
                       {% endif %}
@@ -152,7 +290,7 @@
                     <td class="text-end">R$ {{ item.subtotal }}</td>
                   </tr>
                 {% endfor %}
-                <tr class="fw-bold text-bg-light">
+                <tr class="fw-bold" style="background-color: rgba(248, 249, 250, 0.7)">
                   <td colspan="5">Total Itens</td>
                   <td class="text-end">R$ {{ total_itens }}</td>
                 </tr>
@@ -160,148 +298,292 @@
             </table>
           </div>
         {% else %}
-          <p class="text-muted">Nenhum item de orçamento cadastrado.</p>
+          <div class="alert alert-light mb-0">
+            <i class="bi bi-info-circle me-2"></i>Nenhum item de orçamento cadastrado.
+          </div>
         {% endif %}
       {% else %}
-        <p class="mt-3 text-muted"><i class="bi bi-info-circle me-1"></i>Nenhum orçamento registrado ainda.</p>
+        <div class="alert alert-light mb-0">
+          <i class="bi bi-info-circle me-2"></i>Nenhum orçamento registrado ainda.
+        </div>
       {% endif %}
     </div>
   </div>
 
   <!-- Informações adicionais -->
-  <div class="card shadow-sm mb-4">
+  <div class="info-card card mb-4">
     <div class="card-body">
-      <h5 class="card-title">INFORMAÇÕES ADICIONAIS</h5>
-      <p><strong>Faturamento:</strong> R$ {{ valor_custo_total }}</p>
-      <p><strong>Status:</strong>
-        {% with ticket.status as s %}
-          {% if s == 'E' %}
-            <span class="badge text-bg-warning">Executado</span>
-          {% elif s == 'X' %}
-            <span class="badge text-bg-warning">Em execução</span>
-          {% elif s == 'C' %}
-            <span class="badge text-bg-info">Cotação</span>
-          {% elif s == 'L' %}
-            <span class="badge text-bg-info">Levantamento</span>
-          {% elif s == 'A' %}
-            <span class="badge text-bg-secondary">Aprovado</span>
-          {% elif s == 'F' %}
-            <span class="badge text-bg-dark">Finalizado</span>
-          {% elif s == 'V' %}
-            <span class="badge text-bg-success">Vistoriado</span>
-          {% elif s == 'R' %}
-            <span class="badge text-bg-light">Rejeitado</span>
-          {% else %}
-            <span class="badge bg-secondary">Desconhecido</span>
-          {% endif %} <i type="submit" class="bi bi-pencil-square" data-bs-toggle="modal" data-bs-target="#myModal"></i>
-        {% endwith %}
-      </p>
-      <p><strong>Descrição:</strong> {{ ticket.descricao }}</p>
-      <p><strong>Fator/Margem:</strong> {{ bdi }}</p>
+      <h5 class="card-title"><i class="bi bi-info-circle me-2"></i>INFORMAÇÕES ADICIONAIS</h5>
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="text-muted small mb-1">Faturamento</label>
+          <div class="fw-bold">R$ {{ valor_custo_total }}</div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="text-muted small mb-1">Fator/Margem</label>
+          <div class="fw-bold">{{ bdi }}</div>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="text-muted small mb-1">Status</label>
+          <div>
+            {% with ticket.status as s %}
+              {% if s == 'E' %}
+                <span class="status-badge bg-warning text-dark">
+                  <i class="bi bi-gear-wide-connected me-1"></i>Executado
+                </span>
+              {% elif s == 'X' %}
+                <span class="status-badge bg-warning text-white">
+                  <i class="bi bi-check-circle me-1"></i>Em execução
+                </span>
+              {% elif s == 'C' %}
+                <span class="status-badge bg-info text-dark">
+                  <i class="bi bi-file-earmark-text me-1"></i>Cotação
+                </span>
+              {% elif s == 'L' %}
+                <span class="status-badge bg-info text-dark">
+                  <i class="bi bi-clipboard-data me-1"></i>Levantamento
+                </span>
+              {% elif s == 'A' %}
+                <span class="status-badge bg-secondary">
+                  <i class="bi bi-check-all me-1"></i>Aprovado
+                </span>
+              {% elif s == 'F' %}
+                <span class="status-badge bg-dark text-white">
+                  <i class="bi bi-flag-fill me-1"></i>Finalizado
+                </span>
+              {% elif s == 'V' %}
+                <span class="status-badge bg-success">
+                  <i class="bi bi-eye-fill me-1"></i>Vistoriado
+                </span>
+              {% elif s == 'R' %}
+                <span class="status-badge bg-light text-dark">
+                  <i class="bi bi-x-circle-fill me-1"></i>Rejeitado
+                </span>
+              {% else %}
+                <span class="status-badge bg-secondary">Desconhecido</span>
+              {% endif %}
+              <button type="button" class="btn btn-sm btn-link p-0 ms-2" data-bs-toggle="modal" data-bs-target="#myModal">
+                <i class="bi bi-pencil-square text-muted"></i>
+              </button>
+            {% endwith %}
+          </div>
+        </div>
+        
+        <div class="col-12">
+          <label class="text-muted small mb-1">Descrição</label>
+          <div class="fw-bold">{{ ticket.descricao }}</div>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Pagamentos -->
-<div class="card shadow-sm mb-4">
+  <!-- Pagamentos (SEÇÃO MODIFICADA) -->
+  <div class="info-card card mb-4">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="card-title mb-0"><i class="bi bi-cash me-2"></i>Pagamentos</h5>
+        <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#ModalPagamento">
+          <i class="bi bi-plus-circle me-1"></i>Adicionar Pagamento
+        </button>
+      </div>
+
+      <!-- NOVO: Resumo por tipo de pagamento -->
+      {% if list_pagamento %}
+      <div class="row mb-4">
+        <div class="col-12">
+          <h6 class="text-muted mb-3"><i class="bi bi-calculator me-1"></i>Resumo por Tipo</h6>
+          <div class="table-responsive">
+            <table class="table table-sm data-table">
+              <thead class="table-light">
+                <tr>
+                  <th>Tipo</th>
+                  <th class="text-end">Total Orçado</th>
+                  <th class="text-end">Total Pago Despesas</th>
+                  <th class="text-end">Total Pendente</th>
+                  <th class="text-end">Meu Saldo</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for tipo, valores in resumo_pagamentos.items %}
+                  {% if valores.total_orcado > 0 or valores.total_pago > 0 or valores.total_pendente > 0 %}
+                  <tr>
+                    <td>
+                      {% if tipo == 'M' %}
+                        <span class="status-badge bg-info bg-opacity-10 text-info">Material</span>
+                      {% elif tipo == 'S' %}
+                        <span class="status-badge bg-primary bg-opacity-10 text-primary">Serviço</span>
+                      {% elif tipo == 'O' %}
+                        <span class="status-badge bg-dark bg-opacity-10 text-dark">Mão de Obra</span>
+                      {% elif tipo == 'E' %}
+                        <span class="status-badge bg-secondary bg-opacity-10 text-secondary">Equipamento</span>
+                      {% elif tipo == 'T' %}
+                        <span class="status-badge bg-warning bg-opacity-10 text-warning">Taxa</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-end">R$ {{ valores.total_orcado|floatformat:2 }}</td>
+                    <td class="text-danger text-end">R$ {{ valores.total_pago|floatformat:2 }}</td>
+                    <td class="text-end">R$ {{ valores.total_pendente|floatformat:2 }}</td>
+                    <td class="text-end fw-bold {% if valores.saldo < 0 %}text-danger{% else %}text-success{% endif %}">
+                      R$ {{ valores.saldo|floatformat:2 }}
+                    </td>
+                  </tr>
+                  {% endif %}
+                {% endfor %}
+                <!-- Linha de total geral -->
+                <tr class="fw-bold" style="background-color: rgba(248, 249, 250, 0.7)">
+                  <td>Total Geral</td>
+                  <td class="text-end">R$ {{ resumo_geral.total_orcado|floatformat:2 }}</td>
+                  <td class="text-end">R$ {{ resumo_geral.total_pago|floatformat:2 }}</td>
+                  <td class="text-end">R$ {{ resumo_geral.total_pendente|floatformat:2 }}</td>
+                  <td class="text-end {% if resumo_geral.saldo < 0 %}text-danger{% else %}text-success{% endif %}">
+                    R$ {{ resumo_geral.saldo|floatformat:2 }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Lista de pagamentos (mantido com pequenos ajustes) -->
+{% if list_pagamento %}
+<div class="table-responsive">
+  <table class="table data-table">
+    <thead class="table-light">
+      <tr>
+        <th>#</th>
+        <th>Tipo</th>
+        <th>Data</th>
+        <th class="text-end">Valor</th>
+        <th>Status</th>
+        <th class="text-end">Ações</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for pag in list_pagamento %}
+      <tr>
+        <td>{{ forloop.counter }}</td>
+        <td>
+          <div class="d-flex align-items-center">
+            <!-- Botão de Editar -->
+            <a
+              class="btn btn-sm btn-link text-primary p-0 me-1 btn-editar-pagamento"
+              href="#"
+              data-bs-toggle="modal"
+              data-bs-target="#ModalPagamento"
+              data-id="{{ pag.id }}"
+              data-tipo="{{ pag.tipo }}"
+              data-valor="{{ pag.valor_pagamento }}"
+              data-data="{{ pag.data_pagamento|date:'Y-m-d' }}"
+              data-status="{{ pag.status_pagamento }}"
+              title="Editar"
+            >
+              <i class="bi bi-pencil"></i>
+            </a>
+
+            <!-- Botão de Deletar -->
+            <a class="btn btn-sm btn-link text-danger p-0 me-1" href="{% url 'deletar-pagamento' pag.id ticket.key %}" data-bs-toggle="tooltip" title="Remover">
+              <i class="bi bi-trash"></i>
+            </a>
+            <!-- Tipo de pagamento -->
+            {% if pag.tipo == 'E'%}
+              <span class="status-badge bg-secondary bg-opacity-10 text-secondary">Equipamento</span>
+            {% elif pag.tipo == 'O' %}
+              <span class="status-badge bg-dark bg-opacity-10 text-dark">Mão de obra</span>
+            {% elif pag.tipo == 'M' %}
+              <span class="status-badge bg-info bg-opacity-10 text-info">Material</span>
+            {% elif pag.tipo == 'S' %}
+              <span class="status-badge bg-primary bg-opacity-10 text-primary">Serviço</span>
+            {% elif pag.tipo == 'T' %}
+              <span class="status-badge bg-warning bg-opacity-10 text-warning">Taxa</span>
+            {% endif %}
+          </div>
+        </td>
+        <td>{{ pag.data_pagamento|date:"d/m/Y" }}</td>
+        <td class="text-end">R$ {{ pag.valor_pagamento|floatformat:2 }}</td>
+        <td>
+          {% if pag.status_pagamento == False %}
+            <span class="status-badge bg-danger bg-opacity-10 text-danger">Pendente</span>
+          {% elif pag.status_pagamento == True %}
+            <span class="status-badge bg-success bg-opacity-10 text-success">Pago</span>
+          {% else %}
+            <span class="status-badge bg-secondary bg-opacity-10 text-secondary">Outro</span>
+          {% endif %}
+        </td>
+        <td class="text-end">
+          <form action="#" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="file" id="upload-comprovante-{{ pag.id }}" name="comprovante" class="d-none" accept=".pdf,.jpg,.png" onchange="this.form.submit()">
+            <label for="upload-comprovante-{{ pag.id }}" class="btn btn-sm btn-success">
+              <i class="bi bi-file-earmark-check me-1"></i> Comp.
+            </label>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+      {% else %}
+        <div class="alert alert-light mb-0">
+          <i class="bi bi-info-circle me-2"></i>Nenhum pagamento registrado ainda.
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Nota Fiscal -->
+<div class="info-card card mb-4">
   <div class="card-body">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h5 class="card-title mb-0">
-        <i class="bi bi-cash me-2"></i>Pagamentos
-      </h5>
-      <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#ModalPagamento">
-        <i class="bi bi-plus-circle me-1"></i>Adicionar Pagamento
-      </button>
-    </div>
-
-    {% if list_pagamento %}
-    <div class="table-responsive">
-      <table class="table table-striped table-hover align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>#</th>
-            <th>Tipo</th>
-            <th>Data do pagamento</th>
-            <th>Valor</th>
-            <th>Status</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for pag in list_pagamento %}
-          <tr>
-            <td>{{ forloop.counter }}</td>
-            <td>
-                <a class="btn btn-sm btn-link text-danger" href="#" data-bs-toggle="tooltip" data-bs-placement="top" aria-label="Remove" data-bs-original-title="Remove"><i class="bi bi-trash"></i></a>
-                {% if pag.tipo == 'E'%}
-                  <span class="badge bg-secondary">Equipamento</span>
-                {% elif pag.tipo == 'O' %}
-                <span class="badge text-bg-dark">Mão de obra</span>
-                {% elif pag.tipo == 'M' %}
-                <span class="badge bg-info">Material</span>
-                {% else %}{% endif %}
-
-            </td>
-            <td>{{ pag.data_pagamento }}</td>
-            <td>R$ {{ pag.valor_pagamento|floatformat:2 }}</td>
-            <td>
-              {% if pag.status_pagamento == False %}
-                <span class="badge bg-danger">Pendente</span>
-              {% elif pag.status_pagamento == True %}
-                <span class="badge bg-success">Pago</span>
-              {% else %}
-                <span class="badge bg-secondary">Outro</span>
-              {% endif %}
-            </td>
-            <td>
-              <label for="upload-comprovante" class="btn btn-success">
-                <i class="bi bi-file-earmark-check me-2"></i> Comp.
-              </label>
-
-              <input type="file" id="upload-comprovante" class="input-upload" accept=".pdf,.jpg,.png">
-
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
+    <h5 class="card-title"><i class="bi bi-file-earmark-text me-2"></i>NOTA FISCAL</h5>
+    {% if ticket.status == 'V' %}
+      {% if ticket.nfe_path %}
+        <div>
+          {% if ".pdf" in ticket.nfe_path|lower %}
+            <a href="{{ MEDIA_URL }}{{ ticket.nfe_path }}" target="_blank" class="d-inline-flex align-items-center">
+              <i class="bi bi-file-earmark-pdf text-danger" style="font-size:2rem"></i>
+              <span class="ms-2">Visualizar PDF</span>
+            </a>
+          {% else %}
+            <a href="{{ MEDIA_URL }}{{ ticket.nfe_path }}" target="_blank">
+              <img src="{{ MEDIA_URL }}{{ ticket.nfe_path }}" alt="NFe" style="max-width:80px;max-height:80px;border-radius:8px;box-shadow:0 0 6px #eee;">
+            </a>
+          {% endif %}
+        </div>
+      {% else %}
+        <form action="{% url 'upload-nfe' ticket.key %}" method="post" enctype="multipart/form-data">
+          {% csrf_token %}
+          <label for="formFile" class="file-upload-label">
+            <i class="bi bi-upload me-2"></i>Enviar Arquivo
+          </label>
+          <input type="file" id="formFile" name="arquivo" class="d-none" onchange="this.form.submit()">
+        </form>
+      {% endif %}
     {% else %}
-      <p class="text-muted mb-0">Nenhum pagamento registrado ainda.</p>
+      <div class="alert alert-light mb-0">
+        O uploader da NFe só aparecerá se o ticket estiver vistoriado!
+      </div>
     {% endif %}
   </div>
 </div>
 
-
-  <!-- Nota Fiscal -->
-  <div class="card shadow-sm mb-4">
-    <div class="card-body">
-      <h5 class="card-title">NOTA FISCAL</h5>
-
-
-      <label for="upload-nfe" class="btn btn-primary">
-        <i class="bi bi-file-earmark-text me-2"></i> Enviar NFe
-      </label>
-
-      <input type="file" id="upload-nfe" class="input-upload" accept=".xml,.pdf">
-    </div>
-  </div>
-
   <!-- Timeline -->
-  <div class="card shadow-sm">
+  <div class="info-card card">
     <div class="card-body">
-      <h5 class="card-title">DATAS</h5>
+      <h5 class="card-title"><i class="bi bi-calendar-event me-2"></i>HISTÓRICO</h5>
       <div class="timeline">
         <div class="timeline-item">
-          <div class="timeline-marker">✓</div>
+          <div class="timeline-marker"><i class="bi bi-plus"></i></div>
           <div class="timeline-content">
             <div class="timeline-date">{{ ticket.data_criacao|date:"d/m/Y" }}</div>
-            <p>Data de criação</p>
+            <p>Ticket criado</p>
           </div>
         </div>
         
         {% for data in historico %}
           <div class="timeline-item">
-            <div class="timeline-marker">✓</div>
+            <div class="timeline-marker"><i class="bi bi-arrow-repeat"></i></div>
             <div class="timeline-content">
               <div class="timeline-date">{{ data.data_historico|date:"d/m/Y" }}</div>
               <p>{{ data.descricao_historico }}</p>
@@ -311,14 +593,13 @@
         
         {% if ticket.data_finalizar %}
           <div class="timeline-item">
-            <div class="timeline-marker">✓</div>
+            <div class="timeline-marker"><i class="bi bi-flag"></i></div>
             <div class="timeline-content">
               <div class="timeline-date">{{ ticket.data_finalizar|date:"d/m/Y" }}</div>
-              <p>Data para finalizar</p>
+              <p>Prazo para finalização</p>
             </div>
           </div>
         {% endif %}
-
       </div>
     </div>
   </div>
@@ -347,30 +628,6 @@
   </div>
 </div>
 
-<!-- Item de Orçamento
-<div class="modal fade" id="ModalItemOrcamento" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="post" id="form-itemorcamento">
-        {% csrf_token %}
-        <input type="hidden" name="form_type" value="itemorcamento">
-        <div class="modal-header">
-          <h5 class="modal-title">Novo Item de Orçamento</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          {{ itemorcamento.as_p }}
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-          <button type="submit" class="btn btn-primary">Salvar Item</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
--->
-
 <!-- Item de Orçamento -->
 <div class="modal fade" id="ModalItemOrcamento" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
@@ -394,23 +651,46 @@
   </div>
 </div>
 
-<!-- Pagamento  -->
+<!-- Modal Pagamento -->
 <div class="modal fade" id="ModalPagamento" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <form method="post" id="form-pagamento">
+      <form method="post" id="pagamentoForm">
         {% csrf_token %}
         <input type="hidden" name="form_type" value="form-pagamento">
+        <input type="hidden" name="pagamento_id" id="pagamento_id">
         <div class="modal-header">
-          <h5 class="modal-title">Pagamento</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <h5 class="modal-title">Adicionar Pagamento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          {{ pagamento.as_p }}
+          <div class="mb-3">
+            <label class="form-label">Tipo</label>
+            <select name="tipo" class="form-select" required>
+              <option value="">Selecione o tipo</option>
+              <option value="M">Material</option>
+              <option value="S">Serviço</option>
+              <option value="O">Mão de Obra</option>
+              <option value="E">Equipamento</option>
+              <option value="T">Taxa</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Valor</label>
+            <input type="number" name="valor_pagamento" class="form-control" step="0.01" min="0" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Data</label>
+            <input type="date" name="data_pagamento" class="form-control" required>
+          </div>
+          <div class="mb-3 form-check">
+            <input type="checkbox" name="status_pagamento" class="form-check-input" id="statusCheck">
+            <label class="form-check-label" for="statusCheck">Pagamento realizado</label>
+          </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-          <button type="submit" class="btn btn-primary">Salvar Item</button>
+          <button type="submit" class="btn btn-primary">Salvar Pagamento</button>
         </div>
       </form>
     </div>
@@ -469,10 +749,85 @@
   </div>
 </div>
 
-<style>
-  /* Esconde o input file padrão */
-  .input-upload {
-    display: none;
+<!-- Modal Editar pagamento-->
+<div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="editarModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content rounded-2 shadow-sm">
+      <div class="modal-header">
+        <h5 class="modal-title" id="editarModalLabel">Editar Pagamento</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Exemplo de conteúdo -->
+        <form action="{% url 'update-historico' ticket.key %}" method="post">
+          {% csrf_token %}
+          {{ pagamento.as_p }}
+          {% if pagamento.errors %}
+            <div class="text-danger small">
+              {{ pagamento.errors }}
+            </div>
+          {% endif %}
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Salvar</button>
+          </div>
+        </form>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Gera a URL base usando Django, com id fictício "0"
+const baseEditUrl = "{% url 'editar-pagamento' 0 ticket.key %}";
+
+document.querySelectorAll('.btn-editar-pagamento').forEach(btn => {
+  btn.addEventListener('click', function(e) {
+    e.preventDefault();
+
+    // Preenche os campos do modal
+    document.getElementById('pagamento_id').value = this.dataset.id;
+    document.querySelector('#ModalPagamento select[name="tipo"]').value = this.dataset.tipo;
+    document.querySelector('#ModalPagamento input[name="valor_pagamento"]').value = this.dataset.valor;
+    document.querySelector('#ModalPagamento input[name="data_pagamento"]').value = this.dataset.data;
+    document.querySelector('#ModalPagamento input[name="status_pagamento"]').checked = (this.dataset.status === "True" || this.dataset.status === "true" || this.dataset.status === "1");
+
+    // Substitui o id fictício "0" pelo id real do pagamento
+    document.getElementById('pagamentoForm').action = baseEditUrl.replace('/0/', `/${this.dataset.id}/`);
+  });
+});
+
+// Resetar para adicionar novo pagamento
+document.getElementById('ModalPagamento').addEventListener('show.bs.modal', function (event) {
+  if (!event.relatedTarget || !event.relatedTarget.classList.contains('btn-editar-pagamento')) {
+    document.getElementById('pagamentoForm').action = "{% url 'add-pagamento' ticket.key %}";
+    document.getElementById('pagamento_id').value = "";
+    document.querySelector('#ModalPagamento select[name="tipo"]').value = "";
+    document.querySelector('#ModalPagamento input[name="valor_pagamento"]').value = "";
+    document.querySelector('#ModalPagamento input[name="data_pagamento"]').value = "";
+    document.querySelector('#ModalPagamento input[name="status_pagamento"]').checked = false;
   }
+});
+</script>
+
+<style>
+.is-valid {
+    border-color: #198754 !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
+
+.is-invalid {
+    border-color: #dc3545 !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e") !important;
+    background-repeat: no-repeat;
+    background-position: right calc(0.375em + 0.1875rem) center;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+}
 </style>
+
 {% endblock %}
+
