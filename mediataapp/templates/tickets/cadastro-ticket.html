@@ -1,165 +1,116 @@
 {% extends '../_layout/base.html' %}
 
 {% block conteudo %}
-
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <span class="fs-2">Adicionar ticket</span>
+<div class="container-fluid">
+  <!-- Cabeçalho -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Adicionar Ticket</h2>
   </div>
 
-  {# mensagens globais #}
-  {% if messages %}
-    {% for msg in messages %}
-      <div class="alert 
-        {% if msg.tags %}
-          {% if 'error' in msg.tags %}alert-danger
-          {% elif 'warning' in msg.tags %}alert-warning
-          {% elif 'success' in msg.tags %}alert-success
-          {% else %}alert-info
-          {% endif %}
-        {% else %}alert-info{% endif %} alert-dismissible fade show" role="alert">
-        {{ msg }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-      </div>
-    {% endfor %}
-  {% endif %}
+  <!-- Card do Formulário -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
 
-  <form method="post" novalidate>
-    {% csrf_token %}
+        <!-- Erros gerais do formulário -->
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger mb-4">
+            {{ form.non_field_errors }}
+          </div>
+        {% endif %}
 
-    {# erros não associados a campo específico #}
-    {% if form.non_field_errors %}
-      <div class="alert alert-danger">
-        {{ form.non_field_errors }}
-      </div>
-    {% endif %}
+        <!-- Primeira linha de campos -->
+        <div class="row mb-4">
+          <div class="col-md-2">
+            <div class="form-group">
+              {{ form.ticket.label_tag }}
+              {{ form.ticket }}
+              {% if form.ticket.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.ticket.errors }}
+                </div>
+              {% endif %}
+            </div>
+          </div>
 
-    <div class="row mb-3">
-      <div class="col-md-4">
-        <div class="mb-2">
-          {{ form.ticket.label_tag }}
-          {{ form.ticket }}
-          {% if form.ticket.errors %}
-            <div class="text-danger small">
-              {{ form.ticket.errors }}
+          <div class="col-md-2">
+            <div class="form-group">
+              {{ form.status.label_tag }}
+              {{ form.status }}
+              {% if form.status.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.status.errors }}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="col-md-2">
+            <div class="form-group">
+              {{ form.data_finalizar.label_tag }}
+              {{ form.data_finalizar }}
+              {% if form.data_finalizar.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.data_finalizar.errors }}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Segunda linha de campos -->
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <div class="form-group">
+              <div class="form-check form-switch">
+                {{ form.emergencial }}
+                <label class="form-check-label" for="{{ form.emergencial.id_for_label }}">
+                  {{ form.emergencial.label }}
+                </label>
+              </div>
+              {% if form.emergencial.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.emergencial.errors }}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- Campo de descrição -->
+        <div class="form-group mb-4">
+          {{ form.descricao.label_tag }}
+          {{ form.descricao }}
+          {% if form.descricao.errors %}
+            <div class="invalid-feedback d-block">
+              {{ form.descricao.errors }}
             </div>
           {% endif %}
         </div>
-      </div>
-      <div class="col-md-4">
-        <div class="mb-2">
-          {{ form.status.label_tag }}
-          {{ form.status }}
-          {% if form.status.errors %}
-            <div class="text-danger small">
-              {{ form.status.errors }}
-            </div>
-          {% endif %}
+
+        <!-- Botões de ação -->
+        <div class="d-flex justify-content-end gap-3">
+          <button type="submit" class="btn btn-primary px-4">
+            <i class="bi bi-save me-2"></i>Salvar
+          </button>
+          <a href="#" class="btn btn-outline-secondary">Cancelar</a>
         </div>
-      </div>
-      <div class="col-md-4">
-        <div class="mb-2">
-          {{ form.data_finalizar.label_tag }}
-          {{ form.data_finalizar }}
-          {% if form.data_finalizar.errors %}
-            <div class="text-danger small">
-              {{ form.data_finalizar.errors }}
-            </div>
-          {% endif %}
-        </div>
-      </div>
+      </form>
     </div>
+  </div>
+</div>
 
-    <div class="row mb-3">
-      <div class="col-md-3">
-        <div class="mb-2">
-          {{ form.emergencial.label_tag }}
-          {{ form.emergencial }}
-          {% if form.emergencial.errors %}
-            <div class="text-danger small">
-              {{ form.emergencial.errors }}
-            </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-
-    <hr>
-
-    <div class="row mb-3">
-      <div class="col-md-3">
-        <div class="mb-2">
-          {{ form.valor_mao_obra.label_tag }}
-          {{ form.valor_mao_obra }}
-          {% if form.valor_mao_obra.errors %}
-            <div class="text-danger small">
-              {{ form.valor_mao_obra.errors }}
-            </div>
-          {% endif %}
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="mb-2">
-          {{ form.valor_material.label_tag }}
-          {{ form.valor_material }}
-          {% if form.valor_material.errors %}
-            <div class="text-danger small">
-              {{ form.valor_material.errors }}
-            </div>
-          {% endif %}
-        </div>
-      </div>
-      
-      <div class="col-md-3">
-        <div class="mb-2">
-          {{ form.valor_custo.label_tag }}
-          {{ form.valor_custo }}
-          {% if form.valor_custo.errors %}
-            <div class="text-danger small">
-              {{ form.valor_custo.errors }}
-            </div>
-          {% endif %}
-        </div>
-      </div>
-      <div class="col-md-3">
-        <div class="mb-2">
-          {{ form.valor_equipamento.label_tag }}
-          {{ form.valor_equipamento }}
-          {% if form.valor_equipamento.errors %}
-            <div class="text-danger small">
-              {{ form.valor_equipamento.errors }}
-            </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-
-    <div class="row mb-3">
-      <div class="col-md-3">
-        <div class="mb-2">
-          {{ form.valor_faturamento.label_tag }}
-          {{ form.valor_faturamento }}
-          {% if form.valor_faturamento.errors %}
-            <div class="text-danger small">
-              {{ form.valor_faturamento.errors }}
-            </div>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-
-    <hr>
-
-    <div class="mb-3">
-      {{ form.descricao.label_tag }}
-      {{ form.descricao }}
-      {% if form.descricao.errors %}
-        <div class="text-danger small">
-          {{ form.descricao.errors }}
-        </div>
-      {% endif %}
-    </div>
-
-    <button type="submit" class="btn btn-primary">Salvar</button>
-  </form>
+<style>
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  textarea.form-control {
+    min-height: 120px;
+  }
+</style>
 
 {% endblock %}

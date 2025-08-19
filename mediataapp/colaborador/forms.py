@@ -2,6 +2,15 @@ from django import forms
 from .models import Colaborador
 
 class ColaboradorForm(forms.ModelForm):
+    data_nascimento = forms.DateField(
+    widget=forms.DateInput(
+        attrs={
+            'class': 'form-control',
+            'type': 'date',
+        },
+        format='%Y-%m-%d'  # formato compatível com input type="date"
+        )
+    )
     class Meta:
         model = Colaborador
         fields = '__all__'
@@ -23,6 +32,7 @@ class ColaboradorForm(forms.ModelForm):
             'tipo_conta': forms.Select(attrs={'class': 'form-select'}),
             'tipo_chave_pix': forms.Select(attrs={'class': 'form-select'}),
             'chave_pix': forms.TextInput(attrs={'class': 'form-control'}),
+            'ativo': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
 
     def clean(self):

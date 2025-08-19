@@ -6,4 +6,6 @@ urlpatterns = [
     path('', views.index, name="index"),
     path('logout/', views.sair, name="logout"),
     path('dashboard/', views.dashboard, name="dashboard"),
+    path('teste/', views.teste, name="teste"),
+    path('api/buscar-itens/', views.buscar_itens, name='buscar-itens'),
 ]

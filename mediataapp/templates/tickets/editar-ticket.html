@@ -1,48 +1,140 @@
 {% extends '../_layout/base.html' %}
 
 {% block conteudo %}
+<div class="container-fluid">
+  <!-- Cabeçalho -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">{% if form.instance.pk %}Editar{% else %}Adicionar{% endif %} Ticket</h2>
+  </div>
+  
+  <!-- Card do Formulário -->
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="post" novalidate>
+        {% csrf_token %}
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <span class="fs-2">Editar ticket</span>
+        <!-- Erros gerais do formulário -->
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger mb-4">
+            {{ form.non_field_errors }}
+          </div>
+        {% endif %}
+
+        <!-- Primeira linha de campos -->
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <div class="form-group">
+              {{ form.ticket.label_tag }}
+              {{ form.ticket }}
+              {% if form.ticket.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.ticket.errors }}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="col-md-3">
+            <div class="form-group">
+              {{ form.status.label_tag }}
+              {{ form.status }}
+              {% if form.status.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.status.errors }}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="col-md-3">
+            <div class="form-group">
+              {{ form.data_finalizar.label_tag }}
+              <div class="input-group">
+                {{ form.data_finalizar }}
+                <span class="input-group-text"><i class="bi bi-calendar"></i></span>
+              </div>
+              {% if form.data_finalizar.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.data_finalizar.errors }}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <!-- Segunda linha de campos -->
+        <div class="row mb-4">
+          <div class="col-md-3">
+            <div class="form-group">
+              <div class="form-check form-switch">
+                {{ form.emergencial }}
+                <label class="form-check-label" for="{{ form.emergencial.id_for_label }}">
+                  {{ form.emergencial.label }}
+                </label>
+              </div>
+              {% if form.emergencial.errors %}
+                <div class="invalid-feedback d-block">
+                  {{ form.emergencial.errors }}
+                </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <hr class="my-4">
+
+        <!-- Campo de descrição -->
+        <div class="form-group mb-4">
+          {{ form.descricao.label_tag }}
+          {{ form.descricao }}
+          {% if form.descricao.errors %}
+            <div class="invalid-feedback d-block">
+              {{ form.descricao.errors }}
+            </div>
+          {% endif %}
+        </div>
+
+        <!-- Botões de ação -->
+        <div class="d-flex justify-content-end gap-3">
+          <button type="submit" class="btn btn-primary px-4">
+            <i class="bi bi-save me-2"></i>Salvar
+          </button>
+          <a href="{% url 'index-tickets' %}" class="btn btn-outline-secondary">Cancelar</a>
+        </div>
+      </form>
     </div>
+  </div>
+</div>
 
-    <form method="post">
-      {% csrf_token %}
-      <div class="row">
-        <div class="col-md-3">{{ form.ticket.label_tag }} {{ form.ticket }}</div>
-        <div class="col-md-3">{{ form.status.label_tag }} {{ form.status }}</div>
-        <div class="col-md-3">
-          {{ form.data_finalizar.label_tag }}
-          {{ form.data_finalizar }}
-        </div>
-      </div>
-      <hr>
-      <div class="row">
-        <div class="col-md-3">
-          {{ form.emergencial.label_tag }}
-          {{ form.emergencial }}
-        </div>
-      </div>
+<style>
+  .form-group {
+    margin-bottom: 1.5rem;
+  }
+  
+  textarea.form-control {
+    min-height: 120px;
+  }
+  
+  /* Melhora a aparência dos campos de data */
+  .input-group-text {
+    cursor: pointer;
+  }
+</style>
 
-      <hr>
-
-      <div class="row">
-        <div class="col-md-3">{{ form.valor_mao_obra.label_tag }} {{ form.valor_mao_obra }}</div>
-        <div class="col-md-3">{{ form.valor_material.label_tag }} {{ form.valor_material }}</div>
-        <div class="col-md-3">{{ form.valor_custo.label_tag }} {{ form.valor_custo }}</div>
-        <div class="col-md-3">{{ form.valor_faturamento.label_tag }} {{ form.valor_faturamento }}</div>
-      </div>
-
-      <hr>
-
-      <div class="mb-3">
-        {{ form.descricao.label_tag }}
-        {{ form.descricao }}
-      </div>
-
-      <button type="submit" class="btn btn-primary" class="btn btn-primary"><i class="bi bi-save-fill"></i> Salvar Alterações</button>
-                        
-    </form>
-
-
+<!-- Adicione este script para melhorar o campo de data -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializa o datepicker se estiver usando algum plugin
+    if (typeof $.fn.datepicker !== 'undefined') {
+        $('#id_data_finalizar').datepicker({
+            format: 'dd/mm/yyyy',
+            autoclose: true,
+            todayHighlight: true
+        });
+    }
+    
+    // Adiciona máscara para o campo de data
+    $('#id_data_finalizar').mask('00/00/0000');
+});
+</script>
 {% endblock %}

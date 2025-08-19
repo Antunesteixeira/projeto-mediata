@@ -2,7 +2,7 @@ from django.shortcuts import render, get_object_or_404, redirect, HttpResponse
 from django.contrib.auth.models import User
 
 from django.contrib import messages
-
+from django.contrib.auth.decorators import login_required
 from .forms import CustomUserCreationForm
 
 from rolepermissions.roles import assign_role
@@ -11,6 +11,7 @@ from django.contrib.auth.models import Group
 
 from .forms import CustomUserEditForm
 
+@login_required
 def usuarios(request):
     usuarios = User.objects.all()
     context = {
@@ -18,7 +19,7 @@ def usuarios(request):
     }
     return render(request, 'usuarios/index-usuarios.html', context)
 
-# Create your views here.
+@login_required
 def cadastro_usuarios(request):
     if request.method == 'GET':
         return render(request, 'usuarios/cadastro-usuarios.html')
@@ -32,9 +33,11 @@ def cadastro_usuarios(request):
         if user: 
             return redirect('cadastro-usuarios')
 
+@login_required
 def editar_usuarios(request, id):
     return render(request, 'usuarios/editar-usuarios.html')
-        
+
+@login_required        
 def register(request):
     if request.method == 'POST':
         form = CustomUserCreationForm(request.POST)
@@ -50,6 +53,7 @@ def register(request):
         form = CustomUserCreationForm()
     return render(request, 'usuarios/cadastro-usuarios.html', {'form': form})
 
+@login_required
 def editar_usuario(request, user_id):
     user = get_object_or_404(User, id=user_id)
 
@@ -78,5 +82,6 @@ def editar_usuario(request, user_id):
         'usuario': user
     })
 
+@login_required
 def perfil_usuario(request, id):
     return render(request, 'usuarios/perfil-usuario.html')

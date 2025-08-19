@@ -7,6 +7,7 @@ class InsumoForm(forms.ModelForm):
         fields = [
             'insumo',
             'tipo', 
+            'unidade',
             'valor_unit',
             'quant',
         ]
@@ -15,6 +16,7 @@ class InsumoForm(forms.ModelForm):
             'insumo': 'Insumo',
             'Tipo': 'Tipo',
             'valor_unit': 'Valor unitário',
+            'unidade': 'Unidade',
             'quant': 'Quantidade'
         }
 
@@ -32,6 +34,9 @@ class InsumoForm(forms.ModelForm):
                 'placeholder': 'Ex: 10'
             }),
             'tipo': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'unidade': forms.Select(attrs={
                 'class': 'form-select'
             }),
         }

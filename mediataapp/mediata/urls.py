@@ -28,10 +28,11 @@ urlpatterns = [
     path('insumos/', include('insumos.urls')),
     path('clientes/', include('clientes.urls')),
     path('colaborador/', include('colaborador.urls')),
-] 
+]
 
 if settings.DEBUG:
     urlpatterns += static(
         settings.MEDIA_URL,
         document_root=settings.MEDIA_ROOT
     )
+    

@@ -1,6 +1,8 @@
 from decimal import Decimal
 import json
 import uuid
+from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -52,7 +54,7 @@ def cadastro_ticket(request):
                 ticket.usuario = request.user
                 ticket = form.save()  # se precisar manipular data_finalizar, faça antes do save com commit=False
                 
-                messages.success(request, "Ticket cadastrado! Deseja vincular um colaborador agora?")
+                messages.success(request, "Ticket cadastrado com sucesso!")
                 return redirect('index-tickets')
             except IntegrityError as e:
                 # tenta detectar duplicidade, mas você pode afinar com base no constraint name
@@ -66,7 +68,7 @@ def cadastro_ticket(request):
     else:
         form = TicketForm()
 
-    return render(request, 'tickets/cadastro-ticket.html', {'form': form})
+    return render(request, 'tickets/editar-ticket.html', {'form': form})
 
 
 @login_required
@@ -103,20 +105,34 @@ def exibirticket(request, key):
                     if not orcamento:
                         messages.error(request, "Crie primeiro um orçamento antes de adicionar itens.")
                     else:
-                        itemorcamento = ItemOrcamentoForm(request.POST, prefix='itemorcamento')
-                        if itemorcamento.is_valid():
-                            item = itemorcamento.save(commit=False)
-                            item.orcamento = orcamento
-                            try:
-                                quantidade = getattr(item, 'quant', 0) or 0
-                                valor_unitario = getattr(item.item, 'valor_unit', Decimal('0')) or Decimal('0')
-                                item.subtotal = quantidade * valor_unitario
-                            except Exception:
-                                pass
-                            item.save()
+                        # Verifique os dados recebidos
+                        print("Dados recebidos:", request.POST)  # Para debug
+                        
+                        item_id = request.POST.get('item')
+                        quantidade = request.POST.get('quant')
+                        
+                        # Validações básicas
+                        if not item_id or not quantidade:
+                            messages.error(request, "Dados incompletos para o item de orçamento.")
                             return redirect('exibir-ticket', key=ticket.key)
-                        else:
-                            messages.error(request, "Erro ao salvar item de orçamento.")
+                        
+                        try:
+                            # Crie o item de orçamento manualmente
+                            item_orcamento = ItemOrcamento(
+                                orcamento=orcamento,
+                                item_id=item_id,
+                                quant=int(quantidade)
+                            )
+                            item_orcamento.save()
+                            messages.success(request, "Item adicionado com sucesso!")
+                            return redirect('exibir-ticket', key=ticket.key)
+                            
+                        except Insumos.DoesNotExist:
+                            messages.error(request, "Insumo não encontrado.")
+                        except Exception as e:
+                            messages.error(request, f"Erro ao salvar item: {str(e)}")
+                    
+                    return redirect('exibir-ticket', key=ticket.key)
                 if form_type == 'form-pagamento':
         
                     valor = request.POST.get('valor_pagamento')
@@ -198,10 +214,12 @@ def exibirticket(request, key):
         'saldo': sum(v['saldo'] for v in resumo_pagamentos.values()),
     }
 
-    valor_custo_total = ticket.func_valor_custo_total()
+    valor_custo_total = resumo_geral['total_orcado'] - resumo_geral['total_pago'] if resumo_geral['total_pago'] else Decimal('0')
+
     bdi = ticket.func_bdi()
+    
     if resumo_geral['saldo'] != 0:
-        margem = ticket.func_soma_margem() / resumo_geral['saldo']
+        margem = resumo_geral['total_orcado'] / resumo_geral['total_pago'] if resumo_geral['total_pago'] != 0 else Decimal('0')
     else:
         margem = Decimal('0')
     historico = HistoricoTicket.objects.filter(ticket_historico=ticket.id)
@@ -211,6 +229,7 @@ def exibirticket(request, key):
         'valor_custo_total': valor_custo_total,
         'bdi': bdi,
         'form': form,
+        'margem': margem,
         'orcamento': orcamento,
         'itemorcamento': itemorcamento,
         'itens_orcamento': itens_orcamento,
@@ -222,7 +241,9 @@ def exibirticket(request, key):
         'resumo_pagamentos': resumo_pagamentos,
         'resumo_geral': resumo_geral,
         'insumos_json': json.dumps(insumos, ensure_ascii=False),
+        'MEDIA_URL': settings.MEDIA_URL,
     }
+    #return HttpResponse(json.dumps(insumos, ensure_ascii=False))
     return render(request, 'tickets/ticket.html', context)
 
 @login_required
@@ -394,26 +415,25 @@ def cadastrarTicketCliente(request, id_cliente, id_ticket):
 
 @login_required
 def editar_pagamento(request, pagamento_id, key):
-    #return HttpResponse(request.POST)
     pagamento = get_object_or_404(Pagamentos, id=pagamento_id)
     ticket = get_object_or_404(Ticket, key=key)
 
     if request.method == 'POST':
         form = PagamentoForm(request.POST, instance=pagamento)
         if form.is_valid():
+            pagamento.data_update_pagamento = timezone.now()
             form.save()
             messages.success(request, "Pagamento atualizado com sucesso!")
-            return redirect('exibir-ticket', key=ticket.key)  # ajuste para sua url de detalhe
+            return redirect('exibir-ticket', key=ticket.key)
+        # Se o formulário for inválido, vai continuar para renderizar o template com erros
     else:
-        return redirect('exibir-ticket', key=ticket.key)
-        #form = PagamentoForm(instance=pagamento)
+        form = PagamentoForm(instance=pagamento)
 
-    '''
-    return render(request, 'tickets/editar_pagamento.html', {
+    return render(request, 'seu_template.html', {
         'form': form,
         'pagamento': pagamento,
-        'ticket': ticket,
-    })'''
+        'ticket': ticket
+    })
 
 @login_required
 def add_pagamento(request, key):
@@ -436,6 +456,7 @@ def add_pagamento(request, key):
 
 
 @login_required
+@require_POST
 def upload_nfe(request, key):
     ticket = get_object_or_404(Ticket, key=key)
     if request.method == 'POST' and request.FILES.get('arquivo'):
@@ -455,9 +476,85 @@ def upload_nfe(request, key):
             for chunk in arquivo.chunks():
                 destino.write(chunk)
         # Salva apenas o caminho relativo
+
         ticket.nfe_path = f'nfe/{nome_aleatorio}'
         ticket.save()
         messages.success(request, "Nota Fiscal enviada com sucesso!")
     else:
         messages.error(request, "Selecione um arquivo válido para enviar.")
+    return redirect('exibir-ticket', key=key)
+
+@login_required
+def delete_nfe(request, key):
+    ticket = get_object_or_404(Ticket, key=key)
+    
+    if ticket.nfe_path:
+        # Remove o arquivo físico
+        file_path = os.path.join(settings.MEDIA_ROOT, ticket.nfe_path)
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                messages.error(request, f"Erro ao remover arquivo: {str(e)}")
+                return redirect('exibir-ticket', key=key)
+        
+        # Limpa o campo no banco de dados
+        ticket.nfe_path = None
+        ticket.save()
+        messages.success(request, "Nota fiscal removida com sucesso!")
+    else:
+        messages.warning(request, "Não há nota fiscal para remover")
+    
+    return redirect('exibir-ticket', key=key)
+
+@login_required
+@require_POST
+def upload_comprovante(request, id, key):
+    pagamento = get_object_or_404(Pagamentos, id=id)
+    if request.method == 'POST' and request.FILES.get('comprovante'):
+        arquivo = request.FILES['comprovante']
+        extensao = os.path.splitext(arquivo.name)[1].lower()
+        tipos_permitidos = ['.jpg', '.jpeg', '.png', '.pdf']
+
+        if extensao not in tipos_permitidos:
+            messages.error(request, "Só é permitido enviar imagens (.jpg, .jpeg, .png) ou PDF.")
+            return redirect('exibir-ticket', key=key)
+
+        nome_aleatorio = f"{uuid.uuid4().hex}{extensao}"
+        pasta_destino = os.path.join(settings.MEDIA_ROOT, 'comprovantes')
+        os.makedirs(pasta_destino, exist_ok=True)
+        caminho_arquivo = os.path.join(pasta_destino, nome_aleatorio)
+        with open(caminho_arquivo, 'wb+') as destino:
+            for chunk in arquivo.chunks():
+                destino.write(chunk)
+
+        pagamento.comprovante = f'comprovantes/{nome_aleatorio}'
+        pagamento.data_update_pagamento = timezone.now()
+        pagamento.save()
+        messages.success(request, "Comprovante enviado com sucesso!")
+    else:
+        messages.error(request, "Selecione um arquivo válido para enviar.")
+    return redirect('exibir-ticket', key=key)
+
+@login_required
+def delete_comprovante(request, id, key):
+    pagamento = get_object_or_404(Pagamentos, id=id)
+
+    if pagamento.comprovante:
+        # Remove o arquivo físico
+        file_path = os.path.join(settings.MEDIA_ROOT, pagamento.comprovante)
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except Exception as e:
+                messages.error(request, f"Erro ao remover arquivo: {str(e)}")
+                return redirect('exibir-ticket', key=key)
+        
+        # Limpa o campo no banco de dados
+        pagamento.comprovante = None
+        pagamento.save()
+        messages.success(request, "Comprovante removido com sucesso!")
+    else:
+        messages.warning(request, "Não há comprovante para remover")
+
     return redirect('exibir-ticket', key=key)

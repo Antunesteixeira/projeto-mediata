@@ -13,10 +13,44 @@ class Insumos(models.Model):
         ('T', 'Taxa'),
     ]
 
+    UNIDADE_MEDIDA_CHOICES = [
+    ('UN', 'Unidade'),
+    ('PC', 'Peça'),
+    ('CJ', 'Conjunto'),
+    ('PAR', 'Par'),
+    ('DZ', 'Dúzia'),
+
+    ('KG', 'Quilograma'),
+    ('G', 'Grama'),
+    ('MG', 'Miligrama'),
+    ('T', 'Tonelada'),
+
+    ('L', 'Litro'),
+    ('ML', 'Mililitro'),
+    ('M3', 'Metro cúbico'),
+
+    ('M', 'Metro'),
+    ('CM', 'Centímetro'),
+    ('MM', 'Milímetro'),
+    ('KM', 'Quilômetro'),
+
+    ('M2', 'Metro quadrado'),
+    ('CM2', 'Centímetro quadrado'),
+    ('HA', 'Hectare'),
+
+    ('CX', 'Caixa'),
+    ('SC', 'Saca'),
+    ('ROLO', 'Rolo'),
+    ('BALDE', 'Balde'),
+    ('TUBO', 'Tubo'),
+]
+
+
     insumo = models.CharField(max_length=255)
-    codigo = models.CharField(max_length=6, unique=True, blank=True)
+    codigo = models.CharField(max_length=9, unique=True, blank=True)
     tipo = models.CharField(max_length=1, choices=TIPO_CHOISES)
-    valor_unit = models.DecimalField(max_digits=10, decimal_places=2)
+    unidade = models.CharField(max_length=5, choices=UNIDADE_MEDIDA_CHOICES, blank=True, null=True)
+    valor_unit = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     quant = models.IntegerField(null=True, blank=True, default=1)
 
     def __str__(self):
@@ -29,6 +63,8 @@ class Insumos(models.Model):
 
     def _generate_unique_codigo(self):
         while True:
-            codigo = f"{random.randint(0, 999999):06d}"  # gera número com 6 dígitos
+            numero = f"{random.randint(0, 9999):04d}"  # número com 4 dígitos
+            codigo = f"INS{numero}"  # adiciona prefixo INS
             if not Insumos.objects.filter(codigo=codigo).exists():
                 return codigo
+

@@ -22,4 +22,7 @@ urlpatterns = [
     path('add-cliente-ticket/<int:id_ticket>', views.addTicketCliente, name='add-cliente-ticket'),
     path('cadastrar-cliente-ticket/<int:id_cliente>/<int:id_ticket>', views.cadastrarTicketCliente, name='cadastrar-cliente-ticket'),
     path('upload-nfe/<uuid:key>/', views.upload_nfe, name='upload-nfe'),
+    path('upload-comprovante/<int:id>/<uuid:key>/', views.upload_comprovante, name='upload-comprovante'),
+    path('ticket/<str:key>/delete-nfe/', views.delete_nfe, name='delete-nfe'),
+    path('ticket/<int:id>/<str:key>/delete-comprovante/', views.delete_comprovante, name='delete-comprovante'),
 ]

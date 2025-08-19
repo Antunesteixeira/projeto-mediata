@@ -1,8 +1,10 @@
 {% extends '_layout/base.html' %}
+{% load static %}
 
 {% block conteudo %}
 <style>
   /* Estilos melhorados para a timeline */
+  
   .timeline {
     position: relative;
     padding-left: 2.5rem;
@@ -253,8 +255,10 @@
               <thead class="table-light">
                 <tr>
                   <th>#</th>
+                  <th>Código</th>
                   <th>Descrição</th>
-                  <th>Quantidade</th>
+                  <th>Quant.</th>
+                  <th>Unidade</th>
                   <th>Valor Unitário</th>
                   <th>Tipo</th>
                   <th class="text-end">Subtotal</th>
@@ -264,6 +268,7 @@
                 {% for item in itens_orcamento %}
                   <tr>
                     <td>{{ forloop.counter }}</td>
+                    <td>{{ item.item.codigo }}</td>
                     <td>
                       <a class="btn btn-sm btn-link text-danger p-0 me-1" href="{% url 'deletar-item' item.id ticket.key %}" data-bs-toggle="tooltip" title="Remover">
                         <i class="bi bi-trash"></i>
@@ -271,6 +276,7 @@
                       {{ item.item }}
                     </td>
                     <td>{{ item.quant }}</td>
+                    <td>{{ item.item.unidade }}</td>
                     <td>R$ {{ item.item.valor_unit }}</td>
                     <td>
                       {% if item.item.tipo == 'M' %}
@@ -291,7 +297,7 @@
                   </tr>
                 {% endfor %}
                 <tr class="fw-bold" style="background-color: rgba(248, 249, 250, 0.7)">
-                  <td colspan="5">Total Itens</td>
+                  <td colspan="7">Total Itens</td>
                   <td class="text-end">R$ {{ total_itens }}</td>
                 </tr>
               </tbody>
@@ -321,7 +327,7 @@
         </div>
         <div class="col-md-4 mb-3">
           <label class="text-muted small mb-1">Fator/Margem</label>
-          <div class="fw-bold">{{ bdi }}</div>
+          <div class="fw-bold">{{ margem|floatformat:3 }}</div>
         </div>
         <div class="col-md-4 mb-3">
           <label class="text-muted small mb-1">Status</label>
@@ -455,8 +461,9 @@
         <th>#</th>
         <th>Tipo</th>
         <th>Data</th>
+        <th>Atualização</th>
         <th class="text-end">Valor</th>
-        <th>Status</th>
+        <th class="text-center">Status</th>
         <th class="text-end">Ações</th>
       </tr>
     </thead>
@@ -471,10 +478,10 @@
               class="btn btn-sm btn-link text-primary p-0 me-1 btn-editar-pagamento"
               href="#"
               data-bs-toggle="modal"
-              data-bs-target="#ModalPagamento"
+              data-bs-target="#ModalEditarPagamento"
               data-id="{{ pag.id }}"
               data-tipo="{{ pag.tipo }}"
-              data-valor="{{ pag.valor_pagamento }}"
+              data-valor="{{ pag.valor_pagamento|floatformat:2 }}"
               data-data="{{ pag.data_pagamento|date:'Y-m-d' }}"
               data-status="{{ pag.status_pagamento }}"
               title="Editar"
@@ -501,24 +508,63 @@
           </div>
         </td>
         <td>{{ pag.data_pagamento|date:"d/m/Y" }}</td>
+        <td>{{ pag.data_update_pagamento|date:"d/m/Y H:i" }}</td>
         <td class="text-end">R$ {{ pag.valor_pagamento|floatformat:2 }}</td>
-        <td>
+        <td class="text-center">
           {% if pag.status_pagamento == False %}
-            <span class="status-badge bg-danger bg-opacity-10 text-danger">Pendente</span>
+            <span class="badge rounded-pill bg-danger-subtle text-danger d-inline-flex align-items-center px-3 py-2">
+              <i class="bi bi-x-circle me-1"></i> Pendente
+            </span>
           {% elif pag.status_pagamento == True %}
-            <span class="status-badge bg-success bg-opacity-10 text-success">Pago</span>
+            <span class="badge rounded-pill bg-success-subtle text-success d-inline-flex align-items-center px-3 py-2">
+              <i class="bi bi-check-circle me-1"></i> Pago
+            </span>
           {% else %}
-            <span class="status-badge bg-secondary bg-opacity-10 text-secondary">Outro</span>
+            <span class="badge rounded-pill bg-secondary-subtle text-secondary d-inline-flex align-items-center px-3 py-2">
+              <i class="bi bi-question-circle me-1"></i> Outro
+            </span>
           {% endif %}
         </td>
+
         <td class="text-end">
-          <form action="#" method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            <input type="file" id="upload-comprovante-{{ pag.id }}" name="comprovante" class="d-none" accept=".pdf,.jpg,.png" onchange="this.form.submit()">
-            <label for="upload-comprovante-{{ pag.id }}" class="btn btn-sm btn-success">
-              <i class="bi bi-file-earmark-check me-1"></i> Comp.
-            </label>
-          </form>
+          {% if pag.status_pagamento %}
+            {% if pag.comprovante %}
+              <div class="d-flex align-items-center justify-content-end gap-2">
+                {% if ".pdf" in pag.comprovante|lower %}
+                  <a href="{{ MEDIA_URL }}{{ pag.comprovante }}" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center" target="_blank" data-bs-toggle="tooltip" title="Visualizar PDF">
+                    <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+                  </a>
+                  <form action="{% url 'delete-comprovante' pag.id ticket.key %}" method="post" class="ms-2">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center" 
+                            onclick="return confirm('Tem certeza que deseja remover esta nota fiscal?')" 
+                            data-bs-toggle="tooltip" title="Remover NFe">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+
+                {% else %}
+                  <a href="{{ MEDIA_URL }}{{ pag.comprovante }}" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" target="_blank" data-bs-toggle="tooltip" title="Visualizar imagem">
+                    <i class="bi bi-image me-1"></i> Ver
+                  </a>
+                {% endif %}
+              </div>
+            {% else %}
+              <form action="{% url 'upload-comprovante' pag.id ticket.key %}" method="post" enctype="multipart/form-data" class="d-inline">
+                {% csrf_token %}
+                <input type="file" id="upload-comprovante-{{ pag.id }}" name="comprovante" class="d-none" accept=".pdf,.jpg,.png" onchange="this.form.submit()">
+                <label for="upload-comprovante-{{ pag.id }}" class="btn btn-sm btn-success d-inline-flex align-items-center" data-bs-toggle="tooltip" title="Enviar comprovante">
+                  <i class="bi bi-upload me-1"></i> Upload
+                </label>
+              </form>
+            {% endif %}
+          {% else %}
+            <div class="alert alert-warning d-inline-flex align-items-center py-1 px-2 mb-0">
+              <i class="bi bi-cash-coin me-2"></i>
+              Pagamento pendente
+            </div>
+          {% endif %}
+
         </td>
       </tr>
       {% endfor %}
@@ -533,40 +579,53 @@
     </div>
   </div>
 
-  <!-- Nota Fiscal -->
-<div class="info-card card mb-4">
+<!-- Nota Fiscal -->
+<div class="info-card card mb-4 shadow-sm">
   <div class="card-body">
-    <h5 class="card-title"><i class="bi bi-file-earmark-text me-2"></i>NOTA FISCAL</h5>
-    {% if ticket.status == 'V' %}
+    <h5 class="card-title d-flex align-items-center">
+      <i class="bi bi-file-earmark-text me-2 text-primary"></i>
+      Nota Fiscal
+    </h5>
+
+    {% if ticket.status == 'V' or ticket.status == 'F' %}
       {% if ticket.nfe_path %}
-        <div>
-          {% if ".pdf" in ticket.nfe_path|lower %}
-            <a href="{{ MEDIA_URL }}{{ ticket.nfe_path }}" target="_blank" class="d-inline-flex align-items-center">
-              <i class="bi bi-file-earmark-pdf text-danger" style="font-size:2rem"></i>
-              <span class="ms-2">Visualizar PDF</span>
-            </a>
-          {% else %}
-            <a href="{{ MEDIA_URL }}{{ ticket.nfe_path }}" target="_blank">
-              <img src="{{ MEDIA_URL }}{{ ticket.nfe_path }}" alt="NFe" style="max-width:80px;max-height:80px;border-radius:8px;box-shadow:0 0 6px #eee;">
-            </a>
-          {% endif %}
+        <div class="d-flex align-items-center justify-content-between">
+          <div>
+            {% if ".pdf" in ticket.nfe_path|lower %}
+              <a href="{{ MEDIA_URL }}{{ ticket.nfe_path }}" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center" target="_blank" data-bs-toggle="tooltip" title="Visualizar PDF da NFe">
+                <i class="bi bi-file-earmark-pdf me-1"></i> PDF
+              </a>
+            {% else %}
+              <a href="{{ MEDIA_URL }}{{ ticket.nfe_path }}" target="_blank" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center" data-bs-toggle="tooltip" title="Visualizar imagem da NFe">
+                <i class="bi bi-image me-1"></i> Ver Imagem
+              </a>
+            {% endif %}
+          </div>
+          <form action="{% url 'delete-nfe' ticket.key %}" method="post" class="ms-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center" onclick="return confirm('Tem certeza que deseja remover esta nota fiscal?')" data-bs-toggle="tooltip" title="Remover NFe">
+              <i class="bi bi-trash me-1"></i> Remover
+            </button>
+          </form>
         </div>
       {% else %}
-        <form action="{% url 'upload-nfe' ticket.key %}" method="post" enctype="multipart/form-data">
+        <form action="{% url 'upload-nfe' ticket.key %}" method="post" enctype="multipart/form-data" class="mt-2">
           {% csrf_token %}
-          <label for="formFile" class="file-upload-label">
-            <i class="bi bi-upload me-2"></i>Enviar Arquivo
+          <input type="file" id="upload-nfe-{{ ticket.key }}" name="arquivo" class="d-none" accept=".pdf,.jpg,.jpeg,.png" onchange="this.form.submit()">
+          <label for="upload-nfe-{{ ticket.key }}" class="btn btn-success btn-sm d-inline-flex align-items-center" data-bs-toggle="tooltip" title="Enviar Nota Fiscal">
+            <i class="bi bi-upload me-1"></i> Upload
           </label>
-          <input type="file" id="formFile" name="arquivo" class="d-none" onchange="this.form.submit()">
         </form>
       {% endif %}
     {% else %}
-      <div class="alert alert-light mb-0">
-        O uploader da NFe só aparecerá se o ticket estiver vistoriado!
+      <div class="alert alert-light mb-0 d-flex align-items-center">
+        <i class="bi bi-info-circle me-2"></i>
+        O uploader da NFe só aparece se o ticket estiver vistoriado ou finalizado.
       </div>
     {% endif %}
   </div>
 </div>
+
 
   <!-- Timeline -->
   <div class="info-card card">
@@ -628,28 +687,233 @@
   </div>
 </div>
 
-<!-- Item de Orçamento -->
+<!-- Modal Item de Orçamento -->
 <div class="modal fade" id="ModalItemOrcamento" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <form method="post" id="form-itemorcamento">
+      <form method="post" name="form_type" id="itemorcamento">
         {% csrf_token %}
         <input type="hidden" name="form_type" value="itemorcamento">
         <div class="modal-header">
           <h5 class="modal-title">Novo Item de Orçamento</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
+        <!-- Adicione este HTML ao seu modal -->
         <div class="modal-body">
-          {{ itemorcamento.as_p }}
+            <div class="mb-3">
+                <label class="form-label">Pesquisar Insumos</label>
+                <input type="text" class="form-control" name="item" id="insumoSearch" placeholder="Digite o nome do insumo...">
+                <div id="insumoResults" class="list-group mt-1" style="display:none; max-height: 300px; overflow-y: auto;"></div>
+                
+                <!-- Adicione um input hidden para o item selecionado -->
+                <input type="hidden" name="item" id="itemInsumo">
+              </div>
+            
+            <div id="selectedInsumoInfo" style="display: none;">
+                <div class="card mt-3">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Insumo Selecionado:</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <span class="text-muted">Código:</span>
+                            <strong id="codigoInsumo" class="d-block">-</strong>
+                        </div>
+                        <div class="mb-2">
+                            <span class="text-muted">Nome:</span>
+                            <strong id="nomeInsumo" class="d-block">-</strong>
+                        </div>
+                        <div class="mb-2">
+                            <span class="text-muted">Unidade:</span>
+                            <strong id="unidadeInsumo" class="d-block">-</strong>
+                        </div>
+                        <div class="mb-3">
+                            <span class="text-muted">Preço Unitário:</span>
+                            <strong id="precoInsumo" class="d-block">-</strong>
+                        </div>
+                        <div class="mb-3">
+                            <label for="quant" class="form-label">Quantidade:</label>
+                            <input type="number" step="0.01" min="0" class="form-control" name="quant" id="quant" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+
+      <style>
+      /* Estilos para os resultados */
+      #insumoResults {
+          position: relative;
+          z-index: 1000;
+      }
+
+      #insumoResults .list-group-item {
+          cursor: pointer;
+          border-left: none;
+          border-right: none;
+      }
+
+      #insumoResults .list-group-item:hover {
+          background-color: #f8f9fa;
+      }
+      </style>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
           <button type="submit" class="btn btn-primary">Salvar Item</button>
         </div>
       </form>
     </div>
   </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Elementos do DOM
+    const itemInsumoField = document.getElementById('itemInsumo');
+
+    const insumoSearch = document.getElementById('insumoSearch');
+    const insumoResults = document.getElementById('insumoResults');
+    const selectedInsumoInfo = document.getElementById('selectedInsumoInfo');
+    const codigoField = document.getElementById('codigoInsumo');
+    const nomeField = document.getElementById('nomeInsumo');
+    const unidadeField = document.getElementById('unidadeInsumo');
+    const precoField = document.getElementById('precoInsumo');
+    const quantField = document.getElementById('quantidadeInsumo');
+    const formItemOrcamento = document.getElementById('itemorcamento');
+    
+    // Variável para armazenar o item selecionado
+    let selectedInsumo = null;
+    
+    // Quando o modal é aberto
+    document.getElementById('ModalItemOrcamento').addEventListener('show.bs.modal', function() {
+        resetSearchFields();
+    });
+    
+    // Evento de busca
+    insumoSearch.addEventListener('input', function() {
+        const searchTerm = this.value.trim();
+        
+        if (searchTerm.length < 2) {
+            hideResults();
+            return;
+        }
+        
+        fetchInsumos(searchTerm);
+    });
+    
+    // Função para buscar insumos na API
+    function fetchInsumos(term) {
+        showLoading();
+        
+        fetch(`/api/buscar-itens/?term=${encodeURIComponent(term)}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Erro na requisição');
+                return response.json();
+            })
+            .then(data => {
+                displayResults(data);
+            })
+            .catch(error => {
+                showError(error);
+            });
+    }
+    
+    // Mostra estado de carregamento
+    function showLoading() {
+        insumoResults.innerHTML = '<div class="list-group-item">Buscando insumos...</div>';
+        insumoResults.style.display = 'block';
+    }
+    
+    // Exibe os resultados da busca
+    function displayResults(results) {
+        if (!results || results.length === 0) {
+            insumoResults.innerHTML = '<div class="list-group-item">Nenhum insumo encontrado</div>';
+            insumoResults.style.display = 'block';
+            return;
+        }
+        
+        insumoResults.innerHTML = '';
+        results.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'list-group-item list-group-item-action';
+            div.innerHTML = `
+                <div class="d-flex justify-content-between">
+                    <strong>${item.insumo || item.value}</strong>
+                    <span class="badge bg-secondary">${item.codigo}</span>
+                </div>
+                <div class="d-flex justify-content-between small mt-1">
+                    <span>${item.unidade_display || item.unidade || ''}</span>
+                    <span>R$ ${item.valor_unit}</span>
+                </div>
+            `;
+            div.addEventListener('click', function() {
+                selectInsumo(item);
+            });
+            insumoResults.appendChild(div);
+        });
+        
+        insumoResults.style.display = 'block';
+    }
+    
+    // Seleciona um insumo
+    function selectInsumo(item) {
+      selectedInsumo = item;
+      
+      // Preenche os campos
+      insumoSearch.value = item.insumo || item.value;
+      codigoField.textContent = item.codigo;
+      nomeField.textContent = item.insumo || item.value;
+      unidadeField.textContent = item.unidade_display || item.unidade || '-';
+      precoField.textContent = `R$ ${item.valor_unit}`;
+      
+      // Define o valor do campo hidden que será enviado
+      itemInsumoField.value = item.id; // ou item.codigo, dependendo do que sua view espera
+      
+      // Mostra a seção de insumo selecionado
+      selectedInsumoInfo.style.display = 'block';
+      
+      // Fecha os resultados
+      hideResults();
+      
+      // Foca no campo de quantidade
+      document.getElementById('quant').value = '';
+      document.getElementById('quant').focus();
+  }
+    
+    // Mostra mensagem de erro
+    function showError(error) {
+        console.error('Erro:', error);
+        insumoResults.innerHTML = '<div class="list-group-item text-danger">Erro ao buscar insumos</div>';
+        insumoResults.style.display = 'block';
+    }
+    
+    // Esconde os resultados
+    function hideResults() {
+        insumoResults.style.display = 'none';
+    }
+    
+    // Reseta os campos de busca
+    function resetSearchFields() {
+        insumoSearch.value = '';
+        selectedInsumo = null;
+        selectedInsumoInfo.style.display = 'none';
+        hideResults();
+    }
+    
+    // Evento de submit do formulário
+    formItemOrcamento.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!selectedInsumo) {
+            alert('Selecione um insumo antes de salvar');
+            return;
+        }
+        
+        // Aqui você pode adicionar a lógica para enviar o formulário
+        this.submit();
+    });
+});
+</script>
 
 <!-- Modal Pagamento -->
 <div class="modal fade" id="ModalPagamento" tabindex="-1" aria-hidden="true">
@@ -676,8 +940,17 @@
             </select>
           </div>
           <div class="mb-3">
-            <label class="form-label">Valor</label>
-            <input type="number" name="valor_pagamento" class="form-control" step="0.01" min="0" required>
+            <label for="{{ pagamento.valor_pagamento.id_for_label }}" class="form-label">Valor</label>
+              <input type="number" 
+                    name="valor_pagamento"
+                    value="{{ pagamento.valor_pagamento.value|default_if_none:'' }}"
+                    class="form-control"
+                    step="0.01"
+                    id="{{ pagamento.valor_pagamento.id_for_label }}"
+                    placeholder="Ex: 100.00">
+              {% if pagamento.valor_pagamento.errors %}
+                  <div class="text-danger small">{{ pagamento.valor_pagamento.errors }}</div>
+              {% endif %}
           </div>
           <div class="mb-3">
             <label class="form-label">Data</label>
@@ -688,6 +961,63 @@
             <label class="form-check-label" for="statusCheck">Pagamento realizado</label>
           </div>
         </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="submit" class="btn btn-primary">Salvar Pagamento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar Pagamento -->
+<div class="modal fade" id="ModalEditarPagamento" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form method="post" id="pagamentoForm">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="form-pagamento">
+        <input type="hidden" name="pagamento_id" id="pagamento_id" value="">
+        
+        <div class="modal-header">
+          <h5 class="modal-title">Editar Pagamento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Tipo</label>
+            <select name="tipo" class="form-select" required>
+              <option value="">Selecione o tipo</option>
+              <option value="M">Material</option>
+              <option value="S">Serviço</option>
+              <option value="O">Mão de Obra</option>
+              <option value="E">Equipamento</option>
+              <option value="T">Taxa</option>
+            </select>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Valor</label>
+            <input type="number" 
+                  name="valor_pagamento"
+                  class="form-control"
+                  step="0.01"
+                  placeholder="Ex: 100.00"
+                  required>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Data</label>
+            <input type="date" name="data_pagamento" class="form-control" required>
+          </div>
+          
+          <div class="mb-3 form-check">
+            <input type="checkbox" name="status_pagamento" class="form-check-input" id="statusCheck">
+            <label class="form-check-label" for="statusCheck">Pagamento realizado</label>
+          </div>
+        </div>
+        
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
           <button type="submit" class="btn btn-primary">Salvar Pagamento</button>
@@ -743,70 +1073,85 @@
             <button type="submit" class="btn btn-primary">Salvar</button>
           </div>
         </form>
-
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Editar pagamento-->
-<div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="editarModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content rounded-2 shadow-sm">
-      <div class="modal-header">
-        <h5 class="modal-title" id="editarModalLabel">Editar Pagamento</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-      </div>
-      <div class="modal-body">
-        <!-- Exemplo de conteúdo -->
-        <form action="{% url 'update-historico' ticket.key %}" method="post">
-          {% csrf_token %}
-          {{ pagamento.as_p }}
-          {% if pagamento.errors %}
-            <div class="text-danger small">
-              {{ pagamento.errors }}
-            </div>
-          {% endif %}
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn btn-primary">Salvar</button>
-          </div>
-        </form>
-
       </div>
     </div>
   </div>
 </div>
 
 <script>
-// Gera a URL base usando Django, com id fictício "0"
+document.addEventListener('DOMContentLoaded', function() {
+    // Formata o valor monetário ao carregar a página
+    const valorPagamento = document.getElementById('{{ pagamento.valor_pagamento.id_for_label }}');
+    if (valorPagamento && valorPagamento.value) {
+        valorPagamento.value = parseFloat(valorPagamento.value).toFixed(2);
+    }
+    
+    // Adiciona máscara para o valor monetário
+    if (valorPagamento) {
+        valorPagamento.addEventListener('blur', function() {
+            if (this.value) {
+                this.value = parseFloat(this.value).toFixed(2);
+            }
+        });
+    }
+});
+</script>
+
+<script>
+// URL base para edição
 const baseEditUrl = "{% url 'editar-pagamento' 0 ticket.key %}";
 
 document.querySelectorAll('.btn-editar-pagamento').forEach(btn => {
   btn.addEventListener('click', function(e) {
     e.preventDefault();
 
-    // Preenche os campos do modal
-    document.getElementById('pagamento_id').value = this.dataset.id;
-    document.querySelector('#ModalPagamento select[name="tipo"]').value = this.dataset.tipo;
-    document.querySelector('#ModalPagamento input[name="valor_pagamento"]').value = this.dataset.valor;
-    document.querySelector('#ModalPagamento input[name="data_pagamento"]').value = this.dataset.data;
-    document.querySelector('#ModalPagamento input[name="status_pagamento"]').checked = (this.dataset.status === "True" || this.dataset.status === "true" || this.dataset.status === "1");
+    // Debug: mostra os dados recebidos
+    console.log('Dados recebidos:', {
+      id: this.dataset.id,
+      tipo: this.dataset.tipo,
+      valor: this.dataset.valor,
+      data: this.dataset.data,
+      status: this.dataset.status
+    });
 
-    // Substitui o id fictício "0" pelo id real do pagamento
-    document.getElementById('pagamentoForm').action = baseEditUrl.replace('/0/', `/${this.dataset.id}/`);
+    // 1. Conversão segura do valor
+    let valorNumerico = 0;
+    try {
+      // Remove todos os caracteres não numéricos exceto vírgula e ponto
+      const valorString = this.dataset.valor.toString()
+        .replace(/[^\d,.]/g, '')  // Mantém apenas números, vírgula e ponto
+        .replace(/\./g, '')        // Remove pontos de milhar
+        .replace(',', '.');        // Converte vírgula para ponto decimal
+      
+      valorNumerico = parseFloat(valorString) || 0;
+    } catch (e) {
+      console.error("Erro na conversão do valor:", e);
+    }
+
+    // 2. Preenchimento do modal
+    const modal = document.getElementById('ModalEditarPagamento');
+    
+    // Preenche os campos
+    modal.querySelector('input[name="valor_pagamento"]').value = valorNumerico.toFixed(2);
+    modal.querySelector('select[name="tipo"]').value = this.dataset.tipo;
+    modal.querySelector('input[name="data_pagamento"]').value = this.dataset.data;
+    modal.querySelector('input[name="status_pagamento"]').checked = 
+      ['True', 'true', '1'].includes(this.dataset.status);
+
+    // 3. Atualiza ação do formulário
+    const form = modal.querySelector('form');
+    form.action = baseEditUrl.replace('/0/', `/${this.dataset.id}/`);
+    form.querySelector('input[name="pagamento_id"]').value = this.dataset.id;
   });
 });
 
-// Resetar para adicionar novo pagamento
-document.getElementById('ModalPagamento').addEventListener('show.bs.modal', function (event) {
-  if (!event.relatedTarget || !event.relatedTarget.classList.contains('btn-editar-pagamento')) {
-    document.getElementById('pagamentoForm').action = "{% url 'add-pagamento' ticket.key %}";
-    document.getElementById('pagamento_id').value = "";
-    document.querySelector('#ModalPagamento select[name="tipo"]').value = "";
-    document.querySelector('#ModalPagamento input[name="valor_pagamento"]').value = "";
-    document.querySelector('#ModalPagamento input[name="data_pagamento"]').value = "";
-    document.querySelector('#ModalPagamento input[name="status_pagamento"]').checked = false;
+// Reset para novo pagamento
+document.getElementById('ModalEditarPagamento').addEventListener('show.bs.modal', function(e) {
+  if (!e.relatedTarget?.classList.contains('btn-editar-pagamento')) {
+    const form = this.querySelector('form');
+    form.action = "{% url 'editar-pagamento' 0 ticket.key %}";
+    form.reset();
+    form.querySelector('input[name="pagamento_id"]').value = '';
   }
 });
 </script>

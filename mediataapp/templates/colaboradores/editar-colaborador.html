@@ -44,6 +44,11 @@
                                 <div class="col-md-6">
                                     {{ form.data_nascimento.label_tag }}
                                     {{ form.data_nascimento }}
+                                    {% if form.data_nascimento.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {{ form.data_nascimento.errors }}
+                                        </div>
+                                    {% endif %}
                                 </div>
                                 <div class="col-md-6">
                                     {{ form.funcao.label_tag }}
@@ -128,12 +133,13 @@
 
                         <!-- Status e Ações -->
                         <div class="d-flex justify-content-between align-items-center mt-4">
-                            <div class="form-check form-switch">
-                                {{ form.ativo }}
-                                <label class="form-check-label ms-2" for="{{ form.ativo.id_for_label }}">
-                                    Colaborador Ativo
-                                </label>
-                            </div>
+                            <div class="form-check form-switch d-flex align-items-center">
+                            {{ form.ativo }}
+                            <label class="form-check-label ms-3" for="{{ form.ativo.id_for_label }}">
+                                <span class="fw-bold">Colaborador Ativo</span>
+                                <small class="d-block text-muted">Ative/desative o status deste colaborador</small>
+                            </label>
+                        </div>
                             
                             <div>
                                 <a href="{% url 'lista_colaboradores' %}" class="btn btn-outline-secondary me-2">

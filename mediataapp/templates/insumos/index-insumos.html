@@ -4,22 +4,27 @@
 
 <div class="container-fluid">
 
-  <!-- Cabeçalho -->
+  <!-- Cabeçalho dinâmico para criação/edição -->
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Cadastro de Insumos</h2>
+    <h2 class="mb-0">
+      {% if form.instance.id %}Editar Insumo{% else %}Cadastro de Insumos{% endif %}
+    </h2>
   </div>
 
   <!-- Card do Formulário -->
   <div class="card shadow-sm mb-4">
     <div class="card-body">
-      <h5 class="card-title mb-3">Adicionar Novo Insumo</h5>
+      <h5 class="card-title mb-3">
+        {% if form.instance.id %}Editar Insumo{% else %}Adicionar Novo Insumo{% endif %}
+      </h5>
       <form method="post" novalidate>
         {% csrf_token %}
 
         <div class="row mb-3">
-          <div class="col-md-8">
+          <div class="col-md-4">
             <label for="id_insumo" class="form-label">Insumo</label>
-            <input type="text" name="insumo" id="id_insumo" class="form-control" value="{{ form.insumo.value|default_if_none:'' }}">
+            <input type="text" name="insumo" id="id_insumo" class="form-control" 
+                   value="{{ form.insumo.value|default_if_none:'' }}" required>
             {% if form.insumo.errors %}
               <div class="text-danger small">{{ form.insumo.errors.0 }}</div>
             {% endif %}
@@ -32,32 +37,44 @@
               <div class="text-danger small">{{ form.tipo.errors.0 }}</div>
             {% endif %}
           </div>
+
+          <div class="col-md-4">
+            <label for="id_unidade" class="form-label">Unidade</label>
+            {{ form.unidade }}
+            {% if form.unidade.errors %}
+              <div class="text-danger small">{{ form.unidade.errors.0 }}</div>
+            {% endif %}
+          </div>
         </div>
 
         <div class="row mb-3">
           <div class="col-md-3">
-            <label for="id_valor_unit" class="form-label">Valor Unitário</label>
-            <input type="number" step="0.01" name="valor_unit" id="id_valor_unit" class="form-control" value="{{ form.valor_unit.value|default_if_none:'' }}">
-            {% if form.valor_unit.errors %}
-              <div class="text-danger small">{{ form.valor_unit.errors.0 }}</div>
-            {% endif %}
+            <label for="{{ form.valor_unit.id_for_label }}" class="form-label">Valor Unitário</label>
+            {{ form.valor_unit }}
           </div>
 
           <div class="col-md-3">
             <label for="id_quant" class="form-label">Quantidade</label>
-            <input type="number" name="quant" id="id_quant" class="form-control" disabled value="{{ form.quant.value|default_if_none:'' }}">
+            <input type="number" name="quant" id="id_quant" class="form-control" 
+                  value="{{ form.quant.value|default_if_none:'' }}" disabled>
             {% if form.quant.errors %}
               <div class="text-danger small">{{ form.quant.errors.0 }}</div>
             {% endif %}
           </div>
         </div>
 
-        <button type="submit" class="btn btn-primary">Salvar</button>
+        <div class="d-flex gap-2">
+          <button type="submit" class="btn btn-primary">
+            {% if form.instance.id %}Atualizar{% else %}Salvar{% endif %}
+          </button>
+          <a href="{% url 'index-insumos' %}" class="btn btn-secondary">Cancelar</a>
+        </div>
       </form>
     </div>
   </div>
 
-  <!-- Card da Tabela -->
+  <!-- Mostrar a tabela apenas na listagem (não mostrar durante edição) -->
+  {% if not form.instance.id %}
   <div class="card shadow-sm">
     <div class="card-body">
       <h5 class="card-title mb-3">Insumos Cadastrados</h5>
@@ -69,6 +86,8 @@
               <th>Insumo</th>
               <th>Código</th>
               <th>Tipo</th>
+              <th>Unidade</th>
+              <th>Quant.</th>
               <th>Valor Unitário</th>
               <th>Ações</th>
             </tr>
@@ -77,14 +96,19 @@
             {% for insumo in insumos %}
               <tr>
                 <td>{{ insumo.insumo }}</td>
-                <td>{{ insumo.codigo }}</td>
+                <td>{{ insumo.codigo|default:"-" }}</td>
                 <td>{{ insumo.get_tipo_display }}</td>
-                <td>R$ {{ insumo.valor_unit }}</td>
+                <td>{{ insumo.unidade }}</td>
+                <td>{{ insumo.quant }}</td>
+                <td>R$ {{ insumo.valor_unit|floatformat:2 }}</td>
                 <td>
                   <div class="d-flex gap-1 flex-wrap">
-                    <a href="#" class="btn btn-primary btn-sm"><i class="bi bi-eye"></i></a>
-                    <a href="{% url 'editar-insumos' insumo.id %}" class="btn btn-success btn-sm"><i class="bi bi-pencil-square"></i></a>
-                    <a href="{% url 'deletar-insumos' insumo.id %}" class="btn btn-danger btn-sm"><i class="bi bi-trash"></i></a>
+                    <a href="{% url 'editar-insumos' insumo.id %}" class="btn btn-success btn-sm" title="Editar">
+                      <i class="bi bi-pencil-square"></i>
+                    </a>
+                    <a href="{% url 'deletar-insumos' insumo.id %}" class="btn btn-danger btn-sm" title="Excluir">
+                      <i class="bi bi-trash"></i>
+                    </a>
                   </div>
                 </td>
               </tr>
@@ -94,10 +118,12 @@
       </div>
     </div>
   </div>
+  {% endif %}
 
 </div>
 
-<!-- Scripts do DataTables -->
+<!-- Scripts do DataTables (só carrega na listagem) -->
+{% if not form.instance.id %}
 <script>
   $(document).ready(function () {
     $('#datatablesSimple').DataTable({
@@ -116,5 +142,6 @@
     });
   });
 </script>
+{% endif %}
 
 {% endblock %}

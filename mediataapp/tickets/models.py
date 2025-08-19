@@ -119,10 +119,12 @@ class Pagamentos(models.Model):
         ('T', 'Taxa'),
     )
     tipo = models.CharField(max_length=1, choices=TIPO_CHOICES)
-    valor_pagamento = models.DecimalField(max_digits=10, decimal_places=2)
+    valor_pagamento = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor do Pagamento", null=True, blank=True)
     data_pagamento = models.DateField()
+    data_update_pagamento = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     status_pagamento = models.BooleanField(default=False)
     ticket_pagamento = models.ForeignKey(Ticket, on_delete=models.CASCADE)
+    comprovante = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
         return f"Pagamento {self.id} - {self.get_tipo_display()}"

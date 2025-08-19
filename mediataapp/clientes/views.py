@@ -4,21 +4,25 @@ from django.contrib.auth.decorators import login_required
 from .forms import ClienteForm
 from django.contrib import messages
 
+@login_required
 def cadastrar_cliente(request):
     if request.method == 'POST':
         form = ClienteForm(request.POST)
         if form.is_valid():
             form.save()
+            messages.success(request, f"Cliente cadastrado com sucesso.")
             return redirect('listar-clientes')  # Substitua pela sua URL de listagem
     else:
         form = ClienteForm()
 
     return render(request, 'clientes/cadastro-cliente.html', {'form': form})
 
+@login_required
 def listar_clientes(request):
     clientes = Cliente.objects.all().order_by('-data_cadastro')  # Mais recentes primeiro
     return render(request, 'clientes/listar-clientes.html', {'clientes': clientes})
 
+@login_required
 def editar_cliente(request, cliente_id):
     cliente = get_object_or_404(Cliente, id=cliente_id)
 
@@ -26,6 +30,7 @@ def editar_cliente(request, cliente_id):
         form = ClienteForm(request.POST, instance=cliente)
         if form.is_valid():
             form.save()
+            messages.success(request, f"Cliente editado com sucesso.")
             return redirect('listar-clientes')  # Redireciona para a listagem após salvar
     else:
         form = ClienteForm(instance=cliente)

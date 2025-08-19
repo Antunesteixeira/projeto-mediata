@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pesquisa de Insumos para Orçamento</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .search-results {
+            max-height: 300px;
+            overflow-y: auto;
+            margin-top: 5px;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
+            display: none;
+        }
+        .result-item {
+            cursor: pointer;
+            padding: 8px 15px;
+            transition: background-color 0.2s;
+        }
+        .result-item:hover {
+            background-color: #f8f9fa;
+        }
+        #searchContainer {
+            position: relative;
+        }
+        .quantity-input {
+            width: 80px;
+            display: inline-block;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-8 mx-auto">
+                <button class="btn btn-primary" type="button" id="openSearchModal">
+                    <i class="bi bi-search"></i> Adicionar Insumo
+                </button>
+                
+                <div id="selectedItems" class="mt-3">
+                    <h5>Insumos Selecionados:</h5>
+                    <div id="selectedItemsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Pesquisa -->
+    <div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="searchModalLabel">Pesquisar Insumos</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div id="searchContainer">
+                        <input type="text" id="searchInput" class="form-control" 
+                               placeholder="Digite o nome do insumo..." autofocus>
+                        <div id="searchResults" class="search-results"></div>
+                    </div>
+                    <div class="mt-3" id="selectedItemDetails" style="display: none;">
+                        <h6>Insumo Selecionado:</h6>
+                        <div id="itemDetails"></div>
+                        <div class="mt-2">
+                            <label for="itemQuantity">Quantidade:</label>
+                            <input type="number" id="itemQuantity" class="form-control quantity-input" min="1" value="1">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+                    <button type="button" class="btn btn-primary" id="confirmBtn" disabled>Adicionar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Elementos do DOM
+            const openSearchModal = document.getElementById('openSearchModal');
+            const searchModal = new bootstrap.Modal(document.getElementById('searchModal'));
+            const searchInput = document.getElementById('searchInput');
+            const searchResults = document.getElementById('searchResults');
+            const confirmBtn = document.getElementById('confirmBtn');
+            const selectedItemsList = document.getElementById('selectedItemsList');
+            const selectedItemDetails = document.getElementById('selectedItemDetails');
+            const itemDetails = document.getElementById('itemDetails');
+            const itemQuantity = document.getElementById('itemQuantity');
+            
+            // Variáveis para armazenar os itens
+            let selectedItem = null;
+            let addedItems = [];
+            
+            // Simulação de dados (substitua por uma chamada AJAX para seu backend)
+            const insumosDatabase = [
+                { id: 1, codigo: "INS001", nome: "Cimento CP II", unidade: "kg", preco: 25.90 },
+                { id: 2, codigo: "INS002", nome: "Areia Média", unidade: "m³", preco: 120.00 },
+                { id: 3, codigo: "INS003", nome: "Brita 1", unidade: "m³", preco: 150.00 },
+                { id: 4, codigo: "INS004", nome: "Tijolo Cerâmico", unidade: "un", preco: 0.85 },
+                { id: 5, codigo: "INS005", nome: "Argamassa", unidade: "kg", preco: 1.20 },
+                { id: 6, codigo: "INS006", nome: "Tinta Acrílica", unidade: "l", preco: 89.90 },
+                { id: 7, codigo: "INS007", nome: "Ferro 10mm", unidade: "m", preco: 12.50 }
+            ];
+            
+            // Event Listeners
+            openSearchModal.addEventListener('click', function() {
+                searchModal.show();
+                searchInput.value = '';
+                selectedItem = null;
+                confirmBtn.disabled = true;
+                searchResults.style.display = 'none';
+                selectedItemDetails.style.display = 'none';
+            });
+            
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.trim();
+                
+                if (searchTerm.length === 0) {
+                    searchResults.style.display = 'none';
+                    return;
+                }
+                
+                // Filtra os resultados
+                const results = insumosDatabase.filter(item => 
+                    item.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                    item.codigo.toLowerCase().includes(searchTerm.toLowerCase())
+                );
+                
+                displayResults(results);
+            });
+            
+            searchInput.addEventListener('focus', function() {
+                if (this.value.trim().length > 0) {
+                    const searchTerm = this.value.trim();
+                    const results = insumosDatabase.filter(item => 
+                        item.nome.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        item.codigo.toLowerCase().includes(searchTerm.toLowerCase())
+                    );
+                    displayResults(results);
+                }
+            });
+            
+            confirmBtn.addEventListener('click', function() {
+                if (selectedItem) {
+                    const quantity = parseInt(itemQuantity.value) || 1;
+                    addItemToOrcamento(selectedItem, quantity);
+                    searchModal.hide();
+                }
+            });
+            
+            // Funções
+            function displayResults(results) {
+                if (results.length === 0) {
+                    searchResults.innerHTML = '<div class="result-item p-2">Nenhum insumo encontrado</div>';
+                    searchResults.style.display = 'block';
+                    return;
+                }
+                
+                searchResults.innerHTML = '';
+                results.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'result-item';
+                    div.innerHTML = `
+                        <strong>${item.codigo} - ${item.nome}</strong><br>
+                        <small class="text-muted">${item.unidade} - R$ ${item.preco.toFixed(2)}</small>
+                    `;
+                    div.addEventListener('click', function() {
+                        selectItem(item);
+                    });
+                    searchResults.appendChild(div);
+                });
+                
+                searchResults.style.display = 'block';
+            }
+            
+            function selectItem(item) {
+                selectedItem = item;
+                searchInput.value = item.nome;
+                searchResults.style.display = 'none';
+                confirmBtn.disabled = false;
+                
+                // Mostra detalhes do item selecionado
+                itemDetails.innerHTML = `
+                    <p><strong>Código:</strong> ${item.codigo}</p>
+                    <p><strong>Nome:</strong> ${item.nome}</p>
+                    <p><strong>Unidade:</strong> ${item.unidade}</p>
+                    <p><strong>Preço Unitário:</strong> R$ ${item.preco.toFixed(2)}</p>
+                `;
+                selectedItemDetails.style.display = 'block';
+                itemQuantity.value = 1;
+                itemQuantity.focus();
+            }
+            
+            function addItemToOrcamento(item, quantity) {
+                // Verifica se o item já foi adicionado
+                const existingItemIndex = addedItems.findIndex(i => i.id === item.id);
+                
+                if (existingItemIndex >= 0) {
+                    // Atualiza a quantidade se o item já existir
+                    addedItems[existingItemIndex].quant += quantity;
+                } else {
+                    // Adiciona novo item
+                    addedItems.push({
+                        id: item.id,
+                        codigo: item.codigo,
+                        nome: item.nome,
+                        unidade: item.unidade,
+                        preco: item.preco,
+                        quant: quantity
+                    });
+                }
+                
+                updateSelectedItemsList();
+            }
+            
+            function updateSelectedItemsList() {
+                if (addedItems.length === 0) {
+                    selectedItemsList.innerHTML = '<p class="text-muted">Nenhum insumo adicionado ainda.</p>';
+                    return;
+                }
+                
+                let html = '<table class="table table-striped">';
+                html += `
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Nome</th>
+                            <th>Quantidade</th>
+                            <th>Preço Unitário</th>
+                            <th>Total</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                `;
+                
+                addedItems.forEach(item => {
+                    const total = item.preco * item.quant;
+                    html += `
+                        <tr>
+                            <td>${item.codigo}</td>
+                            <td>${item.nome}</td>
+                            <td>${item.quant} ${item.unidade}</td>
+                            <td>R$ ${item.preco.toFixed(2)}</td>
+                            <td>R$ ${total.toFixed(2)}</td>
+                            <td>
+                                <button class="btn btn-sm btn-danger remove-item" data-id="${item.id}">Remover</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table>';
+                
+                // Adiciona o total geral
+                const totalGeral = addedItems.reduce((sum, item) => sum + (item.preco * item.quant), 0);
+                html += `<div class="text-end"><strong>Total Geral: R$ ${totalGeral.toFixed(2)}</strong></div>`;
+                
+                selectedItemsList.innerHTML = html;
+                
+                // Adiciona eventos para os botões de remover
+                document.querySelectorAll('.remove-item').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const itemId = parseInt(this.getAttribute('data-id'));
+                        removeItem(itemId);
+                    });
+                });
+            }
+            
+            function removeItem(itemId) {
+                addedItems = addedItems.filter(item => item.id !== itemId);
+                updateSelectedItemsList();
+            }
+            
+            // Inicializa a lista vazia
+            updateSelectedItemsList();
+        });
+    </script>
+</body>
+</html>

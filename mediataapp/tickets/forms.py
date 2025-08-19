@@ -18,11 +18,6 @@ class TicketForm(forms.ModelForm):
         fields = [
             'ticket',
             'status',
-            'valor_material',
-            'valor_custo',
-            'valor_mao_obra',
-            'valor_faturamento',
-            'valor_equipamento',
             'emergencial',
             'data_finalizar',
             'descricao'
@@ -165,24 +160,25 @@ class ItemOrcamentoForm(forms.ModelForm):
         }
 
 class PagamentoForm(forms.ModelForm):
+    valor_pagamento = forms.DecimalField(
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Ex: 100.00',
+            'step': '0.01'
+        })
+    )
+
     class Meta:
-        model = Pagamentos  # Nome do modelo corrigido para 'Pagamento'
-        fields = [
-            'tipo',
-            'valor_pagamento',
-            'status_pagamento',
-            'data_pagamento'
-        ]
+        model = Pagamentos
+        fields = ['tipo', 'valor_pagamento', 'status_pagamento', 'data_pagamento']
+        
         widgets = {
-            'tipo': forms.Select(attrs={
-                'class': 'form-select'
-            }),
-            'valor_pagamento': forms.NumberInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Ex: R$ 100,00'
-            }),
-            'status_pagamento': forms.CheckboxInput(attrs={
-                'class': 'form-check-input' # Classe do Bootstrap para checkboxes
-            }),
-            'data_pagamento': forms.DateInput(attrs={'type': 'date', 'class': 'form-control',}),
+            'tipo': forms.Select(attrs={'class': 'form-select'}),
+            'status_pagamento': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'data_pagamento': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            self.initial['valor_pagamento'] = self.instance.valor_pagamento

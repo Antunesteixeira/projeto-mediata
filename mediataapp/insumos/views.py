@@ -1,15 +1,17 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404, HttpResponse
 from .models import Insumos
 from .forms import InsumoForm
 from django.contrib import messages
-
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.decorators import login_required
 
 from django.db.models import ProtectedError
 
 from django.http import JsonResponse
 
-# Create your views here.
+from django.db.models import Q
+
+@login_required
 def insumos(request):
     insumos_obj = Insumos.objects.all()
     if request.method == "POST":
@@ -32,6 +34,7 @@ def insumos(request):
     }
     return render(request, 'insumos/index-insumos.html', context)
 
+@login_required
 def editar_insumos(request, id):
     insumo = Insumos.objects.get(id=id)
     insumos = Insumos.objects.all()
@@ -42,7 +45,8 @@ def editar_insumos(request, id):
         if form.has_changed(): 
             insumo = form.save(commit=False)
             insumo.save()
-            messages.success(request, "Insumo atualizado com sucesso!")
+            messages.success(request, f"Insumo {insumo.codigo.upper()} - {insumo.insumo.upper()} atualizado com sucesso!")
+
         else:
             messages.info(request, "Nenhuma alteração foi detectada.")
             
@@ -53,7 +57,7 @@ def editar_insumos(request, id):
         'insumo': insumo,
         'insumos': insumos,
     }
-
+    #return HttpResponse(insumo.valor_unit)
     return render(request, 'insumos/index-insumos.html', context)
 
 @login_required
@@ -71,15 +75,3 @@ def deletar_insumo(request, id):
     except ProtectedError:
         messages.error(request, "Não foi possível deletar o ticket porque há objetos relacionados protegendo-o.")
     return redirect('index-insumos') 
-
-def buscar_insumos(request):
-    termo = request.GET.get('q', '')
-    insumos = Insumos.objects.filter(insumo__icontains=termo)[:20]  # até 20 resultados
-
-    results = []
-    for insumo in insumos:
-        results.append({
-            "id": insumo.id,
-            "text": f"{insumo.insumo} — R$ {insumo.valor_unit:.2f}"
-        })
-    return JsonResponse({"results": results})

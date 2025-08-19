@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 
 from django.contrib import messages
 
-
+@login_required
 def cadastrar_colaborador(request):
     if request.method == "POST":
         form = ColaboradorForm(request.POST)
@@ -22,10 +22,12 @@ def cadastrar_colaborador(request):
 
     return render(request, 'colaboradores/cadastrar.html', {'form': form})
 
+@login_required
 def lista_colaboradores(request):
     colaboradores = Colaborador.objects.all()
     return render(request, 'colaboradores/listar_colaboradores.html', {'colaboradores': colaboradores})
 
+@login_required
 def editar_colaborador(request, colaborador_id):
     colaborador = get_object_or_404(Colaborador, id=colaborador_id)
 
@@ -33,6 +35,7 @@ def editar_colaborador(request, colaborador_id):
         form = ColaboradorForm(request.POST, instance=colaborador)
         if form.is_valid():
             form.save()
+            messages.success(request, "Colaborador editado com sucesso!")
             return redirect('lista_colaboradores')  # Redireciona para a listagem após salvar
     else:
         form = ColaboradorForm(instance=colaborador)
