@@ -31,7 +31,7 @@
 
         <!-- Relatórios -->
         <div class="col-xl-3 col-md-6">
-            <a href="#" class="text-decoration-none">
+            <a href="{% url 'relatorios' %}" class="text-decoration-none">
                 <div class="card bg-success text-white h-100 shadow-lg border-0">
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-center">
@@ -81,7 +81,7 @@
                         <div class="d-flex justify-content-between align-items-center">
                             <div>
                                 <h5 class="card-title mb-2">Suporte</h5>
-                                <h2 class="mb-0">(98) 98477-8810</h2>
+                                <h4 class="mb-0">(98) 99481-5923</h4>
                                 <p class="small mb-0">Contato direto</p>
                             </div>
                             <i class="bi bi-headset fs-1 opacity-50"></i>
@@ -243,6 +243,12 @@
 
 <script>
     $(document).ready(function () {
+        // Determinar a coluna correta para o status
+        // Se o usuário é gerente, a coluna de status está na posição 6 (índice 6)
+        // Se não é gerente, a coluna de status está na posição 5 (índice 5)
+        const isGerente = {% if user|has_role:'gerente' %}true{% else %}false{% endif %};
+        const statusColumnIndex = isGerente ? 6 : 5;
+        
         // Inicializa DataTable
         const tabela = $('#datatablesSimple').DataTable({
             order: [[4, 'desc']], // ordena por "Criação" mais recente primeiro
@@ -259,12 +265,28 @@
                 zeroRecords: "Nenhum resultado encontrado",
             },
             dom: '<"top"f>rt<"bottom"lip><"clear">',
-            responsive: true
+            responsive: true,
+            columnDefs: [
+                {
+                    // Coluna de ações não é pesquisável/ordenável
+                    targets: [statusColumnIndex + 1], // Coluna após o status (Ações)
+                    orderable: false,
+                    searchable: false
+                }
+            ]
         });
 
         // Filtro por Status
         $('#filtro-status').on('change', function () {
-            tabela.column(5).search(this.value).draw(); // 5 = Status (índice começa em 0)
+            const statusValue = this.value;
+            
+            if (statusValue === "") {
+                // Se selecionou "Todos os Status", limpa o filtro
+                tabela.column(statusColumnIndex).search('').draw();
+            } else {
+                // Filtra pela coluna de status
+                tabela.column(statusColumnIndex).search(statusValue).draw();
+            }
         });
 
         // Pesquisa geral
@@ -280,6 +302,7 @@
             window.location = $(this).data('href');
         });
     });
+
 </script>
 
 <style>
@@ -323,6 +346,11 @@
     
     .clickable-row:hover td {
         background-color: rgba(13, 110, 253, 0.05);
+    }
+    
+    /* Estilo para o DataTables */
+    .dataTables_filter {
+        display: none; /* Esconde o filtro padrão do DataTables */
     }
 </style>
 {% endblock %}

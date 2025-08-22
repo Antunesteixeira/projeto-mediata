@@ -12,9 +12,32 @@
         </a>
     </div>
 
+    <!-- Campo de pesquisa -->
+    <div class="card-body border-bottom">
+        <div class="row justify-content-between align-items-center">
+            <div class="col-md-6">
+                <div class="input-group">
+                    <span class="input-group-text bg-transparent">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" id="pesquisa-colaborador" class="form-control" 
+                           placeholder="Pesquisar colaborador por nome, email ou função...">
+                    <button class="btn btn-outline-secondary" type="button" id="limpar-pesquisa">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="col-md-3 mt-2 mt-md-0 text-md-end">
+                <div class="form-text">
+                    <span id="contador-resultados">{{ colaboradores|length }}</span> colaborador(es) encontrado(s)
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table id="datatablesSimple" class="table table-hover align-middle mb-0">
+            <table id="tabela-colaboradores" class="table table-hover align-middle mb-0">
                 <thead class="table-primary">
                     <tr>
                         <th class="ps-4">Colaborador</th>
@@ -144,5 +167,90 @@
         color: #000;
         border-color: #dfe0e1;
     }
+    /* Estilo para linhas que não correspondem à pesquisa */
+    .d-none {
+        display: none !important;
+    }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const pesquisaInput = document.getElementById('pesquisa-colaborador');
+        const limparPesquisa = document.getElementById('limpar-pesquisa');
+        const contadorResultados = document.getElementById('contador-resultados');
+        const linhasTabela = document.querySelectorAll('#tabela-colaboradores tbody tr');
+        
+        // Função para filtrar os resultados
+        function filtrarColaboradores() {
+            const termo = pesquisaInput.value.toLowerCase().trim();
+            let resultados = 0;
+            
+            linhasTabela.forEach(linha => {
+                // Verificar se é a linha de "nenhum resultado"
+                if (linha.querySelector('td[colspan]')) {
+                    linha.classList.add('d-none');
+                    return;
+                }
+                
+                const textoLinha = linha.textContent.toLowerCase();
+                
+                if (termo === '' || textoLinha.includes(termo)) {
+                    linha.classList.remove('d-none');
+                    resultados++;
+                } else {
+                    linha.classList.add('d-none');
+                }
+            });
+            
+            // Atualizar contador
+            contadorResultados.textContent = resultados;
+            
+            // Mostrar mensagem se não houver resultados
+            if (resultados === 0 && termo !== '') {
+                const tbody = document.querySelector('#tabela-colaboradores tbody');
+                let mensagem = tbody.querySelector('.nenhum-resultado');
+                
+                if (!mensagem) {
+                    mensagem = document.createElement('tr');
+                    mensagem.classList.add('nenhum-resultado');
+                    mensagem.innerHTML = `
+                        <td colspan="3" class="text-center py-5 text-muted">
+                            <i class="bi bi-search display-6 d-block mb-2"></i>
+                            Nenhum colaborador encontrado para "${termo}".
+                        </td>
+                    `;
+                    tbody.appendChild(mensagem);
+                } else {
+                    mensagem.querySelector('td').innerHTML = `
+                        <i class="bi bi-search display-6 d-block mb-2"></i>
+                        Nenhum colaborador encontrado para "${termo}".
+                    `;
+                }
+            } else {
+                // Remover mensagem de nenhum resultado se existir
+                const mensagem = document.querySelector('.nenhum-resultado');
+                if (mensagem) {
+                    mensagem.remove();
+                }
+            }
+        }
+        
+        // Event listeners
+        pesquisaInput.addEventListener('input', filtrarColaboradores);
+        
+        limparPesquisa.addEventListener('click', function() {
+            pesquisaInput.value = '';
+            filtrarColaboradores();
+            pesquisaInput.focus();
+        });
+        
+        // Permitir busca com Enter
+        pesquisaInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                filtrarColaboradores();
+            }
+        });
+    });
+</script>
 {% endblock %}

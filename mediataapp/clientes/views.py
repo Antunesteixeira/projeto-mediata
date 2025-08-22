@@ -47,3 +47,11 @@ def deletar_cliente(request, cliente_id):
         return redirect('listar-clientes')  # ajuste para a rota da lista de clientes
     # GET -> mostrar página de confirmação
     return render(request, 'clientes/listar_cleintes.html', {'cliente': cliente})
+
+# views.py
+def perfil_cliente(request, id):
+    cliente = get_object_or_404(Cliente, id=id)
+    context = {
+        'cliente': cliente,
+    }
+    return render(request, 'clientes/perfil-cliente.html', context)

@@ -232,7 +232,7 @@
         <div>
           <h5 class="card-title mb-0"><i class="bi bi-receipt me-2"></i>ORÇAMENTO</h5>
           {% if orcamento %}
-            <small class="text-muted">#{{ orcamento }}{% if orcamento.descricao %} – {{ orcamento.descricao }}{% endif %}</small>
+            <small class="text-transform:uppercase"><span>#{{ orcamento }}</span>{% if orcamento.descricao %} – {{ orcamento.descricao }}{% endif %}</small>
           {% endif %}
         </div>
         <div class="btn-group btn-group-sm">
@@ -620,7 +620,7 @@
     {% else %}
       <div class="alert alert-light mb-0 d-flex align-items-center">
         <i class="bi bi-info-circle me-2"></i>
-        O uploader da NFe só aparece se o ticket estiver vistoriado ou finalizado.
+        O uploader da NFe só aparecerá se o ticket estiver vistoriado ou finalizado.
       </div>
     {% endif %}
   </div>

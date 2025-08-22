@@ -17,7 +17,7 @@ class CustomUserCreationForm(UserCreationForm):
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'password1', 'password2', 'group']
+        fields = ['username', 'first_name', 'last_name', 'email', 'password1', 'password2', 'group']
         widgets = {
             'username': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -51,8 +51,10 @@ class CustomUserEditForm(forms.ModelForm):
 
     class Meta:
         model = User
-        fields = ['username', 'email', 'groups', 'is_active']
+        fields = ['username', 'first_name', 'last_name', 'email', 'groups', 'is_active']
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'}),
         }

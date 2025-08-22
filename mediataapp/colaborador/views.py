@@ -52,3 +52,11 @@ def deletar_colaborador(request, colaborador_id):
         return redirect('lista_colaboradores')  # ajuste para a rota da lista de clientes
     # GET -> mostrar página de confirmação
     return render(request, 'colaboradores/listar_colaboradores.html', {'colaborador': colaborador})
+
+# views.py
+def perfil_colaborador(request, id):
+    colaborador = get_object_or_404(Colaborador, id=id)
+    context = {
+        'colaborador': colaborador,
+    }
+    return render(request, 'colaboradores/perfil-colaborador.html', context)

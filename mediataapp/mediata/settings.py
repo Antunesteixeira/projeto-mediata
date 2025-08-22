@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'insumos',
     'clientes',
     'colaborador',
+    'relatorios',
     # apps de terceiros
     'rolepermissions',
     'widget_tweaks',
@@ -143,11 +144,18 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 # /data/web/static
-STATIC_ROOT = DATA_DIR / 'static'
+#STATIC_ROOT = DATA_DIR / 'static'
+#STATIC_ROOT = '/data/web/static'
+STATIC_ROOT = BASE_DIR / 'data' / 'web' / 'static'
+
+STATICFILES_DIRS = [
+    DATA_DIR / 'static',
+]
 
 MEDIA_URL = '/media/'
 # /data/web/media
-MEDIA_ROOT = DATA_DIR / 'media'
+#MEDIA_ROOT = DATA_DIR / 'media'
+MEDIA_ROOT = '/data/web/media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -177,7 +185,7 @@ SESSION_SAVE_EVERY_REQUEST = True
 
 AUTO_LOGOUT = {
     'IDLE_TIME': timedelta(minutes=20),
-    'SESSION_TIME': timedelta(minutes=30),
-    'MESSAGE': 'The session has expired. Please login again to continue.',
+    'SESSION_TIME': timedelta(minutes=60),
+    'MESSAGE': 'A sessão expirou. Faça login novamente para continuar.',
     'REDIRECT_TO_LOGIN_IMMEDIATELY': True,
 }

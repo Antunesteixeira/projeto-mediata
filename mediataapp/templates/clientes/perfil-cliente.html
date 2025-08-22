@@ -1,0 +1,278 @@
+{% extends '_layout/base.html' %}
+{% load static %}
+
+{% block conteudo %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h3 class="mb-0"><i class="bi bi-person-badge me-2"></i>Perfil do Cliente</h3>
+                        <div>
+                            <a href="{% url 'editar-cliente' cliente.id %}" class="btn btn-warning btn-sm">
+                                <i class="bi bi-pencil me-1"></i> Editar
+                            </a>
+                            <a href="{% url 'listar-clientes' %}" class="btn btn-secondary btn-sm ms-1">
+                                <i class="bi bi-arrow-left me-1"></i> Voltar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Cabeçalho do Perfil -->
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-placeholder me-3">
+                                    <i class="bi bi-person-circle" style="font-size: 3rem;"></i>
+                                </div>
+                                <div>
+                                    <h2 class="mb-1">{{ cliente.nome_razao_social }}</h2>
+                                    <span class="badge bg-{% if cliente.ativo %}success{% else %}danger{% endif %}">
+                                        {% if cliente.ativo %}Ativo{% else %}Inativo{% endif %}
+                                    </span>
+                                    <span class="badge bg-info ms-1">{{ cliente.get_tipo_pessoa_display }}</span>
+                                    {% if cliente.sobrenome_nome_fantasia %}
+                                        <span class="badge bg-secondary ms-1">{{ cliente.sobrenome_nome_fantasia }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4 text-md-end">
+                            <small class="text-muted">ID: {{ cliente.id }}</small><br>
+                            <small class="text-muted">Cadastro: {{ cliente.data_cadastro|date:"d/m/Y" }}</small><br>
+                            <small class="text-muted">Desde: {{ cliente.data_cadastro|timesince }}</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <!-- Coluna Esquerda - Dados Pessoais/Empresa -->
+                        <div class="col-md-6">
+                            <!-- Dados Básicos -->
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="bi bi-info-circle me-2"></i>Informações Básicas</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-2">
+                                        <div class="col-5"><strong>Tipo:</strong></div>
+                                        <div class="col-7">{{ cliente.get_tipo_pessoa_display }}</div>
+                                    </div>
+                                    
+                                    <div class="row mb-2">
+                                        <div class="col-5"><strong>Nome/Razão Social:</strong></div>
+                                        <div class="col-7">{{ cliente.nome_razao_social }}</div>
+                                    </div>
+                                    
+                                    {% if cliente.sobrenome_nome_fantasia %}
+                                    <div class="row mb-2">
+                                        <div class="col-5">
+                                            <strong>{% if cliente.tipo_pessoa == 'F' %}Sobrenome{% else %}Nome Fantasia{% endif %}:</strong>
+                                        </div>
+                                        <div class="col-7">{{ cliente.sobrenome_nome_fantasia }}</div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <div class="row mb-2">
+                                        <div class="col-5"><strong>{% if cliente.tipo_pessoa == 'F' %}CPF{% else %}CNPJ{% endif %}:</strong></div>
+                                        <div class="col-7">{{ cliente.cpf_cnpj }}</div>
+                                    </div>
+                                    
+                                    {% if cliente.rg_ie %}
+                                    <div class="row mb-2">
+                                        <div class="col-5"><strong>{% if cliente.tipo_pessoa == 'F' %}RG{% else %}IE{% endif %}:</strong></div>
+                                        <div class="col-7">{{ cliente.rg_ie }}</div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Contato -->
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="bi bi-telephone me-2"></i>Contato</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if cliente.email %}
+                                    <div class="row mb-2">
+                                        <div class="col-5"><strong>Email:</strong></div>
+                                        <div class="col-7">
+                                            <a href="mailto:{{ cliente.email }}">{{ cliente.email }}</a>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if cliente.telefone %}
+                                    <div class="row mb-2">
+                                        <div class="col-5"><strong>Telefone:</strong></div>
+                                        <div class="col-7">{{ cliente.telefone }}</div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% if cliente.celular %}
+                                    <div class="row mb-2">
+                                        <div class="col-5"><strong>Celular:</strong></div>
+                                        <div class="col-7">{{ cliente.celular }}</div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Coluna Direita - Endereço e Informações -->
+                        <div class="col-md-6">
+                            <!-- Endereço -->
+                            <div class="card mb-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="bi bi-geo-alt me-2"></i>Endereço</h6>
+                                </div>
+                                <div class="card-body">
+                                    {% if cliente.cep or cliente.endereco %}
+                                    <div class="row mb-2">
+                                        <div class="col-12">
+                                            {% if cliente.endereco %}
+                                                {{ cliente.endereco }}{% if cliente.numero %}, {{ cliente.numero }}{% endif %}
+                                                {% if cliente.complemento %} - {{ cliente.complemento }}{% endif %}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="row mb-2">
+                                        <div class="col-5"><strong>Bairro:</strong></div>
+                                        <div class="col-7">{{ cliente.bairro|default:"-" }}</div>
+                                    </div>
+                                    
+                                    <div class="row mb-2">
+                                        <div class="col-5"><strong>Cidade/UF:</strong></div>
+                                        <div class="col-7">
+                                            {% if cliente.cidade %}{{ cliente.cidade }}{% endif %}
+                                            {% if cliente.estado %}/{{ cliente.estado }}{% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    {% if cliente.cep %}
+                                    <div class="row">
+                                        <div class="col-5"><strong>CEP:</strong></div>
+                                        <div class="col-7">{{ cliente.cep }}</div>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    {% else %}
+                                    <div class="row">
+                                        <div class="col-12 text-muted">Endereço não cadastrado</div>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <!-- Informações do Sistema -->
+                            <div class="card">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="bi bi-database me-2"></i>Informações do Sistema</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-2">
+                                        <div class="col-7"><strong>Data de Criação:</strong></div>
+                                        <div class="col-5 text-end">{{ cliente.data_cadastro|date:"d/m/Y H:i" }}</div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-7"><strong>Tempo como cliente:</strong></div>
+                                        <div class="col-5 text-end">{{ cliente.data_cadastro|timesince }}</div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-7"><strong>Status:</strong></div>
+                                        <div class="col-5 text-end">
+                                            <span class="badge bg-{% if cliente.ativo %}success{% else %}danger{% endif %}">
+                                                {% if cliente.ativo %}Ativo{% else %}Inativo{% endif %}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Estatísticas (pode adicionar depois) -->
+                            <div class="card mt-3">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0"><i class="bi bi-graph-up me-2"></i>Estatísticas</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-2">
+                                        <div class="col-7"><strong>Tickets:</strong></div>
+                                        <div class="col-5 text-end">{{ cliente.ticket_set.count|default:"0" }}</div>
+                                    </div>
+                                    <div class="row mb-2">
+                                        <div class="col-7"><strong>Orçamentos:</strong></div>
+                                        <div class="col-5 text-end">0</div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-7"><strong>Último atendimento:</strong></div>
+                                        <div class="col-5 text-end">-</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ações Rápidas -->
+                    <div class="mt-4 pt-3 border-top">
+                        <div class="d-flex gap-2 flex-wrap">
+                            <a href="{% url 'editar-cliente' cliente.id %}" class="btn btn-primary">
+                                <i class="bi bi-pencil me-1"></i> Editar Perfil
+                            </a>
+                            <a href="{% url 'listar-clientes' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i> Voltar para Lista
+                            </a>
+                            {% if cliente.ativo %}
+                                <form method="post" action="" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-danger" 
+                                            onclick="return confirm('Tem certeza que deseja desativar este cliente?')">
+                                        <i class="bi bi-person-x me-1"></i> Desativar
+                                    </button>
+                                </form>
+                            {% else %}
+                                <form method="post" action="" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-outline-success">
+                                        <i class="bi bi-person-check me-1"></i> Ativar
+                                    </button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .avatar-placeholder {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background-color: #f8f9fa;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 3px solid #dee2e6;
+    }
+    .card {
+        border-radius: 8px;
+    }
+    .card-header {
+        border-radius: 8px 8px 0 0 !important;
+    }
+    .badge {
+        font-size: 0.75em;
+    }
+    .row {
+        margin-bottom: 0.5rem;
+    }
+    strong {
+        color: #495057;
+    }
+</style>
+{% endblock %}

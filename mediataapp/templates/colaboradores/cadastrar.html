@@ -1,4 +1,5 @@
 {% extends '_layout/base.html' %}
+{% load static %}
 
 {% block conteudo %}
 <div class="container mt-4">
@@ -10,7 +11,7 @@
                 </div>
                 
                 <div class="card-body">
-                    <form method="POST" novalidate>
+                    <form method="POST" novalidate id="colaboradorForm">
                         {% csrf_token %}
                         
                         <!-- Seção de Tipo de Pessoa -->
@@ -18,9 +19,9 @@
                             <h5 class="border-bottom pb-2"><i class="bi bi-person-vcard me-2"></i>Tipo de Pessoa</h5>
                             <div class="row">
                                 <div class="col-md-6">
-                                    {{ form.tipo_pessoa.label_tag }}
+                                    <label for="{{ form.tipo_pessoa.id_for_label }}" class="form-label required">Tipo de Pessoa *</label>
                                     <select name="{{ form.tipo_pessoa.name }}" id="{{ form.tipo_pessoa.id_for_label }}" 
-                                            class="form-select {% if form.tipo_pessoa.errors %}is-invalid{% endif %}">
+                                            class="form-select {% if form.tipo_pessoa.errors %}is-invalid{% endif %}" required>
                                         <option value="">Selecione o tipo</option>
                                         {% for value, label in form.tipo_pessoa.field.choices %}
                                             {% if value %}
@@ -44,8 +45,10 @@
                             <h5 class="border-bottom pb-2"><i class="bi bi-person me-2"></i>Dados Pessoais</h5>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    {{ form.nome_completo.label_tag }}
-                                    {{ form.nome_completo }}
+                                    <label for="{{ form.nome_completo.id_for_label }}" class="form-label required">Nome Completo *</label>
+                                    <input type="text" name="{{ form.nome_completo.name }}" id="{{ form.nome_completo.id_for_label }}" 
+                                           class="form-control {% if form.nome_completo.errors %}is-invalid{% endif %}"
+                                           value="{{ form.nome_completo.value|default:'' }}">
                                     {% if form.nome_completo.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.nome_completo.errors }}
@@ -53,8 +56,11 @@
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6">
-                                    {{ form.cpf.label_tag }}
-                                    {{ form.cpf }}
+                                    <label for="{{ form.cpf.id_for_label }}" class="form-label required">CPF *</label>
+                                    <input type="text" name="{{ form.cpf.name }}" id="{{ form.cpf.id_for_label }}" 
+                                           class="form-control {% if form.cpf.errors %}is-invalid{% endif %}"
+                                           value="{{ form.cpf.value|default:'' }}"
+                                           oninput="formatarCPF(this)">
                                     {% if form.cpf.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.cpf.errors }}
@@ -62,8 +68,10 @@
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6">
-                                    {{ form.data_nascimento.label_tag }}
-                                    {{ form.data_nascimento }}
+                                    <label for="{{ form.data_nascimento.id_for_label }}" class="form-label">Data de Nascimento</label>
+                                    <input type="date" name="{{ form.data_nascimento.name }}" id="{{ form.data_nascimento.id_for_label }}" 
+                                           class="form-control {% if form.data_nascimento.errors %}is-invalid{% endif %}"
+                                           value="{{ form.data_nascimento.value|default:'' }}">
                                     {% if form.data_nascimento.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.data_nascimento.errors }}
@@ -71,8 +79,10 @@
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6">
-                                    {{ form.funcao.label_tag }}
-                                    {{ form.funcao }}
+                                    <label for="{{ form.funcao.id_for_label }}" class="form-label">Função</label>
+                                    <input type="text" name="{{ form.funcao.name }}" id="{{ form.funcao.id_for_label }}" 
+                                           class="form-control {% if form.funcao.errors %}is-invalid{% endif %}"
+                                           value="{{ form.funcao.value|default:'' }}">
                                     {% if form.funcao.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.funcao.errors }}
@@ -87,8 +97,10 @@
                             <h5 class="border-bottom pb-2"><i class="bi bi-building me-2"></i>Dados da Empresa</h5>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    {{ form.razao_social.label_tag }}
-                                    {{ form.razao_social }}
+                                    <label for="{{ form.razao_social.id_for_label }}" class="form-label required">Razão Social *</label>
+                                    <input type="text" name="{{ form.razao_social.name }}" id="{{ form.razao_social.id_for_label }}" 
+                                           class="form-control {% if form.razao_social.errors %}is-invalid{% endif %}"
+                                           value="{{ form.razao_social.value|default:'' }}">
                                     {% if form.razao_social.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.razao_social.errors }}
@@ -96,8 +108,10 @@
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6">
-                                    {{ form.nome_fantasia.label_tag }}
-                                    {{ form.nome_fantasia }}
+                                    <label for="{{ form.nome_fantasia.id_for_label }}" class="form-label">Nome Fantasia</label>
+                                    <input type="text" name="{{ form.nome_fantasia.name }}" id="{{ form.nome_fantasia.id_for_label }}" 
+                                           class="form-control {% if form.nome_fantasia.errors %}is-invalid{% endif %}"
+                                           value="{{ form.nome_fantasia.value|default:'' }}">
                                     {% if form.nome_fantasia.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.nome_fantasia.errors }}
@@ -105,8 +119,11 @@
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6">
-                                    {{ form.cnpj.label_tag }}
-                                    {{ form.cnpj }}
+                                    <label for="{{ form.cnpj.id_for_label }}" class="form-label required">CNPJ *</label>
+                                    <input type="text" name="{{ form.cnpj.name }}" id="{{ form.cnpj.id_for_label }}" 
+                                           class="form-control {% if form.cnpj.errors %}is-invalid{% endif %}"
+                                           value="{{ form.cnpj.value|default:'' }}"
+                                           oninput="formatarCNPJ(this)">
                                     {% if form.cnpj.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.cnpj.errors }}
@@ -121,8 +138,10 @@
                             <h5 class="border-bottom pb-2"><i class="bi bi-telephone me-2"></i>Contato</h5>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    {{ form.email.label_tag }}
-                                    {{ form.email }}
+                                    <label for="{{ form.email.id_for_label }}" class="form-label">Email</label>
+                                    <input type="email" name="{{ form.email.name }}" id="{{ form.email.id_for_label }}" 
+                                           class="form-control {% if form.email.errors %}is-invalid{% endif %}"
+                                           value="{{ form.email.value|default:'' }}">
                                     {% if form.email.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.email.errors }}
@@ -130,8 +149,11 @@
                                     {% endif %}
                                 </div>
                                 <div class="col-md-6">
-                                    {{ form.telefone.label_tag }}
-                                    {{ form.telefone }}
+                                    <label for="{{ form.telefone.id_for_label }}" class="form-label">Telefone</label>
+                                    <input type="text" name="{{ form.telefone.name }}" id="{{ form.telefone.id_for_label }}" 
+                                           class="form-control {% if form.telefone.errors %}is-invalid{% endif %}"
+                                           value="{{ form.telefone.value|default:'' }}"
+                                           oninput="formatarTelefone(this)">
                                     {% if form.telefone.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.telefone.errors }}
@@ -139,8 +161,10 @@
                                     {% endif %}
                                 </div>
                                 <div class="col-12">
-                                    {{ form.endereco.label_tag }}
-                                    {{ form.endereco }}
+                                    <label for="{{ form.endereco.id_for_label }}" class="form-label">Endereço</label>
+                                    <textarea name="{{ form.endereco.name }}" id="{{ form.endereco.id_for_label }}" 
+                                              class="form-control {% if form.endereco.errors %}is-invalid{% endif %}" 
+                                              rows="3">{{ form.endereco.value|default:'' }}</textarea>
                                     {% if form.endereco.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.endereco.errors }}
@@ -155,8 +179,10 @@
                             <h5 class="border-bottom pb-2"><i class="bi bi-bank me-2"></i>Dados Bancários</h5>
                             <div class="row g-3">
                                 <div class="col-md-6">
-                                    {{ form.banco.label_tag }}
-                                    {{ form.banco }}
+                                    <label for="{{ form.banco.id_for_label }}" class="form-label">Banco</label>
+                                    <input type="text" name="{{ form.banco.name }}" id="{{ form.banco.id_for_label }}" 
+                                           class="form-control {% if form.banco.errors %}is-invalid{% endif %}"
+                                           value="{{ form.banco.value|default:'' }}">
                                     {% if form.banco.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.banco.errors }}
@@ -164,8 +190,10 @@
                                     {% endif %}
                                 </div>
                                 <div class="col-md-3">
-                                    {{ form.agencia.label_tag }}
-                                    {{ form.agencia }}
+                                    <label for="{{ form.agencia.id_for_label }}" class="form-label">Agência</label>
+                                    <input type="text" name="{{ form.agencia.name }}" id="{{ form.agencia.id_for_label }}" 
+                                           class="form-control {% if form.agencia.errors %}is-invalid{% endif %}"
+                                           value="{{ form.agencia.value|default:'' }}">
                                     {% if form.agencia.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.agencia.errors }}
@@ -173,8 +201,10 @@
                                     {% endif %}
                                 </div>
                                 <div class="col-md-3">
-                                    {{ form.conta.label_tag }}
-                                    {{ form.conta }}
+                                    <label for="{{ form.conta.id_for_label }}" class="form-label">Conta</label>
+                                    <input type="text" name="{{ form.conta.name }}" id="{{ form.conta.id_for_label }}" 
+                                           class="form-control {% if form.conta.errors %}is-invalid{% endif %}"
+                                           value="{{ form.conta.value|default:'' }}">
                                     {% if form.conta.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.conta.errors }}
@@ -182,8 +212,18 @@
                                     {% endif %}
                                 </div>
                                 <div class="col-md-4">
-                                    {{ form.tipo_conta.label_tag }}
-                                    {{ form.tipo_conta }}
+                                    <label for="{{ form.tipo_conta.id_for_label }}" class="form-label">Tipo de Conta</label>
+                                    <select name="{{ form.tipo_conta.name }}" id="{{ form.tipo_conta.id_for_label }}" 
+                                            class="form-select {% if form.tipo_conta.errors %}is-invalid{% endif %}">
+                                        <option value="">Selecione...</option>
+                                        {% for value, label in form.tipo_conta.field.choices %}
+                                            {% if value %}
+                                                <option value="{{ value }}" {% if form.tipo_conta.value == value %}selected{% endif %}>
+                                                    {{ label }}
+                                                </option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
                                     {% if form.tipo_conta.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.tipo_conta.errors }}
@@ -191,8 +231,18 @@
                                     {% endif %}
                                 </div>
                                 <div class="col-md-4">
-                                    {{ form.tipo_chave_pix.label_tag }}
-                                    {{ form.tipo_chave_pix }}
+                                    <label for="{{ form.tipo_chave_pix.id_for_label }}" class="form-label">Tipo Chave PIX</label>
+                                    <select name="{{ form.tipo_chave_pix.name }}" id="{{ form.tipo_chave_pix.id_for_label }}" 
+                                            class="form-select {% if form.tipo_chave_pix.errors %}is-invalid{% endif %}">
+                                        <option value="">Selecione...</option>
+                                        {% for value, label in form.tipo_chave_pix.field.choices %}
+                                            {% if value %}
+                                                <option value="{{ value }}" {% if form.tipo_chave_pix.value == value %}selected{% endif %}>
+                                                    {{ label }}
+                                                </option>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </select>
                                     {% if form.tipo_chave_pix.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.tipo_chave_pix.errors }}
@@ -200,8 +250,10 @@
                                     {% endif %}
                                 </div>
                                 <div class="col-md-4">
-                                    {{ form.chave_pix.label_tag }}
-                                    {{ form.chave_pix }}
+                                    <label for="{{ form.chave_pix.id_for_label }}" class="form-label">Chave PIX</label>
+                                    <input type="text" name="{{ form.chave_pix.name }}" id="{{ form.chave_pix.id_for_label }}" 
+                                           class="form-control {% if form.chave_pix.errors %}is-invalid{% endif %}"
+                                           value="{{ form.chave_pix.value|default:'' }}">
                                     {% if form.chave_pix.errors %}
                                         <div class="invalid-feedback d-block">
                                             {{ form.chave_pix.errors }}
@@ -214,7 +266,8 @@
                         <!-- Status e Ações -->
                         <div class="d-flex justify-content-between align-items-center mt-4">
                             <div class="form-check form-switch">
-                                {{ form.ativo }}
+                                <input type="checkbox" name="{{ form.ativo.name }}" id="{{ form.ativo.id_for_label }}" 
+                                       class="form-check-input" checked>
                                 <label class="form-check-label ms-2" for="{{ form.ativo.id_for_label }}">
                                     Colaborador Ativo
                                 </label>
@@ -247,12 +300,36 @@ document.addEventListener('DOMContentLoaded', function() {
         if (tipoPessoa.value === 'PF') {
             pfSection.style.display = 'block';
             pjSection.style.display = 'none';
+            // Tornar apenas nome e CPF obrigatórios para PF
+            setRequired('{{ form.nome_completo.id_for_label }}', true);
+            setRequired('{{ form.cpf.id_for_label }}', true);
+            // Tornar campos PJ não obrigatórios
+            setRequired('{{ form.razao_social.id_for_label }}', false);
+            setRequired('{{ form.cnpj.id_for_label }}', false);
         } else if (tipoPessoa.value === 'PJ') {
             pfSection.style.display = 'none';
             pjSection.style.display = 'block';
+            // Tornar apenas razão social e CNPJ obrigatórios para PJ
+            setRequired('{{ form.razao_social.id_for_label }}', true);
+            setRequired('{{ form.cnpj.id_for_label }}', true);
+            // Tornar campos PF não obrigatórios
+            setRequired('{{ form.nome_completo.id_for_label }}', false);
+            setRequired('{{ form.cpf.id_for_label }}', false);
         } else {
             pfSection.style.display = 'none';
             pjSection.style.display = 'none';
+            // Nenhum campo obrigatório quando nenhum tipo selecionado
+            setRequired('{{ form.nome_completo.id_for_label }}', false);
+            setRequired('{{ form.cpf.id_for_label }}', false);
+            setRequired('{{ form.razao_social.id_for_label }}', false);
+            setRequired('{{ form.cnpj.id_for_label }}', false);
+        }
+    }
+
+    function setRequired(elementId, isRequired) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            element.required = isRequired;
         }
     }
     
@@ -261,29 +338,101 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Monitorar mudanças
     tipoPessoa.addEventListener('change', toggleSections);
-    
-    // Adicionar classes de validação
-    const inputs = document.querySelectorAll('input, select, textarea');
-    inputs.forEach(input => {
-        input.classList.add('form-control');
-        if (input.tagName === 'SELECT') {
-            input.classList.add('form-select');
-        }
+
+    // Limpar máscaras antes do envio do formulário
+    document.getElementById('colaboradorForm').addEventListener('submit', function(e) {
+        const cpf = document.getElementById('{{ form.cpf.id_for_label }}');
+        const cnpj = document.getElementById('{{ form.cnpj.id_for_label }}');
+        const telefone = document.getElementById('{{ form.telefone.id_for_label }}');
         
-        // Verificar erros
-        if (input.classList.contains('is-invalid')) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'invalid-feedback d-block';
-            errorDiv.textContent = input.dataset.error;
-            input.parentNode.appendChild(errorDiv);
+        if (cpf && cpf.value) {
+            cpf.value = cpf.value.replace(/\D/g, '');
+        }
+        if (cnpj && cnpj.value) {
+            cnpj.value = cnpj.value.replace(/\D/g, '');
+        }
+        if (telefone && telefone.value) {
+            telefone.value = telefone.value.replace(/\D/g, '');
         }
     });
 
-    // Máscaras para campos
-    $('#id_cpf').mask('000.000.000-00', {reverse: true});
-    $('#id_cnpj').mask('00.000.000/0000-00', {reverse: true});
-    $('#id_telefone').mask('(00) 0000-0000');
+    // Adicionar classe required apenas nos labels que devem ter asterisco
+    const requiredLabels = [
+        '{{ form.tipo_pessoa.id_for_label }}',
+        '{{ form.nome_completo.id_for_label }}',
+        '{{ form.cpf.id_for_label }}',
+        '{{ form.razao_social.id_for_label }}',
+        '{{ form.cnpj.id_for_label }}'
+    ];
+    
+    requiredLabels.forEach(labelId => {
+        const label = document.querySelector(`label[for="${labelId}"]`);
+        if (label) {
+            label.classList.add('required');
+        }
+    });
 });
+
+// Função para formatar CPF
+function formatarCPF(campo) {
+    let valor = campo.value.replace(/\D/g, '');
+    
+    if (valor.length > 11) {
+        valor = valor.slice(0, 11);
+    }
+    
+    if (valor.length > 9) {
+        valor = valor.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4");
+    } else if (valor.length > 6) {
+        valor = valor.replace(/(\d{3})(\d{3})(\d+)/, "$1.$2.$3");
+    } else if (valor.length > 3) {
+        valor = valor.replace(/(\d{3})(\d+)/, "$1.$2");
+    }
+    
+    campo.value = valor;
+}
+
+// Função para formatar CNPJ
+function formatarCNPJ(campo) {
+    let valor = campo.value.replace(/\D/g, '');
+    
+    if (valor.length > 14) {
+        valor = valor.slice(0, 14);
+    }
+    
+    if (valor.length > 12) {
+        valor = valor.replace(/(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})/, "$1.$2.$3/$4-$5");
+    } else if (valor.length > 8) {
+        valor = valor.replace(/(\d{2})(\d{3})(\d{3})(\d+)/, "$1.$2.$3/$4");
+    } else if (valor.length > 5) {
+        valor = valor.replace(/(\d{2})(\d{3})(\d+)/, "$1.$2.$3");
+    } else if (valor.length > 2) {
+        valor = valor.replace(/(\d{2})(\d+)/, "$1.$2");
+    }
+    
+    campo.value = valor;
+}
+
+// Função para formatar Telefone
+function formatarTelefone(campo) {
+    let valor = campo.value.replace(/\D/g, '');
+    
+    if (valor.length > 11) {
+        valor = valor.slice(0, 11);
+    }
+    
+    if (valor.length > 10) {
+        valor = valor.replace(/(\d{2})(\d{5})(\d{4})/, "($1) $2-$3");
+    } else if (valor.length > 6) {
+        valor = valor.replace(/(\d{2})(\d{4})(\d+)/, "($1) $2-$3");
+    } else if (valor.length > 2) {
+        valor = valor.replace(/(\d{2})(\d+)/, "($1) $2");
+    } else if (valor.length > 0) {
+        valor = valor.replace(/(\d+)/, "($1");
+    }
+    
+    campo.value = valor;
+}
 </script>
 
 <style>
@@ -302,6 +451,14 @@ document.addEventListener('DOMContentLoaded', function() {
     .form-check-input:checked {
         background-color: #0d6efd;
         border-color: #0d6efd;
+    }
+    .form-label.required:after {
+        content: ' *';
+        color: #dc3545;
+    }
+    /* Garante que o label da data de nascimento não tenha asterisco */
+    label[for="{{ form.data_nascimento.id_for_label }}"]:after {
+        content: '' !important;
     }
 </style>
 {% endblock %}

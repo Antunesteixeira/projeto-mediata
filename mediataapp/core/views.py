@@ -23,12 +23,9 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-@login_required
+
 def index(request):
-    if request.user.is_authenticated:
-        return redirect('/dashboard/')
-    else:
-        return redirect('/accounts/login/')
+    return render(request, 'index.html')
     
 def login(request):
     if request.method == "GET":
@@ -84,10 +81,6 @@ def dashboard(request):
 @login_required
 def erro_404(request, exception):
     return render(request, '404.html', status=404)
-
-@login_required
-def teste(request):
-    return render(request, 'home/testee.html')
 
 @login_required
 @require_GET

@@ -3,14 +3,16 @@ from .models import Colaborador
 
 class ColaboradorForm(forms.ModelForm):
     data_nascimento = forms.DateField(
-    widget=forms.DateInput(
-        attrs={
-            'class': 'form-control',
-            'type': 'date',
-        },
-        format='%Y-%m-%d'  # formato compatível com input type="date"
+        required=False,  # Torna o campo não obrigatório
+        widget=forms.DateInput(
+            attrs={
+                'class': 'form-control',
+                'type': 'date',
+            },
+            format='%Y-%m-%d'  # formato compatível com input type="date"
         )
     )
+    
     class Meta:
         model = Colaborador
         fields = '__all__'

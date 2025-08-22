@@ -15,7 +15,7 @@ class Colaborador(models.Model):
     # Pessoa Física
     nome_completo = models.CharField(max_length=150, blank=True, null=True)
     cpf = models.CharField(max_length=14, blank=True, null=True, unique=True)
-    data_nascimento = models.DateField(blank=True, null=True)
+    data_nascimento = models.DateField(blank=True, null=True, default=None)
     funcao = models.CharField(max_length=25, blank=True, null=True)
     
     # Pessoa Jurídica

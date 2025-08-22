@@ -107,6 +107,10 @@
                                        data-bs-toggle="tooltip" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </a>
+                                    <a href="{% url 'perfil_colaborador' colaborador.pk %}" class="btn btn-sm btn-outline-primary" 
+                                       data-bs-toggle="tooltip" title="Ver Perfil">
+                                        <i class="bi bi-person"></i>
+                                    </a>
                                     <button class="btn btn-sm btn-outline-danger" 
                                             data-bs-toggle="tooltip" title="Excluir"
                                             onclick="confirmarExclusao({{ colaborador.pk }})">

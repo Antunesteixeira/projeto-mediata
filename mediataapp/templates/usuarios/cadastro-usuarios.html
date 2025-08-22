@@ -1,26 +1,192 @@
-{% extends '../_layout/base.html' %}
-
-{% block conteudo %}
-<div class="container mt-5">
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <h2 class="mb-4">Cadastro de Usuário</h2>
-            <form method="post" novalidate>
-                {% csrf_token %}
-                {% for field in form %}
-                    <div class="mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.errors %}
-                            <div class="text-danger small">
-                                {{ field.errors }}
-                            </div>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Usuário</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+        }
+        .form-control:focus {
+            border-color: #0d6efd;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border: none;
+            padding: 10px 0;
+            font-weight: 600;
+        }
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+        }
+        .password-toggle {
+            cursor: pointer;
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                <div class="card">
+                    <div class="card-body p-5">
+                        <h2 class="text-center mb-4">Cadastro de Usuário</h2>
+                        
+                        {% if form.errors %}
+                        <div class="alert alert-danger">
+                            <strong>Por favor, corrija os seguintes erros:</strong>
+                            <ul>
+                                {% for field in form %}
+                                    {% for error in field.errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                                {% for error in form.non_field_errors %}
+                                    <li>{{ error }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
                         {% endif %}
+
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="id_username" class="form-label">Nome de usuário *</label>
+                                    <input type="text" class="form-control" id="id_username" name="username" 
+                                           value="{{ form.username.value|default:'' }}" required>
+                                    <div class="form-text">Obrigatório. 150 caracteres ou menos. Letras, números e @/./+/-/_ apenas.</div>
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="id_group" class="form-label">Grupo *</label>
+                                    <select class="form-select" id="id_group" name="group" required>
+                                        <option value="">Selecione um grupo</option>
+                                        {% for group in form.group.field.queryset %}
+                                            <option value="{{ group.id }}" {% if form.group.value == group.id %}selected{% endif %}>
+                                                {{ group.name }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label for="id_first_name" class="form-label">Primeiro nome</label>
+                                    <input type="text" class="form-control" id="id_first_name" name="first_name" 
+                                           value="{{ form.first_name.value|default:'' }}">
+                                </div>
+                                
+                                <div class="col-md-6 mb-3">
+                                    <label for="id_last_name" class="form-label">Sobrenome</label>
+                                    <input type="text" class="form-control" id="id_last_name" name="last_name" 
+                                           value="{{ form.last_name.value|default:'' }}">
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="id_email" class="form-label">E-mail *</label>
+                                <input type="email" class="form-control" id="id_email" name="email" 
+                                       value="{{ form.email.value|default:'' }}" required>
+                            </div>
+                            
+                            <div class="mb-3 position-relative">
+                                <label for="id_password1" class="form-label">Senha *</label>
+                                <input type="password" class="form-control" id="id_password1" name="password1" required>
+                                <span class="password-toggle" onclick="togglePassword('id_password1')">
+                                    👁️
+                                </span>
+                                <div class="form-text">
+                                    <ul>
+                                        <li>Sua senha não pode ser muito similar às suas outras informações pessoais.</li>
+                                        <li>Sua senha precisa conter pelo menos 8 caracteres.</li>
+                                        <li>Sua senha não pode ser uma senha comumente utilizada.</li>
+                                        <li>Sua senha não pode ser inteiramente numérica.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4 position-relative">
+                                <label for="id_password2" class="form-label">Confirmação de senha *</label>
+                                <input type="password" class="form-control" id="id_password2" name="password2" required>
+                                <span class="password-toggle" onclick="togglePassword('id_password2')">
+                                    👁️
+                                </span>
+                                <div class="form-text">Informe a mesma senha digitada anteriormente, para verificação.</div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100">Cadastrar</button>
+                        </form>
+                        
+                        <div class="text-center mt-3">
+                            <p>Já tem uma conta? <a href="#">Faça login</a></p>
+                        </div>
                     </div>
-                {% endfor %}
-                <button type="submit" class="btn btn-primary w-100">Cadastrar</button>
-            </form>
+                </div>
+            </div>
         </div>
     </div>
-</div>
-{% endblock %}
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        function togglePassword(inputId) {
+            const input = document.getElementById(inputId);
+            const type = input.getAttribute('type') === 'password' ? 'text' : 'password';
+            input.setAttribute('type', type);
+        }
+        
+        // Validação em tempo real
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form');
+            
+            form.addEventListener('submit', function(event) {
+                let isValid = true;
+                const inputs = form.querySelectorAll('input[required], select[required]');
+                
+                inputs.forEach(input => {
+                    if (!input.value.trim()) {
+                        isValid = false;
+                        input.classList.add('is-invalid');
+                    } else {
+                        input.classList.remove('is-invalid');
+                    }
+                });
+                
+                // Verificar se as senhas coincidem
+                const password1 = document.getElementById('id_password1');
+                const password2 = document.getElementById('id_password2');
+                
+                if (password1.value !== password2.value) {
+                    isValid = false;
+                    password2.classList.add('is-invalid');
+                    alert('As senhas não coincidem!');
+                } else {
+                    password2.classList.remove('is-invalid');
+                }
+                
+                if (!isValid) {
+                    event.preventDefault();
+                    alert('Por favor, preencha todos os campos obrigatórios.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
