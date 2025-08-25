@@ -327,6 +327,7 @@
                             </ul>
                         </div>
                     </li>
+                    {% if user|has_role:'gerente' %}
                     <li class="nav-item">
                         <a href="{% url 'index-insumos' %}" class="nav-link">
                             <i class="bi bi-box-seam"></i>
@@ -334,11 +335,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="#" class="nav-link">
+                        <a href="{% url 'empresa_lista' %}" class="nav-link">
                             <i class="bi bi-gear"></i>
                             <span class="nav-link-text">Configurações</span>
                         </a>
                     </li>
+                    {% endif %}
                 </ul>
             </div>
             

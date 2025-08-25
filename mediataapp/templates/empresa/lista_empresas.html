@@ -1,0 +1,55 @@
+<!-- templates/empresa/lista_empresas.html -->
+{% extends '_layout/base.html' %}
+{% load static %}
+
+{% block title %}Nossas Empresas{% endblock %}
+
+{% block conteudo %}
+<div class="row">
+    <div class="col-12">
+        <div class="company-card">
+            <div class="company-header">
+                <h1 class="display-4 fw-bold">Nossas Empresas</h1>
+                <p class="lead">Conheça todas as empresas do nosso grupo</p>
+            </div>
+            
+            <div class="company-body">
+                <div class="row">
+                    {% for empresa in empresas %}
+                    <div class="col-md-6 col-lg-4 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body text-center">
+                                <!-- Correção: Remover a tag <i> que envolve a imagem -->
+                                <div class="company-logo mb-3" style="width: 100px; height: auto; margin: 0 auto;">
+                                    <img src="{% static 'img/logo-mediata-5.1.png' %}" 
+                                        alt="Logo {{ empresa.nome_fantasia }}" 
+                                        width="100" 
+                                        height="auto" 
+                                        class="mx-auto d-block">
+                                </div>
+                                <h5 class="card-title">{{ empresa.nome_fantasia }}</h5>
+                                <p class="text-muted">{{ empresa.get_tipo_empresa_display }}</p>
+                                <p class="card-text">{{ empresa.descricao|truncatewords:20 }}</p>
+                                <a href="{% url 'empresa_perfil' empresa.pk %}" class="btn btn-primary">
+                                    Ver Perfil
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="col-12 text-center">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Nenhuma empresa cadastrada.
+                        </div>
+                        <a href="{% url 'empresa_cadastrar' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-plus me-2"></i>Cadastrar Primeira Empresa
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

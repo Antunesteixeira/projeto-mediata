@@ -5,7 +5,7 @@ from django.contrib.auth.decorators import login_required
 
 from django.db.models import Case, When, Value, IntegerField
 from django.http import Http404
-from tickets.models import Ticket
+from tickets.models import Ticket, Orcamento
 from insumos.models import Insumos 
 
 from rolepermissions.checkers import has_role
@@ -18,8 +18,24 @@ from django.views import View
 from django.views.decorators.http import require_GET
 
 from django.db.models import Q
-
+from django.utils import timezone
+from django.db.models import Sum
 import logging
+
+# views.py
+from django.contrib import messages
+from .models import Empresa
+
+# views.py
+from django.views.generic import DetailView
+
+# core/views.py
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.generic import CreateView, UpdateView, DetailView, ListView
+from django.urls import reverse_lazy
+from .models import Empresa, HorarioFuncionamento, Funcionario, Servico
+from .forms import EmpresaForm, HorarioFuncionamentoForm, FuncionarioForm, ServicoForm
+from django.contrib.auth.decorators import login_required
 
 logger = logging.getLogger(__name__)
 
@@ -50,30 +66,71 @@ def sair(request):
     logout(request)
     return redirect('/')
 
+from django.db.models import Sum, Case, When, Value, IntegerField, F, Prefetch
+from django.utils import timezone
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from tickets.models import Ticket, Orcamento, Pagamentos
+
 @login_required
 def dashboard(request):
     usuario = request.user
+    hoje = timezone.now()
 
+    # Tickets base
     tickets = Ticket.objects.filter(
-        usuario=usuario,  # pode passar o objeto direto, não precisa do `.pk`
+        usuario=usuario,
         status__in=["V", "X", "E", "A"]
     ).annotate(
         custom_order=Case(
             When(status='L', then=Value(0)),
             When(status='A', then=Value(1)),
-            default=Value(2),  # evita erro caso status não esteja listado
+            default=Value(2),
             output_field=IntegerField(),
         )
     ).order_by('custom_order')
 
-    if has_role(usuario, [User, 'gerente']):
-        tickets_total = Ticket.objects.all().count()
+    # Se for superuser ou gerente -> vê todos
+    if usuario.is_superuser or has_role(usuario, [User, 'gerente']):
+        tickets_total = Ticket.objects.count()
+        orcamentos = Orcamento.objects.filter(
+            data_criacao__year=hoje.year,
+            data_criacao__month=hoje.month
+        )
+        tickets = Ticket.objects.all()
     else:
         tickets_total = Ticket.objects.filter(usuario=usuario).count()
+        orcamentos = Orcamento.objects.filter(
+            ticket_orcamento__usuario=usuario,
+            data_criacao__year=hoje.year,
+            data_criacao__month=hoje.month
+        )
+        tickets = Ticket.objects.filter(usuario=usuario)
+
+    # Soma do valor total de orçamentos no mês
+    total_mes = orcamentos.aggregate(total=Sum('valor_total'))['total'] or 0
+
+    # Calcula totais de orçamentos e pagamentos por ticket
+    tickets = tickets.prefetch_related(
+        Prefetch("orcamento_set", queryset=Orcamento.objects.all(), to_attr="orcamentos_prefetch"),
+        Prefetch("pagamentos", queryset=Pagamentos.objects.all(), to_attr="pagamentos_prefetch"),
+    )
+
+    for ticket in tickets:
+        ticket.total_orcamentos = sum([orc.valor_total for orc in getattr(ticket, "orcamentos_prefetch", [])])
+        ticket.total_pagamentos = sum([pag.valor_pagamento for pag in getattr(ticket, "pagamentos_prefetch", [])])
+
+    # Calcula métricas gerais
+    orcamento_total = sum([ticket.total_orcamentos for ticket in tickets])
+    total_pagamentos = sum([ticket.total_pagamentos for ticket in tickets])
+    total_lucros = orcamento_total - total_pagamentos
 
     context = {
         'tickets': tickets,
         'tickets_total': tickets_total,
+        "orcamentos": orcamentos,
+        "total_mes": total_mes,
+        "total_lucros": total_lucros,
     }
 
     return render(request, 'home/dashboard.html', context)
@@ -108,3 +165,90 @@ def buscar_itens(request):
         resultados = []
     
     return JsonResponse(resultados, safe=False)
+
+# View baseada em classe para criar empresa
+class EmpresaCreateView(CreateView):
+    model = Empresa
+    form_class = EmpresaForm
+    template_name = 'empresa/cadastro-empresa.html'
+    success_url = reverse_lazy('empresa_success')
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Empresa cadastrada com sucesso!')
+        return super().form_valid(form)
+    
+    def form_invalid(self, form):
+        messages.error(self.request, 'Por favor, corrija os erros abaixo.')
+        return super().form_invalid(form)
+
+# View baseada em classe para editar empresa
+class EmpresaUpdateView(UpdateView):
+    model = Empresa
+    form_class = EmpresaForm
+    template_name = 'empresa/cadastro-empresa.html'
+    success_url = reverse_lazy('empresa_success')
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Empresa atualizada com sucesso!')
+        return super().form_valid(form)
+
+# View baseada em classe para visualizar perfil da empresa
+class EmpresaDetailView(DetailView):
+    model = Empresa
+    template_name = 'empresa/perfil-empresa.html'
+    context_object_name = 'empresa'
+
+# View baseada em classe para listar empresas
+class EmpresaListView(ListView):
+    model = Empresa
+    template_name = 'empresa/lista_empresas.html'
+    context_object_name = 'empresas'
+    
+    def get_queryset(self):
+        return Empresa.objects.filter(ativo=True)
+
+# View baseada em função para sucesso (pode manter como função)
+def success_view(request):
+    return render(request, 'empresa/success.html')
+
+# Views baseadas em função alternativas (se preferir)
+def empresa_cadastrar(request):
+    if request.method == 'POST':
+        form = EmpresaForm(request.POST)
+        if form.is_valid():
+            empresa = form.save()
+            messages.success(request, 'Empresa cadastrada com sucesso!')
+            return redirect('empresa_success')
+        else:
+            messages.error(request, 'Por favor, corrija os erros abaixo.')
+    else:
+        form = EmpresaForm()
+    
+    return render(request, 'empresa/cadastro_empresa.html', {'form': form})
+
+def empresa_editar(request, pk):
+    empresa = get_object_or_404(Empresa, pk=pk)
+    
+    if request.method == 'POST':
+        form = EmpresaForm(request.POST, instance=empresa)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Empresa atualizada com sucesso!')
+            return redirect('empresa_success')
+        else:
+            messages.error(request, 'Por favor, corrija os erros abaixo.')
+    else:
+        form = EmpresaForm(instance=empresa)
+    
+    return render(request, 'empresa/cadastro_empresa.html', {'form': form})
+
+def empresa_perfil(request, pk):
+    empresa = get_object_or_404(Empresa, pk=pk)
+    return render(request, 'empresa/perfil-empresa.html', {'empresa': empresa})
+
+def empresa_lista(request):
+    empresas = Empresa.objects.filter(ativo=True)
+    return render(request, 'empresa/lista_empresas.html', {'empresas': empresas})
+
+def uploader_arquivos(request):
+    return render(request, 'uploader_arquivos.html')

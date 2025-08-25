@@ -13,6 +13,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.contrib.auth.models import User, Group
 from colaborador.models import Colaborador
 from clientes.models import Cliente
+from core.models import Empresa
 
 from django.http import HttpResponse, HttpResponseBadRequest
 
@@ -28,6 +29,9 @@ from django.db import IntegrityError
 import os
 from django.conf import settings
 
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from datetime import datetime
 
 @login_required
 def tickets(request):
@@ -168,9 +172,12 @@ def exibirticket(request, key):
             )
         )
         total_itens = itens_orcamento.aggregate(total=Sum('subtotal'))['total'] or Decimal('0')
+        orcamento.valor_total = total_itens
+        orcamento.save()
     else:
         itens_orcamento = ItemOrcamento.objects.none()
         total_itens = Decimal('0')
+        
 
     # Calcular resumo de pagamentos por tipo
     resumo_pagamentos = {
@@ -558,3 +565,58 @@ def delete_comprovante(request, id, key):
         messages.warning(request, "Não há comprovante para remover")
 
     return redirect('exibir-ticket', key=key)
+
+
+
+def gerar_pdf_orcamento(request, ticket_id):
+    try:
+        empresa = Empresa.objects.get(id=1)  # Exemplo: pegar a empresa com ID 1
+        ticket = Ticket.objects.get(id=ticket_id)
+        orcamento = Orcamento.objects.get(ticket_orcamento=ticket)
+        itens_orcamento = ItemOrcamento.objects.filter(orcamento=orcamento)
+        
+        # Calcular subtotal para cada item e total geral
+        for item in itens_orcamento:
+            # Calcular subtotal manualmente
+            item.subtotal_calculado = item.quant * item.item.valor_unit
+        
+        # Calcular total geral
+        total_itens = sum(item.quant * item.item.valor_unit for item in itens_orcamento)
+        
+        context = {
+            'empresa': empresa,
+            'ticket': ticket,
+            'orcamento': orcamento,
+            'itens_orcamento': itens_orcamento,
+            'total_itens': total_itens,
+            'data_emissao': datetime.now().strftime("%d/%m/%Y %H:%M"),
+            'empresa': {
+                'nome': 'Sua Empresa',
+                'endereco': 'Endereço da Empresa',
+                'telefone': '(00) 0000-0000',
+                'email': 'contato@empresa.com',
+                'cnpj': '00.000.000/0001-00'
+            },
+            'logo_path': 'img/logo-mediata-5.1.png',
+            'has_logo': True,  # ou verifique se o arquivo existe
+            'MEDIA_URL': settings.MEDIA_URL,
+        }
+
+        template_path = 'tickets/orcamento_pdf.html'
+        template = get_template(template_path)
+        html = template.render(context)
+        
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="orcamento_{ticket.ticket}.pdf"'
+        
+        # Criar PDF
+        pisa_status = pisa.CreatePDF(html, dest=response)
+        
+        if pisa_status.err:
+            return HttpResponse('Erro ao gerar PDF')
+        return response
+        
+    except Ticket.DoesNotExist:
+        return HttpResponse('Ticket não encontrado')
+    except Orcamento.DoesNotExist:
+        return HttpResponse('Orçamento não encontrado para este ticket')

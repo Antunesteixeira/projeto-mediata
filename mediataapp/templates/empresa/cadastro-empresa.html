@@ -1,0 +1,323 @@
+<!-- templates/empresa/cadastro_empresa.html -->
+{% extends '_layout/base.html' %}
+{% load widget_tweaks %}
+
+{% block title %}Cadastro da Empresa - {{ block.super }}{% endblock %}
+
+{% block conteudo %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white">
+                <h3 class="card-title mb-0">
+                    <i class="fas fa-building me-2"></i>
+                    Cadastro da Empresa
+                </h3>
+            </div>
+            
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data" novalidate>
+                    {% csrf_token %}
+                    
+                    <!-- Informações Básicas -->
+                    <div class="form-section">
+                        <h4><i class="fas fa-info-circle me-2"></i>Informações Básicas</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.nome_fantasia.id_for_label }}" class="form-label required-field">
+                                    Nome Fantasia
+                                </label>
+                                {{ form.nome_fantasia|add_class:"form-control" }}
+                                {% if form.nome_fantasia.errors %}
+                                    <div class="text-danger">{{ form.nome_fantasia.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.razao_social.id_for_label }}" class="form-label required-field">
+                                    Razão Social
+                                </label>
+                                {{ form.razao_social|add_class:"form-control" }}
+                                {% if form.razao_social.errors %}
+                                    <div class="text-danger">{{ form.razao_social.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.cnpj.id_for_label }}" class="form-label required-field">
+                                    CNPJ
+                                </label>
+                                {{ form.cnpj|add_class:"form-control" }}
+                                {% if form.cnpj.errors %}
+                                    <div class="text-danger">{{ form.cnpj.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.tipo_empresa.id_for_label }}" class="form-label">
+                                    Tipo de Empresa
+                                </label>
+                                {{ form.tipo_empresa|add_class:"form-control" }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Informações de Contato -->
+                    <div class="form-section">
+                        <h4><i class="fas fa-phone me-2"></i>Informações de Contato</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.email.id_for_label }}" class="form-label required-field">
+                                    E-mail
+                                </label>
+                                {{ form.email|add_class:"form-control" }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger">{{ form.email.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.telefone.id_for_label }}" class="form-label required-field">
+                                    Telefone
+                                </label>
+                                {{ form.telefone|add_class:"form-control" }}
+                                {% if form.telefone.errors %}
+                                    <div class="text-danger">{{ form.telefone.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.whatsapp.id_for_label }}" class="form-label">
+                                    WhatsApp
+                                </label>
+                                {{ form.whatsapp|add_class:"form-control" }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Endereço -->
+                    <div class="form-section">
+                        <h4><i class="fas fa-map-marker-alt me-2"></i>Endereço</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-3 mb-3">
+                                <label for="{{ form.cep.id_for_label }}" class="form-label required-field">
+                                    CEP
+                                </label>
+                                {{ form.cep|add_class:"form-control" }}
+                                {% if form.cep.errors %}
+                                    <div class="text-danger">{{ form.cep.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.endereco.id_for_label }}" class="form-label required-field">
+                                    Endereço
+                                </label>
+                                {{ form.endereco|add_class:"form-control" }}
+                                {% if form.endereco.errors %}
+                                    <div class="text-danger">{{ form.endereco.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <label for="{{ form.numero.id_for_label }}" class="form-label required-field">
+                                    Número
+                                </label>
+                                {{ form.numero|add_class:"form-control" }}
+                                {% if form.numero.errors %}
+                                    <div class="text-danger">{{ form.numero.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.complemento.id_for_label }}" class="form-label">
+                                    Complemento
+                                </label>
+                                {{ form.complemento|add_class:"form-control" }}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.bairro.id_for_label }}" class="form-label required-field">
+                                    Bairro
+                                </label>
+                                {{ form.bairro|add_class:"form-control" }}
+                                {% if form.bairro.errors %}
+                                    <div class="text-danger">{{ form.bairro.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.cidade.id_for_label }}" class="form-label required-field">
+                                    Cidade
+                                </label>
+                                {{ form.cidade|add_class:"form-control" }}
+                                {% if form.cidade.errors %}
+                                    <div class="text-danger">{{ form.cidade.errors }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.estado.id_for_label }}" class="form-label required-field">
+                                    Estado
+                                </label>
+                                <select name="{{ form.estado.name }}" id="{{ form.estado.id_for_label }}" class="form-control">
+                                    <option value="">Selecione o estado</option>
+                                    <option value="AC">Acre</option>
+                                    <option value="AL">Alagoas</option>
+                                    <option value="AP">Amapá</option>
+                                    <option value="AM">Amazonas</option>
+                                    <option value="BA">Bahia</option>
+                                    <option value="CE">Ceará</option>
+                                    <option value="DF">Distrito Federal</option>
+                                    <option value="ES">Espírito Santo</option>
+                                    <option value="GO">Goiás</option>
+                                    <option value="MA">Maranhão</option>
+                                    <option value="MT">Mato Grosso</option>
+                                    <option value="MS">Mato Grosso do Sul</option>
+                                    <option value="MG">Minas Gerais</option>
+                                    <option value="PA">Pará</option>
+                                    <option value="PB">Paraíba</option>
+                                    <option value="PR">Paraná</option>
+                                    <option value="PE">Pernambuco</option>
+                                    <option value="PI">Piauí</option>
+                                    <option value="RJ">Rio de Janeiro</option>
+                                    <option value="RN">Rio Grande do Norte</option>
+                                    <option value="RS">Rio Grande do Sul</option>
+                                    <option value="RO">Rondônia</option>
+                                    <option value="RR">Roraima</option>
+                                    <option value="SC">Santa Catarina</option>
+                                    <option value="SP">São Paulo</option>
+                                    <option value="SE">Sergipe</option>
+                                    <option value="TO">Tocantins</option>
+                                </select>
+                                {% if form.estado.errors %}
+                                    <div class="text-danger">{{ form.estado.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Sobre a Empresa -->
+                    <div class="form-section">
+                        <h4><i class="fas fa-building me-2"></i>Sobre a Empresa</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.data_fundacao.id_for_label }}" class="form-label">
+                                    Data de Fundação
+                                </label>
+                                {{ form.data_fundacao|add_class:"form-control" }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.descricao.id_for_label }}" class="form-label">
+                                Descrição da Empresa
+                            </label>
+                            {{ form.descricao|add_class:"form-control" }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.missao.id_for_label }}" class="form-label">
+                                Missão
+                            </label>
+                            {{ form.missao|add_class:"form-control" }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.visao.id_for_label }}" class="form-label">
+                                Visão
+                            </label>
+                            {{ form.visao|add_class:"form-control" }}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.valores.id_for_label }}" class="form-label">
+                                Valores
+                            </label>
+                            {{ form.valores|add_class:"form-control" }}
+                        </div>
+                    </div>
+                    
+                    <!-- Redes Sociais -->
+                    <div class="form-section">
+                        <h4><i class="fas fa-share-alt me-2"></i>Redes Sociais</h4>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.website.id_for_label }}" class="form-label">
+                                    Website
+                                </label>
+                                {{ form.website|add_class:"form-control" }}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.facebook.id_for_label }}" class="form-label">
+                                    Facebook
+                                </label>
+                                {{ form.facebook|add_class:"form-control" }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.instagram.id_for_label }}" class="form-label">
+                                    Instagram
+                                </label>
+                                {{ form.instagram|add_class:"form-control" }}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.linkedin.id_for_label }}" class="form-label">
+                                    LinkedIn
+                                </label>
+                                {{ form.linkedin|add_class:"form-control" }}
+                            </div>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.twitter.id_for_label }}" class="form-label">
+                                    Twitter
+                                </label>
+                                {{ form.twitter|add_class:"form-control" }}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Botões de Ação -->
+                    <div class="btn-section">
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" onclick="history.back()">
+                                <i class="fas fa-arrow-left me-2"></i>Voltar
+                            </button>
+                            <button type="submit" class="btn btn-success">
+                                <i class="fas fa-save me-2"></i>Salvar Empresa
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+        // Máscaras para os campos
+        $(document).ready(function(){
+            $('.cnpj-mask').mask('00.000.000/0000-00');
+            $('.phone-mask').mask('(00) 00000-0000');
+            $('.cep-mask').mask('00000-000');
+        });
+    </script>
+{% endblock %}

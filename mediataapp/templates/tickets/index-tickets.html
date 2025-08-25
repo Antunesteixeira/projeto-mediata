@@ -104,39 +104,27 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if ticket.status == 'E' %}
-                                <span class="badge bg-warning text-dark">
-                                    <i class="bi bi-gear-wide-connected me-1"></i>Em execução
-                                </span>
-                                {% elif ticket.status == 'X' %}
-                                <span class="badge bg-warning text-white">
-                                    <i class="bi bi-check-circle me-1"></i>Executado
-                                </span>
-                                {% elif ticket.status == 'C' %}
-                                <span class="badge bg-info text-dark">
-                                    <i class="bi bi-file-earmark-text me-1"></i>Cotação
-                                </span>
-                                {% elif ticket.status == 'L' %}
-                                <span class="badge bg-info text-dark">
-                                    <i class="bi bi-clipboard-data me-1"></i>Levantamento
-                                </span>
-                                {% elif ticket.status == 'A' %}
-                                <span class="badge bg-secondary">
-                                    <i class="bi bi-check-all me-1"></i>Aprovado
-                                </span>
-                                {% elif ticket.status == 'F' %}
-                                <span class="badge bg-dark">
-                                    <i class="bi bi-flag-fill me-1"></i>Finalizado
-                                </span>
-                                {% elif ticket.status == 'V' %}
-                                <span class="badge bg-success">
-                                    <i class="bi bi-eye-fill me-1"></i>Vistoriado
-                                </span>
-                                {% elif ticket.status == 'R' %}
-                                <span class="badge bg-light text-dark">
-                                    <i class="bi bi-x-circle-fill me-1"></i>Rejeitado
-                                </span>
-                                {% endif %}
+                                <span class="badge 
+                        {% if ticket.status == 'L' %}bg-warning text-white
+                        {% elif ticket.status == 'C' %}bg-primary text-dark
+                        {% elif ticket.status == 'A' %}bg-secondary text-white
+                        {% elif ticket.status == 'E' %}bg-info text-dark
+                        {% elif ticket.status == 'X' %}bg-warning text-dark
+                        {% elif ticket.status == 'V' %}bg-success text-white
+                        {% elif ticket.status == 'F' %}bg-danger text-white
+                        {% elif ticket.status == 'R' %}bg-light text-dark border
+                        {% else %}bg-secondary text-white{% endif %}">
+                        {% if ticket.status == 'L' %}<i class="bi bi-clipboard-data me-1"></i>
+                        {% elif ticket.status == 'C' %}<i class="bi bi-check-circle me-1"></i>
+                        {% elif ticket.status == 'A' %}<i class="bi bi-check-all me-1"></i>
+                        {% elif ticket.status == 'E' %}<i class="bi bi-gear-wide-connected me-1"></i>
+                        {% elif ticket.status == 'X' %}<i class="bi bi-check-circle me-1"></i>
+                        {% elif ticket.status == 'V' %}<i class="bi bi-eye-fill me-1"></i>
+                        {% elif ticket.status == 'F' %}<i class="bi bi-flag-fill me-1"></i>
+                        {% elif ticket.status == 'R' %}<i class="bi bi-x-circle-fill me-1"></i>
+                        {% endif %}
+                        {{ ticket.get_status_display }}
+                    </span>
                             </td>
                             <td>
                                 <div class="d-flex gap-2">

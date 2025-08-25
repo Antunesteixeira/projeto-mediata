@@ -241,9 +241,13 @@
           </button>
           {% if orcamento %}
             <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#ModalItemOrcamento">
-              <i class="bi bi-list-check me-1"></i>Adicionar Item
+                <i class="bi bi-list-check me-1"></i>Adicionar Item
             </button>
+            <a href="{% url 'gerar_pdf_orcamento' ticket.id %}" class="btn btn-outline-danger">
+                <i class="bi bi-file-pdf me-1"></i>Gerar PDF
+            </a>
           {% endif %}
+
         </div>
       </div>
 
@@ -333,41 +337,27 @@
           <label class="text-muted small mb-1">Status</label>
           <div>
             {% with ticket.status as s %}
-              {% if s == 'E' %}
-                <span class="status-badge bg-warning text-dark">
-                  <i class="bi bi-gear-wide-connected me-1"></i>Executado
-                </span>
-              {% elif s == 'X' %}
-                <span class="status-badge bg-warning text-white">
-                  <i class="bi bi-check-circle me-1"></i>Em execução
-                </span>
-              {% elif s == 'C' %}
-                <span class="status-badge bg-info text-dark">
-                  <i class="bi bi-file-earmark-text me-1"></i>Cotação
-                </span>
-              {% elif s == 'L' %}
-                <span class="status-badge bg-info text-dark">
-                  <i class="bi bi-clipboard-data me-1"></i>Levantamento
-                </span>
-              {% elif s == 'A' %}
-                <span class="status-badge bg-secondary">
-                  <i class="bi bi-check-all me-1"></i>Aprovado
-                </span>
-              {% elif s == 'F' %}
-                <span class="status-badge bg-dark text-white">
-                  <i class="bi bi-flag-fill me-1"></i>Finalizado
-                </span>
-              {% elif s == 'V' %}
-                <span class="status-badge bg-success">
-                  <i class="bi bi-eye-fill me-1"></i>Vistoriado
-                </span>
-              {% elif s == 'R' %}
-                <span class="status-badge bg-light text-dark">
-                  <i class="bi bi-x-circle-fill me-1"></i>Rejeitado
-                </span>
-              {% else %}
-                <span class="status-badge bg-secondary">Desconhecido</span>
-              {% endif %}
+              <span class="badge 
+                  {% if ticket.status == 'L' %}bg-warning text-white
+                  {% elif ticket.status == 'C' %}bg-primary text-dark
+                  {% elif ticket.status == 'A' %}bg-secondary text-white
+                  {% elif ticket.status == 'E' %}bg-info text-dark
+                  {% elif ticket.status == 'X' %}bg-warning text-dark
+                  {% elif ticket.status == 'V' %}bg-success text-white
+                  {% elif ticket.status == 'F' %}bg-danger text-white
+                  {% elif ticket.status == 'R' %}bg-light text-dark border
+                  {% else %}bg-secondary text-white{% endif %}">
+                  {% if ticket.status == 'L' %}<i class="bi bi-clipboard-data me-1"></i>
+                  {% elif ticket.status == 'C' %}<i class="bi bi-check-circle me-1"></i>
+                  {% elif ticket.status == 'A' %}<i class="bi bi-check-all me-1"></i>
+                  {% elif ticket.status == 'E' %}<i class="bi bi-gear-wide-connected me-1"></i>
+                  {% elif ticket.status == 'X' %}<i class="bi bi-check-circle me-1"></i>
+                  {% elif ticket.status == 'V' %}<i class="bi bi-eye-fill me-1"></i>
+                  {% elif ticket.status == 'F' %}<i class="bi bi-flag-fill me-1"></i>
+                  {% elif ticket.status == 'R' %}<i class="bi bi-x-circle-fill me-1"></i>
+                  {% endif %}
+                  {{ ticket.get_status_display }}
+              </span>
               <button type="button" class="btn btn-sm btn-link p-0 ms-2" data-bs-toggle="modal" data-bs-target="#myModal">
                 <i class="bi bi-pencil-square text-muted"></i>
               </button>

@@ -1,819 +1,583 @@
-{% load static %}
+{% extends '_layout/base.html' %}
 {% load permission_tags %}
 
-<!DOCTYPE html>
-<html lang="pt-br">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatórios - Mediata</title>
-
-    <!-- Bootstrap CSS -->
-    <link href="{% static 'bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/style.min.css" rel="stylesheet" />
-    
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    
-    <!-- CSS do DataTables -->
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
-    
-    <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- JS do jQuery e DataTables -->
-    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
-
-    <style>
-        :root {
-            --sidebar-width: 250px;
-            --sidebar-collapsed-width: 70px;
-            --navbar-height: 56px;
-            --transition-speed: 0.3s;
-            --primary-bg: #343a40;
-            --secondary-bg: #495057;
-            --active-bg: #007bff;
-            --text-color: #f8f9fa;
-            --hover-bg: rgba(255, 255, 255, 0.1);
-        }
-
-        body {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f8f9fa;
-        }
-
-        .wrapper {
-            display: flex;
-            flex: 1;
-            position: relative;
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            width: var(--sidebar-width);
-            background-color: var(--primary-bg);
-            color: var(--text-color);
-            min-height: calc(100vh - var(--navbar-height));
-            transition: all var(--transition-speed) ease;
-            position: relative;
-            z-index: 1000;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .sidebar.collapsed {
-            width: var(--sidebar-collapsed-width);
-            overflow: hidden;
-        }
-
-        .sidebar.collapsed .nav-link-text,
-        .sidebar.collapsed h4,
-        .sidebar.collapsed .bi-chevron-down {
-            display: none !important;
-        }
-
-        .sidebar.collapsed .nav-link {
-            justify-content: center;
-        }
-
-        .sidebar.collapsed .nav-link i {
-            margin-right: 0;
-            font-size: 1.2rem;
-        }
-
-        .sidebar-header {
-            padding: 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            margin-bottom: 1rem;
-        }
-
-        .sidebar-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0 0.5rem;
-        }
-
-        .sidebar-footer {
-            padding: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .nav-link {
-            color: var(--text-color);
-            border-radius: 4px;
-            margin-bottom: 0.25rem;
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            transition: all 0.2s;
-        }
-
-        .nav-link i {
-            margin-right: 0.75rem;
-            font-size: 1.1rem;
-            min-width: 20px;
-        }
-
-        .nav-link:hover,
-        .nav-link:focus {
-            background-color: var(--hover-bg);
-            color: var(--text-color);
-        }
-
-        .nav-link.active {
-            background-color: var(--active-bg);
-            font-weight: 500;
-        }
-
-        .nav-item .collapse {
-            margin-left: 1.5rem;
-        }
-
-        /* Main Content Styles */
-        .main-content {
-            flex: 1;
-            padding: 2rem;
-            background-color: #f8f9fa;
-            transition: margin-left var(--transition-speed) ease;
-            min-height: calc(100vh - var(--navbar-height));
-        }
-
-        .main-content.expanded {
-            margin-left: var(--sidebar-collapsed-width);
-        }
-
-        /* Navbar Styles */
-        .navbar {
-            background-color: #fff;
-            border-bottom: 1px solid #dee2e6;
-            height: var(--navbar-height);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            z-index: 1001;
-        }
-
-        .toggle-btn {
-            background: none;
-            border: none;
-            color: var(--primary-bg);
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 0.5rem;
-            transition: transform 0.2s;
-        }
-
-        .toggle-btn:hover {
-            transform: scale(1.1);
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-        }
-
-        .user-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            margin-right: 0.75rem;
-            background-color: var(--primary-bg);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-
-        /* Dashboard de Métricas */
-        .dashboard {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .stat-card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .stat-card h3 {
-            font-size: 14px;
-            color: #777;
-            margin-bottom: 10px;
-        }
-        
-        .stat-value {
-            font-size: 28px;
-            font-weight: 700;
-            color: #2c3e50;
-        }
-        
-        .stat-change {
-            margin-top: 10px;
-            font-size: 14px;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .positive {
-            color: #2ecc71;
-        }
-        
-        .negative {
-            color: #e74c3c;
-        }
-        
-        /* Charts */
-        .charts {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 20px;
-            margin-bottom: 20px;
-        }
-        
-        .chart-container {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-        }
-        
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .chart-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        
-        .chart-actions {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .chart-actions button {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: #777;
-            font-size: 16px;
-        }
-        
-        /* Table */
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        
-        .data-table th, .data-table td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .data-table th {
-            background: #f8f9fa;
-            font-weight: 600;
-            color: #2c3e50;
-        }
-        
-        .data-table tr:hover {
-            background: #f9f9f9;
-        }
-        
-        .status {
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        
-        .status-completed {
-            background: #e6f7ee;
-            color: #2ecc71;
-        }
-        
-        .status-pending {
-            background: #fef5e7;
-            color: #f39c12;
-        }
-        
-        /* Responsive Styles */
-        @media (max-width: 768px) {
-            .sidebar {
-                position: fixed;
-                left: 0;
-                top: var(--navbar-height);
-                height: calc(100vh - var(--navbar-height));
-                transform: translateX(-100%);
-                z-index: 1000;
-            }
-
-            .sidebar.show {
-                transform: translateX(0);
-            }
-
-            .main-content {
-                width: 100%;
-                padding: 1rem;
-            }
-
-            .toggle-btn {
-                display: block;
-            }
+{% block conteudo %}
+<div class="container-fluid">
+    <!-- Filtros -->
+    <form action="{% url 'relatorios' %}" method="post" class="card mb-4">
+        {% csrf_token %}
+        <div class="card-body">
+            <h5 class="card-title">Filtros</h5>
             
-            .charts {
-                grid-template-columns: 1fr;
-            }
-            
-            .dashboard {
-                grid-template-columns: 1fr;
-                gap: 15px;
-                margin-bottom: 15px;
-            }
-        }
+            <!-- Botão para abrir o modal de filtros personalizados -->
+            <div class="mb-3">
+                <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#customDateModal">
+                    <i class="bi bi-sliders"></i> Filtros Avançados
+                </button>
+            </div>
 
-        @media (min-width: 769px) {
-            .toggle-btn {
-                display: block;
-            }
-        }
+            <div class="row">
+                <!-- Período -->
+                <div class="col-md-2">
+                    <label for="date-range" class="form-label">Período</label>
+                    <select class="form-select" name="date_range" id="date-range">
+                        <option value="7" {% if filtro_date_range == "7" %}selected{% endif %}>Últimos 7 dias</option>
+                        <option value="30" {% if filtro_date_range == "30" or not filtro_date_range %}selected{% endif %}>Últimos 30 dias</option>
+                        <option value="90" {% if filtro_date_range == "90" %}selected{% endif %}>Últimos 3 meses</option>
+                        <option value="custom" {% if filtro_date_range == "custom" %}selected{% endif %}>Personalizado</option>
+                    </select>
+                </div>
 
-        /* Scrollbar Styles */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
+                <!-- Cliente -->
+                <div class="col-md-2">
+                    <label for="cliente" class="form-label">Cliente</label>
+                    <select class="form-select select2" name="cliente" id="cliente" data-placeholder="Selecione um cliente">
+                        <option value="all" {% if filtro_cliente == "all" or not filtro_cliente %}selected{% endif %}>Todos os Clientes</option>
+                        {% for cliente in clientes %}
+                        <option value="{{ cliente.id }}" {% if filtro_cliente == cliente.id|stringformat:"s" %}selected{% endif %}>
+                            {{ cliente.nome_razao_social }} - {{ cliente.cpf_cnpj }}
+                        </option>
+                        {% empty %}
+                        <option value="">Nenhum cliente cadastrado</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-        }
+                <!-- Colaborador -->
+                <div class="col-md-2">
+                    <label for="colaborador" class="form-label">Colaborador</label>
+                    <select class="form-select select2" name="colaborador" id="colaborador" data-placeholder="Selecione um colaborador">
+                        <option value="all" {% if filtro_colaborador == "all" or not filtro_colaborador %}selected{% endif %}>Todos os Colaboradores</option>
+                        {% for colaborador in colaboradores %}
+                        <option value="{{ colaborador.id }}" {% if filtro_colaborador == colaborador.id|stringformat:"s" %}selected{% endif %}>
+                            {% if colaborador.cpf %}
+                            {{ colaborador.nome_completo }}
+                            {% elif colaborador.cnpj %}
+                            {{ colaborador.razao_social }}
+                            {% endif %}
+                        </option>
+                        {% empty %}
+                        <option value="">Nenhum colaborador</option>
+                        {% endfor %}
+                    </select>
+                </div>
 
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-        }
+                <!-- Status -->
+                <div class="col-md-2">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" name="status" id="status">
+                        <option value="T" {% if filtro_status == "T" or not filtro_status %}selected{% endif %}>Todos</option>
+                        <option value="L" {% if filtro_status == "L" %}selected{% endif %}>Levantamento</option>
+                        <option value="C" {% if filtro_status == "C" %}selected{% endif %}>Cotação</option>
+                        <option value="A" {% if filtro_status == "A" %}selected{% endif %}>Aprovado</option>
+                        <option value="E" {% if filtro_status == "E" %}selected{% endif %}>Em Execução</option>
+                        <option value="X" {% if filtro_status == "X" %}selected{% endif %}>Executado</option>
+                        <option value="V" {% if filtro_status == "V" %}selected{% endif %}>Vistoriado</option>
+                        <option value="F" {% if filtro_status == "F" %}selected{% endif %}>Finalizado</option>
+                        <option value="R" {% if filtro_status == "R" %}selected{% endif %}>Rejeitado</option>
+                    </select>
+                </div>
 
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-    </style>
-</head>
+                <!-- Usuário (apenas para gerentes) -->
+                {% if user|has_role:'gerente' %}
+                <div class="col-md-2">
+                    <label for="usuario" class="form-label">Usuário</label>
+                    <select class="form-select" name="usuario" id="usuario">
+                        <option value="all" {% if filtro_usuario == "all" %}selected{% endif %}>Todos</option>
+                        {% for usuario in usuarios %}
+                        <option value="{{ usuario.id }}" {% if filtro_usuario == usuario.id|stringformat:"s" %}selected{% endif %}>
+                            {{ usuario.username }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% endif %}
 
-<body>
-    <!-- Top Navbar -->
-    <nav class="navbar navbar-expand navbar-light">
-        <div class="container-fluid">
-            <button class="toggle-btn" id="sidebarToggle">
-                <i class="bi bi-list"></i>
-            </button>
-            <div class="user-info">
-                <div class="user-avatar">{{ user.username|first|upper }}</div>
-                <span class="navbar-brand mb-0 h5">Bem-vindo, {{ user.username }}</span>
+                <!-- Botão Aplicar -->
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="w-100">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-funnel"></i> Aplicar Filtros
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
-    </nav>
+    </form>
 
-    <div class="wrapper">
-        <!-- Sidebar -->
-        <div class="sidebar" id="sidebar">
-            <div class="sidebar-header">
-                <h4 class="mb-0 text-center">Mediata</h4>
-            </div>
-            
-            <div class="sidebar-content">
-                <ul class="nav flex-column">
-                    <li class="nav-item">
-                        <a href="{% url 'dashboard' %}" class="nav-link">
-                            <i class="bi bi-speedometer2"></i>
-                            <span class="nav-link-text">Dashboard</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'index-tickets' %}" class="nav-link">
-                            <i class="bi bi-ticket-detailed"></i>
-                            <span class="nav-link-text">Tickets</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'lista_colaboradores' %}" class="nav-link">
-                            <i class="bi bi-people"></i>
-                            <span class="nav-link-text">Colaboradores</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'listar-clientes' %}" class="nav-link">
-                            <i class="bi bi-building"></i>
-                            <span class="nav-link-text">Clientes</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'relatorios' %}" class="nav-link active">
-                            <i class="bi bi-graph-up"></i>
-                            <span class="nav-link-text">Relatórios</span>
-                        </a>
-                    </li>
-                    
-                    <!-- Menu com submenu -->
-                    <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="collapse" href="#submenuLayouts" role="button"
-                            aria-expanded="false" aria-controls="submenuLayouts">
-                            <i class="bi bi-person-gear"></i>
-                            <span class="nav-link-text">Usuários</span>
-                            <i class="bi bi-chevron-down ms-auto"></i>
-                        </a>
-                        <div class="collapse" id="submenuLayouts">
-                            <ul class="nav flex-column ms-3">
-                                <li class="nav-item">
-                                    <a href="{% url 'perfil-usuario' user.id %}" class="nav-link">
-                                        <i class="bi bi-person"></i>
-                                        <span class="nav-link-text">Perfil Usuário</span>
-                                    </a>
-                                </li>
-                                {% if user|has_role:'gerente' %}
-                                <li class="nav-item">
-                                    <a href="{% url 'index-usuarios' %}" class="nav-link">
-                                        <i class="bi bi-people"></i>
-                                        <span class="nav-link-text">Listar Usuários</span>
-                                    </a>
-                                </li>
-                                <li class="nav-item">
-                                    <a href="{% url 'editar-usuario' user.id %}" class="nav-link">
-                                        <i class="bi bi-pencil"></i>
-                                        <span class="nav-link-text">Editar Usuário</span>
-                                    </a>
-                                </li>
-                                {% endif %}
-                            </ul>
-                        </div>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{% url 'index-insumos' %}" class="nav-link">
-                            <i class="bi bi-box-seam"></i>
-                            <span class="nav-link-text">Insumos</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="#" class="nav-link">
-                            <i class="bi bi-gear"></i>
-                            <span class="nav-link-text">Configurações</span>
-                        </a>
-                    </li>
-                </ul>
-            </div>
-            
-            <div class="sidebar-footer">
-                <a href="{% url 'logout' %}" class="nav-link text-danger">
-                    <i class="bi bi-box-arrow-right"></i>
-                    <span class="nav-link-text">Sair</span>
-                </a>
-            </div>
+    <!-- Dashboard de Métricas -->
+    <div class="dashboard mb-4">
+        <div class="stat-card">
+            <h3>Orçamentos Totais</h3>
+            <div class="stat-value">R$ {{ orcamento_total|floatformat:2 }}</div>
         </div>
-
-        <!-- Main Content -->
-        <div class="main-content" id="mainContent">
-            {% include '../paginas/menssagens.html' %}
-
-            {% block conteudo %}
-            <div class="container-fluid">
-                <!-- Filtros -->
-                <div class="card mb-4">
-                    <div class="card-body">
-                        <h5 class="card-title">Filtros</h5>
-                        <div class="row">
-                            <div class="col-md-3">
-                                <div class="mb-3">
-                                    <label for="date-range" class="form-label">Período</label>
-                                    <select class="form-select" id="date-range">
-                                        <option>Últimos 7 dias</option>
-                                        <option selected>Últimos 30 dias</option>
-                                        <option>Últimos 3 meses</option>
-                                        <option>Personalizado</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="mb-3">
-                                    <label for="category" class="form-label">Categoria</label>
-                                    <select class="form-select" id="category">
-                                        <option>Todas as categorias</option>
-                                        <option>Eletrônicos</option>
-                                        <option>Roupas</option>
-                                        <option>Alimentos</option>
-                                        <option>Livros</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3">
-                                <div class="mb-3">
-                                    <label for="status" class="form-label">Status</label>
-                                    <select class="form-select" id="status">
-                                        <option>Todos os status</option>
-                                        <option>Concluído</option>
-                                        <option>Pendente</option>
-                                        <option>Cancelado</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="col-md-3 d-flex align-items-end">
-                                <div class="mb-3 w-100">
-                                    <button class="btn btn-secondary w-100 me-2">
-                                        <i class="bi bi-arrow-repeat"></i> Limpar
-                                    </button>
-                                    <button class="btn btn-primary w-100 mt-2">
-                                        <i class="bi bi-funnel"></i> Aplicar Filtros
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Dashboard de Métricas -->
-                <div class="dashboard">
-                    <div class="stat-card">
-                        <h3>Vendas Totais</h3>
-                        <div class="stat-value">R$ 152.640,00</div>
-                        <div class="stat-change positive">
-                            <i class="bi bi-arrow-up"></i> 12.5% em relação ao mês anterior
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Ticket Médio</h3>
-                        <div class="stat-value">R$ 427,50</div>
-                        <div class="stat-change positive">
-                            <i class="bi bi-arrow-up"></i> 3.2% em relação ao mês anterior
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <h3>Novos Clientes</h3>
-                        <div class="stat-value">284</div>
-                        <div class="stat-change negative">
-                            <i class="bi bi-arrow-down"></i> 5.7% em relação ao mês anterior
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Gráficos -->
-                <div class="charts">
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <h2 class="chart-title">Vendas por Dia</h2>
-                            <div class="chart-actions">
-                                <button><i class="bi bi-download"></i></button>
-                                <button><i class="bi bi-arrows-fullscreen"></i></button>
-                            </div>
-                        </div>
-                        <canvas id="salesChart"></canvas>
-                    </div>
-                    
-                    <div class="chart-container">
-                        <div class="chart-header">
-                            <h2 class="chart-title">Vendas por Categoria</h2>
-                            <div class="chart-actions">
-                                <button><i class="bi bi-download"></i></button>
-                                <button><i class="bi bi-arrows-fullscreen"></i></button>
-                            </div>
-                        </div>
-                        <canvas id="categoryChart"></canvas>
-                    </div>
-                </div>
-                
-                <!-- Tabela de Dados -->
-                <div class="card">
-                    <div class="chart-header">
-                        <h2 class="chart-title">Últimas Vendas</h2>
-                        <div class="chart-actions">
-                            <button class="btn btn-sm btn-outline-primary">
-                                <i class="bi bi-download"></i> Exportar
-                            </button>
-                        </div>
-                    </div>
-                    <div class="card-body">
-                        <table class="table table-hover data-table">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Cliente</th>
-                                    <th>Data</th>
-                                    <th>Valor</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>#12345</td>
-                                    <td>Maria Santos</td>
-                                    <td>10/08/2023</td>
-                                    <td>R$ 1.250,00</td>
-                                    <td><span class="status status-completed">Concluído</span></td>
-                                </tr>
-                                <tr>
-                                    <td>#12346</td>
-                                    <td>João Pereira</td>
-                                    <td>09/08/2023</td>
-                                    <td>R$ 899,90</td>
-                                    <td><span class="status status-completed">Concluído</span></td>
-                                </tr>
-                                <tr>
-                                    <td>#12347</td>
-                                    <td>Ana Costa</td>
-                                    <td>09/08/2023</td>
-                                    <td>R$ 2.499,00</td>
-                                    <td><span class="status status-pending">Pendente</span></td>
-                                </tr>
-                                <tr>
-                                    <td>#12348</td>
-                                    <td>Pedro Almeida</td>
-                                    <td>08/08/2023</td>
-                                    <td>R$ 549,90</td>
-                                    <td><span class="status status-completed">Concluído</span></td>
-                                </tr>
-                                <tr>
-                                    <td>#12349</td>
-                                    <td>Carla Rodrigues</td>
-                                    <td>07/08/2023</td>
-                                    <td>R$ 3.299,00</td>
-                                    <td><span class="status status-completed">Concluído</span></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+        <div class="stat-card">
+            <h3>Ticket Médio</h3>
+            <div class="stat-value">R$ {{ ticket_medio|floatformat:2 }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>Pagamentos</h3>
+            <div class="stat-value">R$ {{ total_pagamentos|floatformat:2 }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>Lucro</h3>
+            <div class="stat-value {% if total_lucros >= 0 %}stat-value-lucro{% else %}stat-value-prejuizo{% endif %}">
+                R$ {{ total_lucros|floatformat:2 }}
             </div>
-            {% endblock %}
+            <small class="text-muted">
+                {% if eh_lucro %}+{% else %}-{% endif %}
+                {{ percentual_lucro|floatformat:1 }}% sobre vendas
+            </small>
+        </div>
+        <div class="stat-card">
+            <h3>Novos Clientes</h3>
+            <div class="stat-value">{{ novos_clientes }}</div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/simple-datatables@7.1.2/dist/umd/simple-datatables.min.js" crossorigin="anonymous"></script>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.getElementById('sidebar');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const mainContent = document.getElementById('mainContent');
-            const navLinks = document.querySelectorAll('.sidebar a:not([data-bs-toggle="collapse"])');
-            
-            // Verifica o estado inicial baseado no tamanho da tela e localStorage
-            function initSidebarState() {
-                const isMobile = window.innerWidth < 769;
-                const savedState = localStorage.getItem('sidebarCollapsed');
-                
-                if (isMobile) {
-                    // Em mobile, sempre começa fechado
-                    sidebar.classList.remove('show');
-                    sidebar.classList.remove('collapsed');
-                } else {
-                    // Em desktop, usa o estado salvo ou padrão (aberto)
-                    const shouldCollapse = savedState === 'true';
-                    sidebar.classList.toggle('collapsed', shouldCollapse);
-                    mainContent.classList.toggle('expanded', shouldCollapse);
-                }
-            }
-            
-            // Alternar sidebar
-            function toggleSidebar() {
-                const isMobile = window.innerWidth < 769;
-                
-                if (isMobile) {
-                    // Em mobile, usa show/hide
-                    sidebar.classList.toggle('show');
-                } else {
-                    // Em desktop, usa collapsed/expanded
-                    sidebar.classList.toggle('collapsed');
-                    mainContent.classList.toggle('expanded');
-                    
-                    // Salva o estado no localStorage apenas para desktop
-                    const isNowCollapsed = sidebar.classList.contains('collapsed');
-                    localStorage.setItem('sidebarCollapsed', isNowCollapsed);
-                }
-            }
-            
-            // Fechar sidebar ao clicar em um link (apenas mobile)
-            function closeSidebarOnLinkClick() {
-                if (window.innerWidth < 769) {
-                    navLinks.forEach(link => {
-                        link.addEventListener('click', () => {
-                            sidebar.classList.remove('show');
-                        });
-                    });
-                }
-            }
-            
-            // Manipulador de redimensionamento
-            function handleResize() {
-                const isMobile = window.innerWidth < 769;
-                
-                if (isMobile) {
-                    // Se mudou para mobile, remove collapsed
-                    sidebar.classList.remove('collapsed');
-                    mainContent.classList.remove('expanded');
-                } else {
-                    // Se mudou para desktop, aplica o estado salvo
-                    const shouldCollapse = localStorage.getItem('sidebarCollapsed') === 'true';
-                    sidebar.classList.toggle('collapsed', shouldCollapse);
-                    mainContent.classList.toggle('expanded', shouldCollapse);
-                }
-            }
-            
-            // Inicialização dos gráficos
-            function initCharts() {
-                // Gráfico de vendas por dia
-                const salesCtx = document.getElementById('salesChart').getContext('2d');
-                const salesChart = new Chart(salesCtx, {
-                    type: 'line',
-                    data: {
-                        labels: ['1/08', '2/08', '3/08', '4/08', '5/08', '6/08', '7/08', '8/08', '9/08', '10/08'],
-                        datasets: [{
-                            label: 'Vendas em R$',
-                            data: [4200, 5800, 5100, 7840, 11200, 8900, 7430, 12500, 9800, 11420],
-                            borderColor: '#3498db',
-                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                            tension: 0.4,
-                            fill: true
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                display: false
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true,
-                                grid: {
-                                    drawBorder: false
-                                }
-                            },
-                            x: {
-                                grid: {
-                                    display: false
-                                }
-                            }
-                        }
-                    }
-                });
-                
-                // Gráfico de vendas por categoria
-                const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-                const categoryChart = new Chart(categoryCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Eletrônicos', 'Roupas', 'Alimentos', 'Livros', 'Outros'],
-                        datasets: [{
-                            data: [45, 25, 15, 10, 5],
-                            backgroundColor: [
-                                '#3498db',
-                                '#2ecc71',
-                                '#f1c40f',
-                                '#e74c3c',
-                                '#9b59b6'
-                            ]
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        plugins: {
-                            legend: {
-                                position: 'bottom'
-                            }
-                        }
-                    }
-                });
-            }
-            
-            // Inicialização
-            initSidebarState();
-            closeSidebarOnLinkClick();
-            initCharts();
-            
-            // Event Listeners
-            sidebarToggle.addEventListener('click', toggleSidebar);
-            window.addEventListener('resize', handleResize);
-        });
-    </script>
-</body>
+    <!-- Tabela de Tickets -->
+    <div class="card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Tickets ({{ tickets.count }})</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover" id="datatablesSimple">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Usuário</th>
+                            <th>Cliente</th>
+                            <th>Colaborador</th>
+                            <th>Status</th>
+                            <th>Data de Criação</th>
+                            <th>Orçamentos</th>
+                            <th>Pagamentos</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ticket in tickets %}
+                        <tr>
+                            <td><strong>#{{ ticket.ticket }}</strong></td>
+                            <td>{{ ticket.usuario.username }}</td>
+                            <td>
+                                {% if ticket.cliente %}
+                                    {{ ticket.cliente.nome_razao_social }}
+                                {% else %}
+                                    <span class="text-muted">Nenhum</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if ticket.colaborador %}
+                                    {{ ticket.colaborador }}
+                                {% else %}
+                                    <span class="text-muted">Nenhum</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge 
+                                    {% if ticket.status == 'L' %}bg-warning text-white
+                                    {% elif ticket.status == 'C' %}bg-primary text-dark
+                                    {% elif ticket.status == 'A' %}bg-secondary text-white
+                                    {% elif ticket.status == 'E' %}bg-info text-dark
+                                    {% elif ticket.status == 'X' %}bg-warning text-dark
+                                    {% elif ticket.status == 'V' %}bg-success text-white
+                                    {% elif ticket.status == 'F' %}bg-danger text-white
+                                    {% elif ticket.status == 'R' %}bg-light text-dark border
+                                    {% else %}bg-secondary text-white{% endif %}">
+                                    {% if ticket.status == 'L' %}<i class="bi bi-clipboard-data me-1"></i>
+                                    {% elif ticket.status == 'C' %}<i class="bi bi-check-circle me-1"></i>
+                                    {% elif ticket.status == 'A' %}<i class="bi bi-check-all me-1"></i>
+                                    {% elif ticket.status == 'E' %}<i class="bi bi-gear-wide-connected me-1"></i>
+                                    {% elif ticket.status == 'X' %}<i class="bi bi-check-circle me-1"></i>
+                                    {% elif ticket.status == 'V' %}<i class="bi bi-eye-fill me-1"></i>
+                                    {% elif ticket.status == 'F' %}<i class="bi bi-flag-fill me-1"></i>
+                                    {% elif ticket.status == 'R' %}<i class="bi bi-x-circle-fill me-1"></i>
+                                    {% endif %}
+                                    {{ ticket.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ ticket.data_criacao|date:"d/m/Y" }}</td>
+                            <td>R$ {{ ticket.total_orcamentos|floatformat:2 }}</td>
+                            <td>R$ {{ ticket.total_pagamentos|floatformat:2 }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="bi bi-inbox display-4"></i>
+                                    <p class="mt-2">Nenhum ticket encontrado com os filtros aplicados</p>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
 
-</html>
+<!-- Modal para datas personalizadas -->
+<div class="modal fade" id="customDateModal" tabindex="-1" aria-labelledby="customDateModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form action="{% url 'relatorios' %}" method="post"> 
+                {% csrf_token %}
+                <input type="hidden" name="date_range" value="custom">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="customDateModalLabel">Filtros Avançados</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="data_inicio" class="form-label">Data Início</label>
+                                <input type="date" class="form-control" id="data_inicio" name="data_inicio" 
+                                       value="{{ filtro_data_inicio|date:'Y-m-d' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="data_fim" class="form-label">Data Fim</label>
+                                <input type="date" class="form-control" id="data_fim" name="data_fim"
+                                       value="{{ filtro_data_fim|date:'Y-m-d' }}">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="cliente_modal" class="form-label">Cliente</label>
+                        <select class="form-select select2" name="cliente" id="cliente_modal" data-placeholder="Selecione um cliente">
+                            <option value="all" {% if filtro_cliente == "all" or not filtro_cliente %}selected{% endif %}>Todos os Clientes</option>
+                            {% for cliente in clientes %}
+                            <option value="{{ cliente.id }}" {% if filtro_cliente == cliente.id|stringformat:"s" %}selected{% endif %}>
+                                {{ cliente.nome_razao_social }} - {{ cliente.cpf_cnpj }}
+                            </option>
+                            {% empty %}
+                            <option value="">Nenhum cliente cadastrado</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="colaborador_modal" class="form-label">Colaborador</label>
+                        <select class="form-select select2" name="colaborador" id="colaborador_modal" data-placeholder="Selecione um colaborador">
+                            <option value="all" {% if filtro_colaborador == "all" or not filtro_colaborador %}selected{% endif %}>Todos os Colaboradores</option>
+                            {% for colaborador in colaboradores %}
+                            <option value="{{ colaborador.id }}" {% if filtro_colaborador == colaborador.id|stringformat:"s" %}selected{% endif %}>
+                                {% if colaborador.cpf %}
+                                {{ colaborador.nome_completo }}
+                                {% elif colaborador.cnpj %}
+                                {{ colaborador.razao_social }}
+                                {% endif %}
+                            </option>
+                            {% empty %}
+                            <option value="">Nenhum colaborador</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Status (Selecione múltiplos)</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input status-checkbox" type="checkbox" name="status" value="T" id="status_todos" 
+                                        {% if "T" in filtro_status_list or not filtro_status_list %}checked{% endif %}>
+                                    <label class="form-check-label" for="status_todos">Todos</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input status-checkbox" type="checkbox" name="status" value="L" id="status_levantamento" 
+                                        {% if "L" in filtro_status_list %}checked{% endif %}>
+                                    <label class="form-check-label" for="status_levantamento">Levantamento</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input status-checkbox" type="checkbox" name="status" value="C" id="status_cotacao" 
+                                        {% if "C" in filtro_status_list %}checked{% endif %}>
+                                    <label class="form-check-label" for="status_cotacao">Cotação</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input status-checkbox" type="checkbox" name="status" value="A" id="status_aprovado" 
+                                        {% if "A" in filtro_status_list %}checked{% endif %}>
+                                    <label class="form-check-label" for="status_aprovado">Aprovado</label>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input status-checkbox" type="checkbox" name="status" value="E" id="status_execucao" 
+                                        {% if "E" in filtro_status_list %}checked{% endif %}>
+                                    <label class="form-check-label" for="status_execucao">Em Execução</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input status-checkbox" type="checkbox" name="status" value="X" id="status_executado" 
+                                        {% if "X" in filtro_status_list %}checked{% endif %}>
+                                    <label class="form-check-label" for="status_executado">Executado</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input status-checkbox" type="checkbox" name="status" value="V" id="status_vistoriado" 
+                                        {% if "V" in filtro_status_list %}checked{% endif %}>
+                                    <label class="form-check-label" for="status_vistoriado">Vistoriado</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input status-checkbox" type="checkbox" name="status" value="F" id="status_finalizado" 
+                                        {% if "F" in filtro_status_list %}checked{% endif %}>
+                                    <label class="form-check-label" for="status_finalizado">Finalizado</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input status-checkbox" type="checkbox" name="status" value="R" id="status_rejeitado" 
+                                        {% if "R" in filtro_status_list %}checked{% endif %}>
+                                    <label class="form-check-label" for="status_rejeitado">Rejeitado</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if user|has_role:'gerente' %}
+                    <div class="mb-3">
+                        <label for="usuario_modal" class="form-label">Usuário</label>
+                        <select class="form-select" name="usuario" id="usuario_modal">
+                            <option value="all" {% if filtro_usuario == "all" %}selected{% endif %}>Todos</option>
+                            {% for usuario in usuarios %}
+                            <option value="{{ usuario.id }}" {% if filtro_usuario == usuario.id|stringformat:"s" %}selected{% endif %}>
+                                {{ usuario.username }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" onclick="limparFiltrosModal()">
+                        <i class="bi bi-eraser"></i> Limpar
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check"></i> Aplicar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+.dashboard {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    text-align: center;
+    transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+.stat-card h3 {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.stat-value-lucro {
+    color: #28a745;
+}
+
+.stat-value-prejuizo {
+    color: #dc3545;
+}
+
+.badge {
+    font-size: 0.8em;
+    padding: 0.5em 0.8em;
+    border-radius: 0.375rem;
+}
+
+.table th {
+    background-color: #f8f9fa;
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+/* Estilos para os checkboxes no modal */
+#customDateModal .form-check {
+    margin-bottom: 0.5rem;
+}
+
+#customDateModal .form-check-input {
+    margin-top: 0.2rem;
+}
+
+#customDateModal .form-check-label {
+    margin-left: 0.5rem;
+}
+
+#customDateModal .form-check-input:checked {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+</style>
+
+<script>
+// Inicializar Select2
+$(document).ready(function() {
+    // Select2 do formulário principal
+    $('#cliente').select2({
+        placeholder: "Selecione um cliente",
+        allowClear: true,
+        width: '100%'
+    });
+    
+    $('#colaborador').select2({
+        placeholder: "Selecione um colaborador",
+        allowClear: true,
+        width: '100%'
+    });
+    
+    // Inicializar Select2 dentro do modal quando aberto
+    $('#customDateModal').on('shown.bs.modal', function () {
+        $('#cliente_modal').select2({
+            placeholder: "Selecione um cliente",
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $('#customDateModal')
+        });
+        
+        $('#colaborador_modal').select2({
+            placeholder: "Selecione um colaborador",
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $('#customDateModal')
+        });
+    });
+
+    // Lógica para o checkbox "Todos" no modal
+    $('#status_todos').change(function() {
+        const isChecked = $(this).is(':checked');
+        $('.status-checkbox').not(this).prop('checked', isChecked);
+    });
+    
+    // Se qualquer outro checkbox for desmarcado, desmarcar "Todos"
+    $('.status-checkbox').not('#status_todos').change(function() {
+        if (!$(this).is(':checked')) {
+            $('#status_todos').prop('checked', false);
+        } else {
+            // Se todos os outros checkboxes estiverem marcados, marcar "Todos"
+            const totalCheckboxes = $('.status-checkbox').not('#status_todos').length;
+            const checkedCheckboxes = $('.status-checkbox').not('#status_todos').filter(':checked').length;
+            
+            if (totalCheckboxes === checkedCheckboxes) {
+                $('#status_todos').prop('checked', true);
+            }
+        }
+    });
+
+    // Quando selecionar "Personalizado" no dropdown, abrir o modal
+    $('#date-range').change(function() {
+        if ($(this).val() === 'custom') {
+            $('#customDateModal').modal('show');
+        }
+    });
+
+    // Prevenir envio do formulário principal quando "Personalizado" estiver selecionado
+    $('form').not('#customDateModal form').submit(function(e) {
+        if ($('#date-range').val() === 'custom') {
+            e.preventDefault();
+            $('#customDateModal').modal('show');
+        }
+    });
+});
+
+// Função para limpar filtros no modal
+function limparFiltrosModal() {
+    // Limpa campos de data
+    $('#data_inicio').val('');
+    $('#data_fim').val('');
+    
+    // Reseta selects
+    $('#cliente_modal').val('all').trigger('change');
+    $('#colaborador_modal').val('all').trigger('change');
+    $('#usuario_modal').val('all');
+    
+    // Desmarca todos os checkboxes e marca apenas "Todos"
+    $('.status-checkbox').prop('checked', false);
+    $('#status_todos').prop('checked', true);
+}
+
+// Função para aplicar filtros do modal
+function aplicarFiltrosModal() {
+    // Verifica se pelo menos um status está selecionado
+    const statusSelecionados = $('.status-checkbox:checked').not('#status_todos').length;
+    const todosSelecionado = $('#status_todos').is(':checked');
+    
+    if (!todosSelecionado && statusSelecionados === 0) {
+        alert('Selecione pelo menos um status ou marque "Todos"');
+        return false;
+    }
+    
+    return true;
+}
+</script>
+<script>
+// Inicializa DataTable
+$(document).ready(function() {
+    const tabela = $('#datatablesSimple').DataTable({
+        order: [[5, 'desc']], // ordena por "Data de Criação" (6ª coluna) mais recente primeiro
+        language: {
+            search: "Pesquisar:",
+            lengthMenu: "Mostrar _MENU_ registros por página",
+            info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
+            infoEmpty: "Mostrando 0 a 0 de 0 registros",
+            infoFiltered: "(filtrado de _MAX_ registros no total)",
+            paginate: {
+                first: "Primeiro",
+                last: "Último",
+                next: "Próximo",
+                previous: "Anterior"
+            },
+            zeroRecords: "Nenhum resultado encontrado",
+            emptyTable: "Nenhum dado disponível na tabela",
+            loadingRecords: "Carregando...",
+            processing: "Processando..."
+        },
+        dom: '<"top"f>rt<"bottom"lip><"clear">',
+        responsive: true,
+        pageLength: 25, // Itens por página padrão
+        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]], // Opções do menu
+        columnDefs: [
+            {
+                // Coluna de Status (índice 4) - pode ser ordenável mas não pesquisável por texto
+                targets: [4],
+                searchable: false
+            },
+            {
+                // Coluna de Valor (índice 6) - formatação numérica
+                targets: [6],
+                render: function(data, type, row) {
+                    if (type === 'sort' || type === 'type') {
+                        return data.replace('R$ ', '').replace('.', '').replace(',', '.');
+                    }
+                    return data;
+                }
+            }
+        ]
+    });
+});
+</script>
+{% endblock %}

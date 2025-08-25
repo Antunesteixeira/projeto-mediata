@@ -74,6 +74,7 @@ class Orcamento(models.Model):
     orcamento = models.CharField(max_length=255)
     ticket_orcamento = models.ForeignKey(Ticket, on_delete=models.CASCADE)
     data_criacao = models.DateTimeField(auto_now_add=True)
+    valor_total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     descricao = models.TextField()
 
     def __str__(self):
@@ -123,7 +124,7 @@ class Pagamentos(models.Model):
     data_pagamento = models.DateField()
     data_update_pagamento = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     status_pagamento = models.BooleanField(default=False)
-    ticket_pagamento = models.ForeignKey(Ticket, on_delete=models.CASCADE)
+    ticket_pagamento = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="pagamentos")
     comprovante = models.CharField(max_length=255, null=True, blank=True)
 
     def __str__(self):
