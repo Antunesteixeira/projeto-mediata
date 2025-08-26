@@ -30,8 +30,10 @@ import os
 from django.conf import settings
 
 from django.template.loader import get_template
-from xhtml2pdf import pisa
 from datetime import datetime
+
+from weasyprint import HTML
+from num2words import num2words
 
 @login_required
 def tickets(request):
@@ -566,56 +568,73 @@ def delete_comprovante(request, id, key):
 
     return redirect('exibir-ticket', key=key)
 
-
-
+@login_required
 def gerar_pdf_orcamento(request, ticket_id):
     try:
-        empresa = Empresa.objects.get(id=1)  # Exemplo: pegar a empresa com ID 1
-        ticket = Ticket.objects.get(id=ticket_id)
-        orcamento = Orcamento.objects.get(ticket_orcamento=ticket)
-        itens_orcamento = ItemOrcamento.objects.filter(orcamento=orcamento)
-        
-        # Calcular subtotal para cada item e total geral
-        for item in itens_orcamento:
-            # Calcular subtotal manualmente
-            item.subtotal_calculado = item.quant * item.item.valor_unit
-        
-        # Calcular total geral
-        total_itens = sum(item.quant * item.item.valor_unit for item in itens_orcamento)
-        
-        context = {
-            'empresa': empresa,
-            'ticket': ticket,
-            'orcamento': orcamento,
-            'itens_orcamento': itens_orcamento,
-            'total_itens': total_itens,
-            'data_emissao': datetime.now().strftime("%d/%m/%Y %H:%M"),
-            'empresa': {
+        # Pega a primeira empresa cadastrada
+        empresa = Empresa.objects.first()
+        if not empresa:
+            empresa_dict = {
                 'nome': 'Sua Empresa',
                 'endereco': 'Endereço da Empresa',
                 'telefone': '(00) 0000-0000',
                 'email': 'contato@empresa.com',
                 'cnpj': '00.000.000/0001-00'
-            },
+            }
+        else:
+            empresa_dict = {
+                'nome': empresa.nome_fantasia,
+                'endereco': getattr(empresa, 'endereco', ''),
+                'telefone': getattr(empresa, 'telefone', ''),
+                'email': getattr(empresa, 'email', ''),
+                'cnpj': getattr(empresa, 'cnpj', '')
+            }
+
+        ticket = Ticket.objects.get(id=ticket_id)
+        orcamento = Orcamento.objects.get(ticket_orcamento=ticket)
+        itens_orcamento = ItemOrcamento.objects.filter(orcamento=orcamento)
+
+        # Calcular subtotal para cada item e total geral
+        total_itens = 0
+        for item in itens_orcamento:
+            item.subtotal_calculado = item.quant * item.item.valor_unit
+            total_itens += item.subtotal_calculado
+
+        # Converter total para Decimal e gerar texto por extenso em reais e centavos
+        total_itens = Decimal(total_itens).quantize(Decimal('0.01'))
+        reais = int(total_itens)
+        centavos = int((total_itens - reais) * 100)
+
+        if centavos > 0:
+            texto_por_extenso = f"{num2words(reais, lang='pt-br').capitalize()} reais e {num2words(centavos, lang='pt-br')} centavos"
+        else:
+            texto_por_extenso = f"{num2words(reais, lang='pt-br').capitalize()} reais"
+
+        context = {
+            'empresa': empresa_dict,
+            'ticket': ticket,
+            'orcamento': orcamento,
+            'itens_orcamento': itens_orcamento,
+            'total_itens': total_itens,
+            'data_emissao': datetime.now().strftime("%d/%m/%Y %H:%M"),
             'logo_path': 'img/logo-mediata-5.1.png',
-            'has_logo': True,  # ou verifique se o arquivo existe
+            'has_logo': True,
             'MEDIA_URL': settings.MEDIA_URL,
+            'texto_por_extenso': texto_por_extenso,
         }
 
         template_path = 'tickets/orcamento_pdf.html'
         template = get_template(template_path)
         html = template.render(context)
-        
-        response = HttpResponse(content_type='application/pdf')
+
+        # Gerar PDF com WeasyPrint
+        pdf_file = HTML(string=html, base_url=request.build_absolute_uri('/')).write_pdf()
+
+        response = HttpResponse(pdf_file, content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="orcamento_{ticket.ticket}.pdf"'
-        
-        # Criar PDF
-        pisa_status = pisa.CreatePDF(html, dest=response)
-        
-        if pisa_status.err:
-            return HttpResponse('Erro ao gerar PDF')
+
         return response
-        
+
     except Ticket.DoesNotExist:
         return HttpResponse('Ticket não encontrado')
     except Orcamento.DoesNotExist:

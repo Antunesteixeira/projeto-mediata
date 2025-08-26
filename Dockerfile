@@ -25,6 +25,25 @@ RUN python -m venv /venv && \
     chmod -R 755 /data/web/media && \
     chmod -R +x /scripts
 
+# Instalação de dependências do sistema gerador de PDF: WeasyPrint
+RUN apk add --no-cache \
+    jpeg-dev zlib-dev git gcc musl-dev python3-dev \
+    pango cairo pango-dev cairo-dev
+RUN apk add py3-pip py3-pillow py3-cffi \
+    gcc musl-dev python3-dev pango \
+    zlib-dev jpeg-dev openjpeg-dev g++ libffi-dev
+
+# Instalar dependências do WeasyPrint
+RUN apk add --no-cache \
+    cairo-dev \
+    pango-dev \
+    gdk-pixbuf-dev \
+    giflib-dev \
+    musl-dev \
+    libffi-dev \
+    fontconfig \
+    ttf-dejavu
+
 ENV PATH="/scripts:/venv/bin:$PATH"
 
 USER duser

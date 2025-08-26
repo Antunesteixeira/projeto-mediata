@@ -1,11 +1,10 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, logout
 from django.contrib.auth import login as login_django
 from django.contrib.auth.decorators import login_required
 
-from django.db.models import Case, When, Value, IntegerField
 from django.http import Http404
-from tickets.models import Ticket, Orcamento
+from tickets.models import Ticket, Orcamento, Pagamentos
 from insumos.models import Insumos 
 
 from rolepermissions.checkers import has_role
@@ -19,7 +18,6 @@ from django.views.decorators.http import require_GET
 
 from django.db.models import Q
 from django.utils import timezone
-from django.db.models import Sum
 import logging
 
 # views.py
@@ -30,12 +28,13 @@ from .models import Empresa
 from django.views.generic import DetailView
 
 # core/views.py
-from django.shortcuts import render, redirect, get_object_or_404
 from django.views.generic import CreateView, UpdateView, DetailView, ListView
 from django.urls import reverse_lazy
 from .models import Empresa, HorarioFuncionamento, Funcionario, Servico
 from .forms import EmpresaForm, HorarioFuncionamentoForm, FuncionarioForm, ServicoForm
-from django.contrib.auth.decorators import login_required
+
+from django.db.models import Sum, Case, When, Value, IntegerField, F, Prefetch
+
 
 logger = logging.getLogger(__name__)
 
@@ -66,16 +65,15 @@ def sair(request):
     logout(request)
     return redirect('/')
 
-from django.db.models import Sum, Case, When, Value, IntegerField, F, Prefetch
-from django.utils import timezone
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
-from tickets.models import Ticket, Orcamento, Pagamentos
-
 @login_required
 def dashboard(request):
     usuario = request.user
     hoje = timezone.now()
+    
+    if not Empresa.objects.exists():
+        # Se não houver empresa cadastrada, redireciona para o cadastro
+        messages.info(request, 'Por favor, cadastre a empresa antes de acessar o dashboard.')
+        return redirect('empresa_cadastrar')
 
     # Tickets base
     tickets = Ticket.objects.filter(
@@ -166,7 +164,7 @@ def buscar_itens(request):
     
     return JsonResponse(resultados, safe=False)
 
-# View baseada em classe para criar empresa
+
 class EmpresaCreateView(CreateView):
     model = Empresa
     form_class = EmpresaForm
@@ -181,7 +179,7 @@ class EmpresaCreateView(CreateView):
         messages.error(self.request, 'Por favor, corrija os erros abaixo.')
         return super().form_invalid(form)
 
-# View baseada em classe para editar empresa
+
 class EmpresaUpdateView(UpdateView):
     model = Empresa
     form_class = EmpresaForm
@@ -208,10 +206,12 @@ class EmpresaListView(ListView):
         return Empresa.objects.filter(ativo=True)
 
 # View baseada em função para sucesso (pode manter como função)
+@login_required
 def success_view(request):
     return render(request, 'empresa/success.html')
 
 # Views baseadas em função alternativas (se preferir)
+@login_required
 def empresa_cadastrar(request):
     if request.method == 'POST':
         form = EmpresaForm(request.POST)
@@ -226,6 +226,7 @@ def empresa_cadastrar(request):
     
     return render(request, 'empresa/cadastro_empresa.html', {'form': form})
 
+@login_required
 def empresa_editar(request, pk):
     empresa = get_object_or_404(Empresa, pk=pk)
     
@@ -242,13 +243,16 @@ def empresa_editar(request, pk):
     
     return render(request, 'empresa/cadastro_empresa.html', {'form': form})
 
+@login_required
 def empresa_perfil(request, pk):
     empresa = get_object_or_404(Empresa, pk=pk)
     return render(request, 'empresa/perfil-empresa.html', {'empresa': empresa})
 
+@login_required
 def empresa_lista(request):
     empresas = Empresa.objects.filter(ativo=True)
     return render(request, 'empresa/lista_empresas.html', {'empresas': empresas})
 
+@login_required
 def uploader_arquivos(request):
     return render(request, 'uploader_arquivos.html')

@@ -3,6 +3,54 @@
 
 {% block conteudo %}
 <div class="container-fluid">
+    <style>
+        /* Estilos para os botões de filtro */
+        .btn-outline-secondary {
+            border-color: #6c757d;
+            color: #6c757d;
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .btn-outline-danger {
+            border-color: #dc3545;
+            color: #dc3545;
+        }
+
+        .btn-outline-danger:hover {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        /* Ajuste para os botões ficarem alinhados */
+        .d-flex.gap-2 {
+            gap: 0.5rem;
+        }
+
+        /* Tooltip para o botão de limpar */
+        [title] {
+            position: relative;
+        }
+
+        [title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+        }
+    </style>
+    <!-- Filtros -->
     <!-- Filtros -->
     <form action="{% url 'relatorios' %}" method="post" class="card mb-4">
         {% csrf_token %}
@@ -13,6 +61,9 @@
             <div class="mb-3">
                 <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#customDateModal">
                     <i class="bi bi-sliders"></i> Filtros Avançados
+                </button>
+                <button type="button" class="btn btn-outline-danger ms-2" onclick="limparFiltros()">
+                    <i class="bi bi-x-circle"></i> Limpar Tudo
                 </button>
             </div>
 
@@ -93,11 +144,11 @@
                 </div>
                 {% endif %}
 
-                <!-- Botão Aplicar -->
+                <!-- Botões Aplicar e Limpar -->
                 <div class="col-md-2 d-flex align-items-end">
-                    <div class="w-100">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <i class="bi bi-funnel"></i> Aplicar Filtros
+                    <div class="w-100 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary flex-grow-1">
+                            <i class="bi bi-funnel"></i> Aplicar
                         </button>
                     </div>
                 </div>
@@ -577,6 +628,117 @@ $(document).ready(function() {
                 }
             }
         ]
+    });
+});
+</script>
+<script>
+    // Função para limpar filtros do formulário principal
+function limparFiltros() {
+    // Resetar o select de período
+    $('#date-range').val('30');
+    
+    // Resetar selects com Select2
+    $('#cliente').val('all').trigger('change');
+    $('#colaborador').val('all').trigger('change');
+    $('#status').val('T');
+    
+    // Resetar select de usuário (se existir)
+    if ($('#usuario').length) {
+        $('#usuario').val('all');
+    }
+    
+    // Opcional: recarregar a página para aplicar os filtros limpos
+    window.location.href = "{% url 'relatorios' %}";
+}
+
+// Função para limpar filtros no modal
+function limparFiltrosModal() {
+    // Limpa campos de data
+    $('#data_inicio').val('');
+    $('#data_fim').val('');
+    
+    // Reseta selects
+    $('#cliente_modal').val('all').trigger('change');
+    $('#colaborador_modal').val('all').trigger('change');
+    $('#usuario_modal').val('all');
+    
+    // Desmarca todos os checkboxes e marca apenas "Todos"
+    $('.status-checkbox').prop('checked', false);
+    $('#status_todos').prop('checked', true);
+}
+
+// Função para aplicar filtros do modal
+function aplicarFiltrosModal() {
+    // Verifica se pelo menos um status está selecionado
+    const statusSelecionados = $('.status-checkbox:checked').not('#status_todos').length;
+    const todosSelecionado = $('#status_todos').is(':checked');
+    
+    if (!todosSelecionado && statusSelecionados === 0) {
+        alert('Selecione pelo menos um status ou marque "Todos"');
+        return false;
+    }
+    
+    return true;
+}
+
+// Inicializar Select2 e outras configurações
+$(document).ready(function() {
+    // Select2 do formulário principal
+    $('#cliente').select2({
+        placeholder: "Selecione um cliente",
+        allowClear: true,
+        width: '100%'
+    });
+    
+    $('#colaborador').select2({
+        placeholder: "Selecione um colaborador",
+        allowClear: true,
+        width: '100%'
+    });
+    
+    // Inicializar Select2 dentro do modal quando aberto
+    $('#customDateModal').on('shown.bs.modal', function () {
+        $('#cliente_modal').select2({
+            placeholder: "Selecione um cliente",
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $('#customDateModal')
+        });
+        
+        $('#colaborador_modal').select2({
+            placeholder: "Selecione um colaborador",
+            allowClear: true,
+            width: '100%',
+            dropdownParent: $('#customDateModal')
+        });
+    });
+
+    // Lógica para o checkbox "Todos" no modal
+    $('#status_todos').change(function() {
+        const isChecked = $(this).is(':checked');
+        $('.status-checkbox').not(this).prop('checked', isChecked);
+    });
+    
+    // Se qualquer outro checkbox for desmarcado, desmarcar "Todos"
+    $('.status-checkbox').not('#status_todos').change(function() {
+        if (!$(this).is(':checked')) {
+            $('#status_todos').prop('checked', false);
+        }
+    });
+
+    // Quando selecionar "Personalizado" no dropdown, abrir o modal
+    $('#date-range').change(function() {
+        if ($(this).val() === 'custom') {
+            $('#customDateModal').modal('show');
+        }
+    });
+
+    // Prevenir envio do formulário principal quando "Personalizado" estiver selecionado
+    $('form').not('#customDateModal form').submit(function(e) {
+        if ($('#date-range').val() === 'custom') {
+            e.preventDefault();
+            $('#customDateModal').modal('show');
+        }
     });
 });
 </script>

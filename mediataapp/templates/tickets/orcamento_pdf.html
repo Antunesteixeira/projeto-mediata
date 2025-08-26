@@ -4,207 +4,103 @@
 <head>
     <meta charset="utf-8">
     <style>
-        @page {
-            size: a4 portrait;
-            margin: 1.5cm;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 11px;
-            line-height: 1.4;
-            color: #000;
-        }
+        @page { size: A4 portrait; margin: 1.5cm; }
+        body { font-family: Arial, sans-serif; font-size: 11px; line-height: 1.4; color: #000; }
 
         /* Logo */
-        .logo-container {
-            text-align: center;
-            margin-bottom: 10px;
-        }
-        .logo {
-            max-height: 60px;
-            max-width: 200px;
-        }
+        .logo-container { text-align: center; margin-bottom: 10px; }
+        .logo { max-width: 120px; max-height: 60px; height: auto; width: auto; }
 
         /* Cabeçalho */
-        .header {
-            text-align: center;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #333;
-        }
-        .header h1 {
-            font-size: 18px;
-            margin: 0;
-            color: #333;
-        }
-        .header p {
-            font-size: 11px;
-            margin: 3px 0 0 0;
-            color: #666;
-        }
+        .header { text-align: center; margin-bottom: 15px; padding-bottom: 8px; border-bottom: 2px solid #333; }
+        .header h1 { font-size: 16px; margin: 0; color: #333; }
+        .header p { font-size: 11px; margin: 3px 0 0 0; color: #666; }
 
         /* Seções */
-        .section {
-            margin-bottom: 12px;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .section h3 {
-            font-size: 12px;
-            margin: 0 0 8px 0;
-            color: #333;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 3px;
-        }
+        .section { margin-bottom: 12px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .section h3 { font-size: 12px; margin: 0 0 8px 0; color: #333; border-bottom: 1px solid #eee; padding-bottom: 3px; }
 
         /* Informações */
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-        .info-item {
-            margin-bottom: 4px;
-        }
-        .info-item strong {
-            display: inline-block;
-            width: 110px;
-            color: #333;
-        }
-        .info-item span {
-            color: #555;
-        }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .info-item { margin-bottom: 4px; }
+        .info-item strong { display: inline-block; width: 110px; color: #333; }
+        .info-item span { color: #555; }
+        .info-title {text-align: center;}
 
-        /* Tabelas */
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 12px 0;
-            font-size: 10px;
-        }
-        .table th {
-            background-color: #f5f5f5;
-            padding: 6px;
-            border: 1px solid #ddd;
-            text-align: left;
-            font-weight: bold;
-        }
-        .table td {
-            padding: 6px;
-            border: 1px solid #ddd;
-        }
+        /* Tabela de itens */
+        .table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 10px; }
+        .table th, .table td { border: 1px solid #ddd; padding: 6px; text-align: left; }
+        .table th { background-color: #f5f5f5; font-weight: bold; }
 
         /* Totais e observações */
-        .total {
-            text-align: right;
-            font-weight: bold;
-            font-size: 12px;
-            margin: 12px 0;
-            padding: 8px;
-            background-color: #f8f9fa;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
-        .observacoes, .termos {
-            margin: 12px 0;
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            background-color: #f8f9fa;
-        }
+        .total { text-align: right; font-weight: bold; font-size: 12px; margin: 12px 0; padding: 8px; background-color: #f8f9fa; border: 1px solid #ddd; border-radius: 4px; }
+        .observacoes, .termos { margin: 12px 0; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; }
         .termos { font-size: 10px; }
 
         /* Assinaturas */
-        .assinaturas {
-            margin-top: 25px;
-            padding-top: 15px;
-            border-top: 1px dashed #999;
-            display: flex;
-            justify-content: space-between;
-        }
-        .assinatura-box {
-            width: 45%;
-            text-align: center;
-        }
-        .linha-assinatura {
-            border-top: 1px solid #000;
-            margin: 25px 0 8px 0;
-        }
-        .nome-assinatura {
-            font-weight: bold;
-            font-size: 11px;
-        }
-        .cargo-assinatura {
-            font-size: 10px;
-            color: #666;
-        }
+        .assinaturas { margin-top: 25px; padding-top: 15px; border-top: 1px dashed #999; display: flex; justify-content: space-between; }
+        .assinatura-box { width: 45%; text-align: center; }
+        .linha-assinatura { border-top: 1px solid #000; margin: 25px 0 8px 0; }
+        .nome-assinatura { font-weight: bold; font-size: 11px; }
+        .cargo-assinatura { font-size: 10px; color: #666; }
 
         /* Rodapé */
-        .footer {
-            text-align: center;
-            font-size: 9px;
-            color: #666;
-            margin-top: 25px;
-            padding-top: 8px;
-            border-top: 1px solid #eee;
-        }
-
-        .badge {
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-size: 9px;
-            font-weight: bold;
-            background-color: #6c757d;
-            color: white;
-        }
+        .footer { text-align: center; font-size: 9px; color: #666; margin-top: 25px; padding-top: 8px; border-top: 1px solid #eee; }
     </style>
 </head>
 <body>
     <!-- Logo -->
     <div class="logo-container">
-        <img src="{% static 'logo_path' %}" class="logo" alt="Logo">
+        {% if has_logo %}
+        <img src="{% static 'img/logo-mediata-5.1.png' %}" alt="Logo" class="logo">
+        {% endif %}
     </div>
 
     <!-- Cabeçalho -->
     <div class="header">
-        <h1>ORÇAMENTO #{{ orcamento.id }}</h1>
-        <p>Data de Emissão: {{ data_emissao }}</p>
+        <h1>ORÇAMENTO #{{ ticket.ticket }}</h1>
+        <p>{{ orcamento.descricao }}</p>
     </div>
 
-    <!-- Empresa e Cliente lado a lado -->
+    <!-- Empresa e Cliente -->
     <div class="section">
         <div class="info-grid">
             <div>
-                <h3>EMPRESA</h3>
-                <div class="info-item"><strong>Nome:</strong><span>MEDIATA NORDESTE BR</span></div>
-                <div class="info-item"><strong>Endereço:</strong><span>Rua Exemplo, 123 - Centro</span></div>
-                <div class="info-item"><strong>Telefone:</strong><span>(99) 9999-9999</span></div>
-                <div class="info-item"><strong>CNPJ:</strong><span>12.345.678/0001-99</span></div>
+                <h3>EMPRESA CONTRATADA</h3>
+                <div class="info-item"><strong>Nome:</strong> <span>{{ empresa.nome }}</span></div>
+                <div class="info-item"><strong>Endereço:</strong> <span>{{ empresa.endereco }}</span></div>
+                <div class="info-item"><strong>Telefone:</strong> <span>{{ empresa.telefone }}</span></div>
+                <div class="info-item"><strong>Email:</strong> <span>{{ empresa.email }}</span></div>
             </div>
             <div>
                 <h3>CLIENTE</h3>
-                <div class="info-item"><strong>Nome:</strong><span>{{ ticket.cliente.nome_razao_social|default:"Não informado" }}</span></div>
-                <div class="info-item"><strong>CPF/CNPJ:</strong><span>{{ ticket.cliente.cpf_cnpj|default:"Não informado" }}</span></div>
-                <div class="info-item"><strong>Telefone:</strong><span>{{ ticket.cliente.telefone|default:"Não informado" }}</span></div>
+                <div class="info-item"><strong>Nome:</strong> <span>{{ ticket.cliente.nome_razao_social|default:"Não informado" }}</span></div>
+                <div class="info-item"><strong>CPF/CNPJ:</strong> <span>{{ ticket.cliente.cpf_cnpj|default:"Não informado" }}</span></div>
+                <div class="info-item"><strong>Endereço:</strong> <span>{{ ticket.cliente.endereco|default:"Não informado" }}</span></div>
             </div>
         </div>
     </div>
 
-    <!-- Ticket / Serviço -->
+    <!-- Colaborador e Operador -->
     <div class="section">
-        <h3>SERVIÇO</h3>
-        <div class="info-item"><strong>Ticket:</strong><span>#{{ ticket.ticket }}</span></div>
-        <div class="info-item"><strong>Status:</strong>{{ ticket.get_status_display }}</div>
-        <div class="info-item"><strong>Descrição:</strong><span>{{ ticket.descricao|default:"Não informada" }}</span></div>
+        <div class="info-grid">
+            <div>
+                <h3>COLABORADOR</h3>
+                <span>{{ ticket.colaborador.nome_completo|default:"Não informado" }}</span>
+            </div>
+            <div>
+                <h3>OPERADOR</h3>
+                <span>{{ ticket.usuario.username|default:"Não informado" }}</span>
+            </div>
+        </div>
     </div>
 
     <!-- Itens -->
-    <h3>ITENS DO ORÇAMENTO</h3>
+    <h3 class="info-title">ORÇAMENTO</h3>
     <table class="table">
         <thead>
             <tr>
-                <th>Item</th>
+                <th>#</th>
                 <th>Descrição</th>
                 <th>Qtd</th>
                 <th>Unid</th>
@@ -220,47 +116,38 @@
                 <td>{{ item.quant }}</td>
                 <td>{{ item.item.unidade }}</td>
                 <td>R$ {{ item.item.valor_unit|floatformat:2 }}</td>
-                <td>R$ {{ item.subtotal|floatformat:2 }}</td>
+                <td>R$ {{ item.subtotal_calculado|floatformat:2 }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
 
     <div class="total">
-        VALOR TOTAL: R$ {{ total_itens|floatformat:2 }}
+        VALOR TOTAL: R$ {{ total_itens|floatformat:2 }} | ({{ texto_por_extenso }})
     </div>
 
     <!-- Observações -->
     <div class="observacoes">
-        <h3>OBSERVAÇÕES</h3>
         <p>{{ orcamento.descricao|default:"Nenhuma observação adicional." }}</p>
-    </div>
-
-    <!-- Termos -->
-    <div class="termos">
-        <h3>TERMOS E CONDIÇÕES</h3>
-        <p>1. Validade: 30 dias</p>
-        <p>2. Preços sujeitos a alteração</p>
-        <p>3. Condições de pagamento a combinar</p>
     </div>
 
     <!-- Assinaturas -->
     <div class="assinaturas">
         <div class="assinatura-box">
             <div class="linha-assinatura"></div>
-            <div class="nome-assinatura">{{ ticket.cliente.nome_razao_social|default:"Cliente" }}</div>
-            <div class="cargo-assinatura">Responsável</div>
+            <div class="nome-assinatura">________________________________</div>
+            <div class="cargo-assinatura">Assinatura</div>
         </div>
         <div class="assinatura-box">
             <div class="linha-assinatura"></div>
-            <div class="nome-assinatura">{{ empresa.nome }}</div>
-            <div class="cargo-assinatura">Responsável Técnico</div>
+            <div class="nome-assinatura">________________________________</div>
+            <div class="cargo-assinatura">Assinatura</div>
         </div>
     </div>
 
     <!-- Rodapé -->
     <div class="footer">
-        MEDIATA NORDESTE BR - {{ empresa.telefone }}<br>
+        {{ empresa.nome }} - {{ empresa.telefone }}<br>
         Documento gerado em: {{ data_emissao }}
     </div>
 </body>
