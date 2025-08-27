@@ -1,28 +1,28 @@
-
-
 services:
   mediataapp:
-    container_name: mediataapp
-    build:
-      context: .
-    ports:
-      - 8000:8000
+    build: .
+    container_name: mediataapp_dev
+    env_file:
+      - ./dotenv_files/.env.dev
     volumes:
       - ./mediataapp:/mediataapp
-      - ./data/web/static:/data/web/static/
-      - ./data/web/media:/data/web/media/
-    env_file:
-      - ./dotenv_files/.env
+      - ./data/web/static:/data/web/static
+      - ./data/web/media:/data/web/media
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
     depends_on:
       - psql
 
   psql:
-    container_name: psql
+    container_name: psql_dev
     image: postgres:15-alpine
-    volumes:
-      - pgdata:/var/lib/postgresql/data
     env_file:
-      - ./dotenv_files/.env 
+      - ./dotenv_files/.env.dev
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
 
 volumes:
-  pgdata:
+  pgdata_dev:
+    driver: local

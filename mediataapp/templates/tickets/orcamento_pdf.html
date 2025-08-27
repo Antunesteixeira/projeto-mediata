@@ -102,8 +102,8 @@
             <tr>
                 <th>#</th>
                 <th>Descrição</th>
-                <th>Qtd</th>
                 <th>Unid</th>
+                <th>Qtd</th>
                 <th>Valor Unit.</th>
                 <th>Subtotal</th>
             </tr>
@@ -113,8 +113,8 @@
             <tr>
                 <td>{{ forloop.counter }}</td>
                 <td>{{ item.item.insumo }}</td>
-                <td>{{ item.quant }}</td>
                 <td>{{ item.item.unidade }}</td>
+                <td>{{ item.quant }}</td>
                 <td>R$ {{ item.item.valor_unit|floatformat:2 }}</td>
                 <td>R$ {{ item.subtotal_calculado|floatformat:2 }}</td>
             </tr>

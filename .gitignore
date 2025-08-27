@@ -1,9 +1,11 @@
+# Meus Ignore   
 /mediataapp/static/
 /mediataapp/media/
 /mediataapp/mediata/local_settings.py
 gunicorn-error-log
 __localcode
 /data/
+
 
 # Django #
 *.log
@@ -104,7 +106,9 @@ celerybeat-schedule.*
 *.sage.py 
 
 # Environments 
-.env 
+.env
+.env.prod
+.env.dev 
 .venv 
 env/ 
 venv/ 

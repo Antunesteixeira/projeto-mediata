@@ -28,8 +28,10 @@ DATA_DIR = BASE_DIR.parent / 'data' / 'web'
 SECRET_KEY = os.getenv('SECRET_KEY', 'change-me')
 
 # SECURITY WARNING: don't run with debug turned on in production!
+#DEBUG = True
 DEBUG = bool(int(os.getenv('DEBUG', 0)))
 
+#ALLOWED_HOSTS = []
 ALLOWED_HOSTS = [
     h.strip() for h in os.getenv('ALLOWED_HOSTS', '').split(',') 
     if h.strip()
@@ -140,39 +142,16 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/5.2/howto/static-files/
+
+# STATIC
 STATIC_URL = '/static/'
+STATIC_ROOT = DATA_DIR / 'static'  # pasta onde collectstatic vai jogar os arquivos
+
+# MEDIA
 MEDIA_URL = '/media/'
-
-# Configuração diferenciada por ambiente
-if DEBUG:
-    # Desenvolvimento - arquivos servidos automaticamente pelo Django
-    STATICFILES_DIRS = [
-        BASE_DIR / 'static',           # Static files na raiz do projeto
-        BASE_DIR / 'core' / 'static',  # Static files do app core
-        # Adicione outros apps se necessário:
-        BASE_DIR / 'usuarios' / 'static',
-        BASE_DIR / 'tickets' / 'static',
-        BASE_DIR / 'insumos' / 'static',
-        BASE_DIR / 'clientes' / 'static',
-        BASE_DIR / 'colaborador' / 'static',
-        BASE_DIR / 'relatorios' / 'static',
-    ]
-    STATIC_ROOT = BASE_DIR / 'staticfiles'  # Para collectstatic em desenvolvimento
-    MEDIA_ROOT = BASE_DIR / 'media'         # Media files em desenvolvimento
-    
-else:
-    # Produção - arquivos servidos pelo web server (Nginx/Apache)
-    STATIC_ROOT = DATA_DIR / 'static'       # /data/web/static
-    MEDIA_ROOT = DATA_DIR / 'media'         # /data/web/media
-    STATICFILES_DIRS = [
-        BASE_DIR / 'static',           # Mantém os static files do projeto
-    ]
-
-# Configurações adicionais para static files
-STATICFILES_FINDERS = [
-    'django.contrib.staticfiles.finders.FileSystemFinder',
-    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
-]
+MEDIA_ROOT = DATA_DIR / 'media'  # uploads de usuários
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -185,102 +164,24 @@ MESSAGE_STORAGE = "django.contrib.messages.storage.cookie.CookieStorage"
 
 MESSAGE_TAGS = {
     messages.ERROR: 'danger',
-    messages.SUCCESS: 'success',
-    messages.WARNING: 'warning',
-    messages.INFO: 'info',
-    messages.DEBUG: 'secondary',
 }
 
 ROLEPERMISSIONS_MODULE = 'usuarios.roles'
 
 handler404 = 'core.erro_404'
-handler500 = 'core.erro_500'
-handler403 = 'core.erro_403'
-handler400 = 'core.erro_400'
 
-# Configurações de sessão e auto logout
+# Tempo de vida da sessão em segundos (20 minutos)
+#SESSION_COOKIE_AGE = 5
+
+#SESSION_COOKIE_AGE = 900  # 15 minutos em segundos
+#SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# Salva a sessão em cada requisição para atualizar o tempo de expiração
 SESSION_SAVE_EVERY_REQUEST = True
-SESSION_COOKIE_AGE = 3600  # 1 hora em segundos
-SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 AUTO_LOGOUT = {
     'IDLE_TIME': timedelta(minutes=20),
-    'SESSION_TIME': timedelta(hours=2),
+    'SESSION_TIME': timedelta(minutes=60),
     'MESSAGE': 'A sessão expirou. Faça login novamente para continuar.',
     'REDIRECT_TO_LOGIN_IMMEDIATELY': True,
 }
-
-# Configurações de segurança para produção
-if not DEBUG:
-    # Security settings
-    SECURE_BROWSER_XSS_FILTER = True
-    SECURE_CONTENT_TYPE_NOSNIFF = True
-    X_FRAME_OPTIONS = 'DENY'
-    SECURE_SSL_REDIRECT = True
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
-    SECURE_HSTS_SECONDS = 31536000  # 1 year
-    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-    SECURE_HSTS_PRELOAD = True
-    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-    
-    # Logging em produção
-    LOGGING = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'handlers': {
-            'file': {
-                'level': 'ERROR',
-                'class': 'logging.FileHandler',
-                'filename': DATA_DIR / 'logs' / 'django_errors.log',
-            },
-        },
-        'loggers': {
-            'django': {
-                'handlers': ['file'],
-                'level': 'ERROR',
-                'propagate': True,
-            },
-        },
-    }
-
-# Configurações de email (exemplo)
-EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.console.EmailBackend')
-EMAIL_HOST = os.getenv('EMAIL_HOST', '')
-EMAIL_PORT = os.getenv('EMAIL_PORT', 587)
-EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', True)
-EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
-DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@mediata.com.br')
-
-# Configurações de cache (opcional para produção)
-if not DEBUG:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
-            'LOCATION': os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/1'),
-        }
-    }
-else:
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
-        }
-    }
-
-# Configurações customizadas da aplicação
-MEDIATA_CONFIG = {
-    'EMPRESA_PADRAO_ID': 1,
-    'ITENS_POR_PAGINA': 20,
-    'DIAS_VALIDADE_ORCAMENTO': 30,
-    'HORARIO_FUNCIONAMENTO': {
-        'inicio': '08:00',
-        'fim': '18:00'
-    }
-}
-
-# Configuração para arquivos de upload
-FILE_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
-DATA_UPLOAD_MAX_MEMORY_SIZE = 10485760  # 10MB
-FILE_UPLOAD_PERMISSIONS = 0o644
-FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755

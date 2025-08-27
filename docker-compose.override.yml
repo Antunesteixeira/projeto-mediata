@@ -1,0 +1,9 @@
+services:
+  mediataapp:
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=development
+
+  psql:
+    container_name: psql_dev
