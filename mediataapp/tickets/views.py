@@ -621,6 +621,7 @@ def gerar_pdf_orcamento(request, ticket_id):
             'has_logo': True,
             'MEDIA_URL': settings.MEDIA_URL,
             'texto_por_extenso': texto_por_extenso,
+            'user': request.user,
         }
 
         template_path = 'tickets/orcamento_pdf.html'

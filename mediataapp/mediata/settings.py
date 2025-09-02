@@ -145,13 +145,22 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-# STATIC
-STATIC_URL = '/static/'
-STATIC_ROOT = DATA_DIR / 'static'  # pasta onde collectstatic vai jogar os arquivos
 
-# MEDIA
-MEDIA_URL = '/media/'
-MEDIA_ROOT = DATA_DIR / 'media'  # uploads de usuários
+
+if DEBUG:
+    # Modo desenvolvimento
+    STATICFILES_DIRS = [
+        DATA_DIR / 'static',  # ou DATA_DIR / 'static' dependendo da sua estrutura
+    ]
+    STATIC_URL = '/static/'
+else:
+    # Modo produção
+    STATIC_URL = '/static/'
+    STATIC_ROOT = DATA_DIR / 'static'  # collectstatic vai coletar aqui
+    
+    MEDIA_URL = '/media/'
+    MEDIA_ROOT = DATA_DIR / 'media'  # uploads de usuários
+
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

@@ -90,7 +90,7 @@
             </div>
             <div>
                 <h3>OPERADOR</h3>
-                <span>{{ ticket.usuario.username|default:"Não informado" }}</span>
+                <span>{{ user.get_full_name|default:user.username }}</span>
             </div>
         </div>
     </div>
