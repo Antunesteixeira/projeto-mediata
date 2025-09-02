@@ -4,7 +4,6 @@
 /mediataapp/mediata/local_settings.py
 gunicorn-error-log
 __localcode
-/data/
 
 
 # Django #
