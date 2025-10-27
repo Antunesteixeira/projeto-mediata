@@ -1,5 +1,8 @@
 services:
   mediataapp:
+    container_name: mediataapp_dev
+    env_file:
+      - ./dotenv_files/.env.dev
     ports:
       - "8000:8000"
     environment:
@@ -7,3 +10,11 @@ services:
 
   psql:
     container_name: psql_dev
+    env_file:
+      - ./dotenv_files/.env.dev
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+
+volumes:
+  pgdata_dev:
+    driver: local

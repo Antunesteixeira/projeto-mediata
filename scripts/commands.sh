@@ -1,36 +1,79 @@
-#! /bin/sh
-
-set -e  # para execução se algum comando falhar
+#!/bin/sh
+set -e
 
 echo "🚀 Iniciando script de inicialização do container..."
 
-# 🔹 Espera pelo Postgres
-while ! nc -z $POSTGRES_HOST $POSTGRES_PORT; do
-  echo "🟡 Aguardando Postgres ($POSTGRES_HOST:$POSTGRES_PORT)..."
-  sleep 2
+# 🔹 Configuração de timeout para espera do PostgreSQL
+MAX_RETRIES=30
+RETRY_COUNT=0
+
+echo "🟡 Aguardando PostgreSQL (psql:5432)..."
+
+# Teste de conexão corrigido
+until python -c "
+import socket, sys
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.settimeout(1)
+try:
+    s.connect(('psql', 5432))
+    s.close()
+    sys.exit(0)
+except Exception as e:
+    sys.exit(1)
+" > /dev/null 2>&1; do
+    RETRY_COUNT=$((RETRY_COUNT+1))
+    if [ $RETRY_COUNT -ge $MAX_RETRIES ]; then
+        echo "❌ Timeout esperando por PostgreSQL após $MAX_RETRIES tentativas."
+        exit 1
+    fi
+    echo "📡 Tentativa $RETRY_COUNT/$MAX_RETRIES - PostgreSQL não responde..."
+    sleep 2
 done
 
-echo "✅ Postgres disponível em $POSTGRES_HOST:$POSTGRES_PORT"
+echo "✅ PostgreSQL disponível!"
 
-# 🔹 Apenas em produção: coleta estáticos
-if [ "$ENVIRONMENT" = "production" ]; then
-  echo "📦 Coletando arquivos estáticos..."
-  python manage.py collectstatic --noinput
+# 🔹 Verificar se há mudanças nos modelos e criar migrações
+echo "📋 Verificando mudanças nos modelos..."
+if python manage.py makemigrations --dry-run --noinput | grep -q "No changes detected"; then
+    echo "✅ Nenhuma mudança detectada nos modelos"
+else
+    echo "🔄 Criando migrações para mudanças detectadas..."
+    python manage.py makemigrations --noinput
 fi
 
-# 🔹 Sempre aplica migrações
-echo "🗄️ Aplicando migrações..."
+# 🔹 Aplicar migrações
+echo "🗄️ Aplicando migrações do banco de dados..."
 python manage.py migrate --noinput
+echo "✅ Migrações aplicadas com sucesso!"
 
-# 🔹 Decide modo de execução
-if [ "$ENVIRONMENT" = "production" ]; then
-  echo "🚀 Iniciando Gunicorn (modo produção)..."
-  exec gunicorn mediata.wsgi:application \
-      --bind 0.0.0.0:8000 \
-      --workers ${GUNICORN_WORKERS:-4} \
-      --threads ${GUNICORN_THREADS:-4} \
-      --timeout ${GUNICORN_TIMEOUT:-120}
+# 🔹 Coletar estáticos
+if [ "$ENVIRONMENT" = "production" ] && [ -z "$(ls -A /data/web/static)" ]; then
+    echo "📦 Coletando arquivos estáticos..."
+    python manage.py collectstatic --noinput --clear
+    echo "✅ Arquivos estáticos coletados!"
 else
-  echo "🟢 Iniciando Django Runserver (modo desenvolvimento)..."
-  exec python manage.py runserver 0.0.0.0:8000
+    echo "📦 Pulando collectstatic (diretório não vazio ou modo desenvolvimento)"
+fi
+
+# 🔹 Comando de execução
+if [ "$ENVIRONMENT" = "production" ]; then
+    echo "🚀 Iniciando Gunicorn (modo produção)..."
+    WORKERS=${GUNICORN_WORKERS:-4}
+    THREADS=${GUNICORN_THREADS:-4}
+    TIMEOUT=${GUNICORN_TIMEOUT:-120}
+
+    echo "🔧 Configuração Gunicorn: Workers=$WORKERS, Threads=$THREADS, Timeout=$TIMEOUT"
+
+    exec gunicorn mediata.wsgi:application \
+        --bind 0.0.0.0:8000 \
+        --workers $WORKERS \
+        --threads $THREADS \
+        --timeout $TIMEOUT \
+        --access-logfile - \
+        --error-logfile - \
+        --capture-output \
+        --preload
+else
+    echo "🟢 Iniciando Django Runserver (modo desenvolvimento)..."
+    exec python manage.py runserver 0.0.0.0:8000
 fi

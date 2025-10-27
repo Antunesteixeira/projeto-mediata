@@ -20,7 +20,7 @@ class Ticket(models.Model):
         ('R', 'Rejeitado'), 
     ]
 
-    ticket = models.CharField(max_length=6, unique=True)
+    ticket = models.CharField(max_length=10, unique=True, blank=True)
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     colaborador = models.ForeignKey(Colaborador, on_delete=models.SET_NULL, null=True)
     cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True)

@@ -227,10 +227,16 @@ def exibirticket(request, key):
 
     bdi = ticket.func_bdi()
     
-    if resumo_geral['saldo'] != 0:
-        margem = resumo_geral['total_orcado'] / resumo_geral['total_pago'] if resumo_geral['total_pago'] != 0 else Decimal('0')
+    # MODIFICAÇÃO PRINCIPAL: Calcular margem considerando pagamentos pendentes também
+    # Soma total de pagamentos (pagos + pendentes)
+    total_pagamentos = resumo_geral['total_pago'] + resumo_geral['total_pendente']
+    
+    # Calcular margem baseada no total de pagamentos (pagos + pendentes)
+    if total_pagamentos > 0:
+        margem = (resumo_geral['total_orcado'] / total_pagamentos) 
     else:
         margem = Decimal('0')
+
     historico = HistoricoTicket.objects.filter(ticket_historico=ticket.id)
     
     context = {
