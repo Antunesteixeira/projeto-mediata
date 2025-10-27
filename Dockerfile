@@ -14,6 +14,14 @@ RUN apk add --no-cache \
     py3-pip py3-pillow py3-cffi \
     g++ libffi-dev gdk-pixbuf-dev giflib-dev fontconfig ttf-dejavu
 
+# ✅ CORREÇÃO DO FONTCONFIG - ADICIONE ESTAS 2 LINHAS:
+RUN mkdir -p /usr/share/fonts /root/.cache/fontconfig /var/cache/fontconfig
+RUN chmod -R 777 /usr/share/fonts /root/.cache/fontconfig /var/cache/fontconfig
+
+# ✅ MANTENHA ESTA PARTE ORIGINAL (já existe):
+RUN mkdir -p /usr/share/fonts /root/.cache/fontconfig && \
+    chmod -R 777 /usr/share/fonts /root/.cache
+
 # Criar venv e instalar dependências Python
 RUN python -m venv /venv && \
     /venv/bin/pip install --upgrade pip && \

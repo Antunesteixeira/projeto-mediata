@@ -2,9 +2,11 @@
 /mediataapp/static/
 /mediataapp/media/
 /mediataapp/mediata/local_settings.py
+data/
 gunicorn-error-log
 __localcode
 
+scripts/create-superuser.sh
 
 # Django #
 *.log
