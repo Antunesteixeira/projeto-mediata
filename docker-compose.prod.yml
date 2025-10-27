@@ -1,4 +1,24 @@
+version: '3.8'
+
 services:
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_prod
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+      - ./data/web/static:/data/web/static
+      - ./data/web/media:/data/web/media
+    depends_on:
+      - mediataapp
+    restart: unless-stopped
+    networks:
+      - mediata-network
+
   mediataapp:
     build: .
     container_name: mediataapp_prod
@@ -7,13 +27,15 @@ services:
     volumes:
       - ./data/web/static:/data/web/static
       - ./data/web/media:/data/web/media
-    ports:
-      - "80:8000"
+    expose:
+      - "8000"  # ✅ MUDADO: de ports para expose
     environment:
       - ENVIRONMENT=production
     depends_on:
       - psql
     restart: unless-stopped
+    networks:
+      - mediata-network
 
   psql:
     container_name: psql_prod
@@ -23,7 +45,26 @@ services:
     volumes:
       - pgdata_prod:/var/lib/postgresql/data
     restart: unless-stopped
+    networks:
+      - mediata-network
+
+  certbot:
+    image: certbot/certbot
+    container_name: certbot_prod
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
+    depends_on:
+      - nginx
+    command: echo "Certbot ready - run init-letsencrypt.sh"
+    restart: unless-stopped
+    networks:
+      - mediata-network
 
 volumes:
   pgdata_prod:
     driver: local
+
+networks:
+  mediata-network:
+    driver: bridge
