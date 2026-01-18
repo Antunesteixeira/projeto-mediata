@@ -20,6 +20,7 @@ services:
       - mediata-network
 
   mediataapp:
+    user: root
     build: .
     container_name: mediataapp_prod
     env_file:
