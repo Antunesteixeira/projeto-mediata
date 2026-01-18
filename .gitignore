@@ -3,6 +3,9 @@
 /mediataapp/media/
 /mediataapp/mediata/local_settings.py
 data/
+certbot/
+certbot-etc/
+certbot-var/
 gunicorn-error-log
 __localcode
 
@@ -146,4 +149,4 @@ GitHub.sublime-settings
 !.vscode/tasks.json 
 !.vscode/launch.json 
 !.vscode/extensions.json 
-.history
+.historycertbot/
