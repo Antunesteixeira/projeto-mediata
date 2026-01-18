@@ -3,6 +3,9 @@
 /mediataapp/media/
 /mediataapp/mediata/local_settings.py
 data/
+certbot/
+certbot-etc/
+certbot-var/
 gunicorn-error-log
 __localcode
 
