@@ -16,3 +16,4 @@ class Operador(AbstractUserRole):
         'ver_ticket': True,
         'criar_insumo': True,
     }
+
