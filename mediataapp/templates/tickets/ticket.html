@@ -177,7 +177,7 @@
       <div>
         <h1 class="ticket-title">TICKET: #{{ ticket.ticket }}</h1>
         <div class="ticket-meta">
-          <span class="me-3">Operador Mediata: <strong>Operador</strong></span>
+          <span class="me-3">Operador Mediata: <strong>{{user.username}}</strong></span>
           {% if ticket.emergencial %}
             <span class="status-badge bg-danger bg-opacity-10 text-danger">
               <i class="bi bi-exclamation-triangle-fill me-1"></i>Emergencial
