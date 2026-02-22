@@ -22,6 +22,8 @@ def relatorio_view(request):
         'usuario': 'all',
         'cliente': 'all',
         'colaborador': 'all',
+        'pagamentos': 'T',  # Tipo de pagamento (Material, Serviço, etc.)
+        'status_pagamento': [],  # Status do pagamento (Pendente/Pago) - múltipla seleção
         'data_inicio': '',
         'data_fim': '',
     }
@@ -30,8 +32,11 @@ def relatorio_view(request):
     source = request.POST if request.method == "POST" else request.GET
     for key in filtros.keys():
         if key == 'status' and 'status' in source and source.getlist('status'):
-            # Para status, obtém a lista de valores
+            # Para status do ticket, obtém a lista de valores
             filtros[key] = source.getlist('status')
+        elif key == 'status_pagamento' and 'status_pagamento' in source:
+            # Para status de pagamento, obtém a lista de valores
+            filtros[key] = source.getlist('status_pagamento')
         else:
             filtros[key] = source.get(key, filtros[key])
     
@@ -57,13 +62,11 @@ def relatorio_view(request):
     else:
         tickets = Ticket.objects.filter(usuario=request.user)
     
-    
     tickets = tickets.prefetch_related(
         Prefetch("orcamento_set", queryset=Orcamento.objects.all(), to_attr="orcamentos_prefetch"),
         Prefetch("pagamentos", queryset=Pagamentos.objects.all(), to_attr="pagamentos_prefetch"),
     )
 
-    
     # Query base para Orçamentos (para métricas gerais)
     if is_gerente:
         orcamentos = Orcamento.objects.all()
@@ -96,7 +99,7 @@ def relatorio_view(request):
         orcamentos = orcamentos.filter(data_criacao__gte=data_limite)
         pagamentos = pagamentos.filter(data_pagamento__gte=data_limite)
     
-    # Filtro de status - agora suporta múltiplos valores
+    # Filtro de status do ticket - agora suporta múltiplos valores
     if isinstance(filtros['status'], list):
         # Lista de status (múltipla seleção)
         if 'T' not in filtros['status'] and filtros['status']:  # Se não inclui "Todos" e há status selecionados
@@ -135,16 +138,50 @@ def relatorio_view(request):
         orcamentos = orcamentos.filter(ticket_orcamento__colaborador_id=filtros['colaborador'])
         pagamentos = pagamentos.filter(ticket_pagamento__colaborador_id=filtros['colaborador'])
     
+    # Filtro por TIPO de pagamento (Material, Serviço, etc.)
+    if filtros['pagamentos'] != "T":
+        # Filtra tickets que têm pelo menos um pagamento do tipo selecionado
+        tickets = tickets.filter(pagamentos__tipo=filtros['pagamentos']).distinct()
+        # Filtra os querysets de pagamentos e orçamentos
+        pagamentos = pagamentos.filter(tipo=filtros['pagamentos'])
+        # Nota: orçamentos não têm tipo de pagamento, então não filtramos
+    
+    # Filtro por STATUS de pagamento (Pendente/Pago) - múltipla seleção
+    if filtros['status_pagamento'] and len(filtros['status_pagamento']) > 0:
+        # Converte strings 'True'/'False' para booleanos, se necessário
+        status_boolean = []
+        for val in filtros['status_pagamento']:
+            if val == 'True':
+                status_boolean.append(True)
+            elif val == 'False':
+                status_boolean.append(False)
+            else:
+                status_boolean.append(val)  # caso venha como booleano nativo
+        
+        # Filtra tickets que têm pelo menos um pagamento com status na lista selecionada
+        tickets = tickets.filter(pagamentos__status_pagamento__in=status_boolean).distinct()
+        # Filtra os pagamentos pelos status selecionados
+        pagamentos = pagamentos.filter(status_pagamento__in=status_boolean)
+    
     # Calcula totais de orçamentos e pagamentos para cada ticket
     tickets_list = list(tickets)
+    total_pagos = 0
+    total_pendentes = 0
+    
     for ticket in tickets_list:
         # Soma dos orçamentos
         ticket.total_orcamentos = sum(o.valor_total for o in getattr(ticket, "orcamentos_prefetch", []))
 
-        # Soma dos pagamentos
+        # Soma dos pagamentos (considerando apenas os que passaram pelos filtros)
         ticket.total_pagamentos = sum(p.valor_pagamento for p in getattr(ticket, "pagamentos_prefetch", []))
+        
+        # Calcula totais de pagamentos por status
+        for pagamento in getattr(ticket, "pagamentos_prefetch", []):
+            if pagamento.status_pagamento:
+                total_pagos += pagamento.valor_pagamento
+            else:
+                total_pendentes += pagamento.valor_pagamento
 
-            
     # Calcula métricas gerais
     try:
         orcamento_total = sum([ticket.total_orcamentos for ticket in tickets_list])
@@ -212,11 +249,16 @@ def relatorio_view(request):
         "filtro_usuario": filtros['usuario'],
         "filtro_cliente": filtros['cliente'],
         "filtro_colaborador": filtros['colaborador'],
+        "filtro_pagamentos": filtros['pagamentos'],  # Tipo de pagamento selecionado
+        "filtro_status_pagamento_list": filtros['status_pagamento'],  # Lista de status de pagamento selecionados
         "filtro_data_inicio": filtros['data_inicio'],
         "filtro_data_fim": filtros['data_fim'],
         "is_gerente": is_gerente,
         "eh_lucro": total_lucros >= 0,
         "percentual_lucro": (total_lucros / orcamento_total * 100) if orcamento_total > 0 else 0,
+        # NOVOS CAMPOS
+        "total_pagos": total_pagos,
+        "total_pendentes": total_pendentes,
     }
     
     return render(request, "relatorios/index-relatorios.html", context)
