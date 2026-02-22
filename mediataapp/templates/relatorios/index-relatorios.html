@@ -4,37 +4,28 @@
 {% block conteudo %}
 <div class="container-fluid">
     <style>
-        /* Estilos para os botões de filtro */
         .btn-outline-secondary {
             border-color: #6c757d;
             color: #6c757d;
         }
-
         .btn-outline-secondary:hover {
             background-color: #6c757d;
             color: white;
         }
-
         .btn-outline-danger {
             border-color: #dc3545;
             color: #dc3545;
         }
-
         .btn-outline-danger:hover {
             background-color: #dc3545;
             color: white;
         }
-
-        /* Ajuste para os botões ficarem alinhados */
         .d-flex.gap-2 {
             gap: 0.5rem;
         }
-
-        /* Tooltip para o botão de limpar */
         [title] {
             position: relative;
         }
-
         [title]:hover::after {
             content: attr(title);
             position: absolute;
@@ -49,15 +40,73 @@
             white-space: nowrap;
             z-index: 1000;
         }
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: transform 0.2s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-2px);
+        }
+        .stat-card h3 {
+            font-size: 0.9rem;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-value-lucro {
+            color: #28a745;
+        }
+        .stat-value-prejuizo {
+            color: #dc3545;
+        }
+        .badge {
+            font-size: 0.8em;
+            padding: 0.5em 0.8em;
+            border-radius: 0.375rem;
+        }
+        .table th {
+            background-color: #f8f9fa;
+            border-top: none;
+            font-weight: 600;
+            color: #495057;
+        }
+        #customDateModal .form-check {
+            margin-bottom: 0.5rem;
+        }
+        #customDateModal .form-check-input {
+            margin-top: 0.2rem;
+        }
+        #customDateModal .form-check-label {
+            margin-left: 0.5rem;
+        }
+        #customDateModal .form-check-input:checked {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
     </style>
-    <!-- Filtros -->
+
     <!-- Filtros -->
     <form action="{% url 'relatorios' %}" method="post" class="card mb-4">
         {% csrf_token %}
         <div class="card-body">
             <h5 class="card-title">Filtros</h5>
             
-            <!-- Botão para abrir o modal de filtros personalizados -->
+            <!-- Botões auxiliares -->
             <div class="mb-3">
                 <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#customDateModal">
                     <i class="bi bi-sliders"></i> Filtros Avançados
@@ -67,8 +116,8 @@
                 </button>
             </div>
 
+            <!-- Primeira linha: filtros básicos -->
             <div class="row">
-                <!-- Período -->
                 <div class="col-md-2">
                     <label for="date-range" class="form-label">Período</label>
                     <select class="form-select" name="date_range" id="date-range">
@@ -78,44 +127,30 @@
                         <option value="custom" {% if filtro_date_range == "custom" %}selected{% endif %}>Personalizado</option>
                     </select>
                 </div>
-
-                <!-- Cliente -->
                 <div class="col-md-2">
                     <label for="cliente" class="form-label">Cliente</label>
-                    <select class="form-select select2" name="cliente" id="cliente" data-placeholder="Selecione um cliente">
+                    <select class="form-select select2" name="cliente" id="cliente">
                         <option value="all" {% if filtro_cliente == "all" or not filtro_cliente %}selected{% endif %}>Todos os Clientes</option>
                         {% for cliente in clientes %}
                         <option value="{{ cliente.id }}" {% if filtro_cliente == cliente.id|stringformat:"s" %}selected{% endif %}>
-                            {{ cliente.nome_razao_social }} - {{ cliente.cpf_cnpj }}
+                            {{ cliente.nome_razao_social }}
                         </option>
-                        {% empty %}
-                        <option value="">Nenhum cliente cadastrado</option>
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- Colaborador -->
                 <div class="col-md-2">
                     <label for="colaborador" class="form-label">Colaborador</label>
-                    <select class="form-select select2" name="colaborador" id="colaborador" data-placeholder="Selecione um colaborador">
+                    <select class="form-select select2" name="colaborador" id="colaborador">
                         <option value="all" {% if filtro_colaborador == "all" or not filtro_colaborador %}selected{% endif %}>Todos os Colaboradores</option>
                         {% for colaborador in colaboradores %}
                         <option value="{{ colaborador.id }}" {% if filtro_colaborador == colaborador.id|stringformat:"s" %}selected{% endif %}>
-                            {% if colaborador.cpf %}
-                            {{ colaborador.nome_completo }}
-                            {% elif colaborador.cnpj %}
-                            {{ colaborador.razao_social }}
-                            {% endif %}
+                            {{ colaborador.nome_completo|default:colaborador.razao_social }}
                         </option>
-                        {% empty %}
-                        <option value="">Nenhum colaborador</option>
                         {% endfor %}
                     </select>
                 </div>
-
-                <!-- Status -->
                 <div class="col-md-2">
-                    <label for="status" class="form-label">Status</label>
+                    <label for="status" class="form-label">Status do Ticket</label>
                     <select class="form-select" name="status" id="status">
                         <option value="T" {% if filtro_status == "T" or not filtro_status %}selected{% endif %}>Todos</option>
                         <option value="L" {% if filtro_status == "L" %}selected{% endif %}>Levantamento</option>
@@ -128,13 +163,11 @@
                         <option value="R" {% if filtro_status == "R" %}selected{% endif %}>Rejeitado</option>
                     </select>
                 </div>
-
-                <!-- Usuário (apenas para gerentes) -->
                 {% if user|has_role:'gerente' %}
                 <div class="col-md-2">
                     <label for="usuario" class="form-label">Usuário</label>
                     <select class="form-select" name="usuario" id="usuario">
-                        <option value="all" {% if filtro_usuario == "all" %}selected{% endif %}>Todos</option>
+                        <option value="all" {% if filtro_usuario == "all" or not filtro_usuario %}selected{% endif %}>Todos</option>
                         {% for usuario in usuarios %}
                         <option value="{{ usuario.id }}" {% if filtro_usuario == usuario.id|stringformat:"s" %}selected{% endif %}>
                             {{ usuario.username }}
@@ -142,15 +175,43 @@
                         {% endfor %}
                     </select>
                 </div>
+                {% else %}
+                <div class="col-md-2"></div>
                 {% endif %}
+            </div>
 
-                <!-- Botões Aplicar e Limpar -->
-                <div class="col-md-2 d-flex align-items-end">
-                    <div class="w-100 d-flex gap-2">
-                        <button type="submit" class="btn btn-primary flex-grow-1">
-                            <i class="bi bi-funnel"></i> Aplicar
-                        </button>
+            <!-- Segunda linha: filtros de pagamento -->
+            <div class="row mt-3">
+                <div class="col-md-5">
+                    <label for="pagamentos" class="form-label">Tipo de Pagamento</label>
+                    <select class="form-select" name="pagamentos" id="pagamentos">
+                        <option value="T" {% if filtro_pagamentos == "T" or not filtro_pagamentos %}selected{% endif %}>Todos os Tipos</option>
+                        <option value="M" {% if filtro_pagamentos == "M" %}selected{% endif %}>Material</option>
+                        <option value="S" {% if filtro_pagamentos == "S" %}selected{% endif %}>Serviço</option>
+                        <option value="O" {% if filtro_pagamentos == "O" %}selected{% endif %}>Mão de Obra</option>
+                        <option value="E" {% if filtro_pagamentos == "E" %}selected{% endif %}>Equipamento</option>
+                        <option value="T" {% if filtro_pagamentos == "T" %}selected{% endif %}>Taxa</option>
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Status do Pagamento</label>
+                    <div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="status_pagamento" value="True" id="status_pago" 
+                                {% if "True" in filtro_status_pagamento_list %}checked{% endif %}>
+                            <label class="form-check-label" for="status_pago">Pago</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="status_pagamento" value="False" id="status_pendente"
+                                {% if "False" in filtro_status_pagamento_list %}checked{% endif %}>
+                            <label class="form-check-label" for="status_pendente">Pendente</label>
+                        </div>
                     </div>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-funnel"></i> Aplicar
+                    </button>
                 </div>
             </div>
         </div>
@@ -167,8 +228,17 @@
             <div class="stat-value">R$ {{ ticket_medio|floatformat:2 }}</div>
         </div>
         <div class="stat-card">
-            <h3>Pagamentos</h3>
+            <h3>Pagamentos (Total)</h3>
             <div class="stat-value">R$ {{ total_pagamentos|floatformat:2 }}</div>
+        </div>
+        <!-- NOVOS CARDS -->
+        <div class="stat-card">
+            <h3>Pagamentos Pendentes</h3>
+            <div class="stat-value" style="color: #ffc107;">R$ {{ total_pendentes|floatformat:2 }}</div>
+        </div>
+        <div class="stat-card">
+            <h3>Pagamentos Pagos</h3>
+            <div class="stat-value" style="color: #28a745;">R$ {{ total_pagos|floatformat:2 }}</div>
         </div>
         <div class="stat-card">
             <h3>Lucro</h3>
@@ -330,8 +400,39 @@
                         </select>
                     </div>
 
+                    <!-- Filtro de Pagamentos no Modal -->
                     <div class="mb-3">
-                        <label class="form-label">Status (Selecione múltiplos)</label>
+                        <label for="pagamentos_modal" class="form-label">Tipo de Pagamento</label>
+                        <select class="form-select" name="pagamentos" id="pagamentos_modal">
+                            <option value="T" {% if filtro_pagamentos == "T" or not filtro_pagamentos %}selected{% endif %}>Todos os Tipos</option>
+                            <option value="M" {% if filtro_pagamentos == "M" %}selected{% endif %}>Material</option>
+                            <option value="S" {% if filtro_pagamentos == "S" %}selected{% endif %}>Serviço</option>
+                            <option value="O" {% if filtro_pagamentos == "O" %}selected{% endif %}>Mão de Obra</option>
+                            <option value="E" {% if filtro_pagamentos == "E" %}selected{% endif %}>Equipamento</option>
+                            <option value="T" {% if filtro_pagamentos == "T" %}selected{% endif %}>Taxa</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Status do Pagamento (Selecione múltiplos)</label>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="status_pagamento" value="True" id="status_pago_modal" 
+                                        {% if "True" in filtro_status_pagamento_list %}checked{% endif %}>
+                                    <label class="form-check-label" for="status_pago_modal">Pago</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" name="status_pagamento" value="False" id="status_pendente_modal"
+                                        {% if "False" in filtro_status_pagamento_list %}checked{% endif %}>
+                                    <label class="form-check-label" for="status_pendente_modal">Pendente</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Status do Ticket (Selecione múltiplos)</label>
                         <div class="row">
                             <div class="col-md-6">
                                 <div class="form-check">
@@ -411,197 +512,76 @@
     </div>
 </div>
 
-<style>
-.dashboard {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
-}
-
-.stat-card {
-    background: white;
-    padding: 1.5rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    text-align: center;
-    transition: transform 0.2s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-2px);
-}
-
-.stat-card h3 {
-    font-size: 0.9rem;
-    color: #6c757d;
-    margin-bottom: 0.5rem;
-    font-weight: 600;
-}
-
-.stat-value {
-    font-size: 1.8rem;
-    font-weight: bold;
-    color: #007bff;
-}
-
-.stat-value-lucro {
-    color: #28a745;
-}
-
-.stat-value-prejuizo {
-    color: #dc3545;
-}
-
-.badge {
-    font-size: 0.8em;
-    padding: 0.5em 0.8em;
-    border-radius: 0.375rem;
-}
-
-.table th {
-    background-color: #f8f9fa;
-    border-top: none;
-    font-weight: 600;
-    color: #495057;
-}
-
-/* Estilos para os checkboxes no modal */
-#customDateModal .form-check {
-    margin-bottom: 0.5rem;
-}
-
-#customDateModal .form-check-input {
-    margin-top: 0.2rem;
-}
-
-#customDateModal .form-check-label {
-    margin-left: 0.5rem;
-}
-
-#customDateModal .form-check-input:checked {
-    background-color: #0d6efd;
-    border-color: #0d6efd;
-}
-</style>
-
 <script>
-// Inicializar Select2
+// Função para limpar filtros do formulário principal
+function limparFiltros() {
+    $('#date-range').val('30');
+    $('#cliente').val('all').trigger('change');
+    $('#colaborador').val('all').trigger('change');
+    $('#status').val('T');
+    $('#pagamentos').val('T');
+    $('input[name="status_pagamento"]').prop('checked', false);
+    if ($('#usuario').length) {
+        $('#usuario').val('all');
+    }
+    window.location.href = "{% url 'relatorios' %}";
+}
+
+// Função para limpar filtros no modal
+function limparFiltrosModal() {
+    $('#data_inicio').val('');
+    $('#data_fim').val('');
+    $('#cliente_modal').val('all').trigger('change');
+    $('#colaborador_modal').val('all').trigger('change');
+    $('#pagamentos_modal').val('T');
+    $('input[name="status_pagamento"]').prop('checked', false);
+    $('#usuario_modal').val('all');
+    $('.status-checkbox').prop('checked', false);
+    $('#status_todos').prop('checked', true);
+}
+
+// Inicialização
 $(document).ready(function() {
-    // Select2 do formulário principal
-    $('#cliente').select2({
-        placeholder: "Selecione um cliente",
-        allowClear: true,
-        width: '100%'
-    });
-    
-    $('#colaborador').select2({
-        placeholder: "Selecione um colaborador",
-        allowClear: true,
-        width: '100%'
-    });
-    
-    // Inicializar Select2 dentro do modal quando aberto
+    // Select2
+    $('#cliente').select2({ placeholder: "Selecione um cliente", allowClear: true, width: '100%' });
+    $('#colaborador').select2({ placeholder: "Selecione um colaborador", allowClear: true, width: '100%' });
+
     $('#customDateModal').on('shown.bs.modal', function () {
-        $('#cliente_modal').select2({
-            placeholder: "Selecione um cliente",
-            allowClear: true,
-            width: '100%',
-            dropdownParent: $('#customDateModal')
-        });
-        
-        $('#colaborador_modal').select2({
-            placeholder: "Selecione um colaborador",
-            allowClear: true,
-            width: '100%',
-            dropdownParent: $('#customDateModal')
-        });
+        $('#cliente_modal').select2({ placeholder: "Selecione um cliente", allowClear: true, width: '100%', dropdownParent: $('#customDateModal') });
+        $('#colaborador_modal').select2({ placeholder: "Selecione um colaborador", allowClear: true, width: '100%', dropdownParent: $('#customDateModal') });
     });
 
-    // Lógica para o checkbox "Todos" no modal
+    // Lógica do checkbox "Todos" no modal
     $('#status_todos').change(function() {
-        const isChecked = $(this).is(':checked');
-        $('.status-checkbox').not(this).prop('checked', isChecked);
+        $('.status-checkbox').not(this).prop('checked', $(this).is(':checked'));
     });
-    
-    // Se qualquer outro checkbox for desmarcado, desmarcar "Todos"
     $('.status-checkbox').not('#status_todos').change(function() {
-        if (!$(this).is(':checked')) {
-            $('#status_todos').prop('checked', false);
-        } else {
-            // Se todos os outros checkboxes estiverem marcados, marcar "Todos"
-            const totalCheckboxes = $('.status-checkbox').not('#status_todos').length;
-            const checkedCheckboxes = $('.status-checkbox').not('#status_todos').filter(':checked').length;
-            
-            if (totalCheckboxes === checkedCheckboxes) {
-                $('#status_todos').prop('checked', true);
-            }
-        }
+        if (!$(this).is(':checked')) $('#status_todos').prop('checked', false);
     });
 
-    // Quando selecionar "Personalizado" no dropdown, abrir o modal
+    // Abrir modal ao selecionar "Personalizado"
     $('#date-range').change(function() {
-        if ($(this).val() === 'custom') {
-            $('#customDateModal').modal('show');
-        }
+        if ($(this).val() === 'custom') $('#customDateModal').modal('show');
     });
 
-    // Prevenir envio do formulário principal quando "Personalizado" estiver selecionado
+    // Prevenir envio do form principal se "Personalizado"
     $('form').not('#customDateModal form').submit(function(e) {
         if ($('#date-range').val() === 'custom') {
             e.preventDefault();
             $('#customDateModal').modal('show');
         }
     });
-});
 
-// Função para limpar filtros no modal
-function limparFiltrosModal() {
-    // Limpa campos de data
-    $('#data_inicio').val('');
-    $('#data_fim').val('');
-    
-    // Reseta selects
-    $('#cliente_modal').val('all').trigger('change');
-    $('#colaborador_modal').val('all').trigger('change');
-    $('#usuario_modal').val('all');
-    
-    // Desmarca todos os checkboxes e marca apenas "Todos"
-    $('.status-checkbox').prop('checked', false);
-    $('#status_todos').prop('checked', true);
-}
-
-// Função para aplicar filtros do modal
-function aplicarFiltrosModal() {
-    // Verifica se pelo menos um status está selecionado
-    const statusSelecionados = $('.status-checkbox:checked').not('#status_todos').length;
-    const todosSelecionado = $('#status_todos').is(':checked');
-    
-    if (!todosSelecionado && statusSelecionados === 0) {
-        alert('Selecione pelo menos um status ou marque "Todos"');
-        return false;
-    }
-    
-    return true;
-}
-</script>
-<script>
-// Inicializa DataTable
-$(document).ready(function() {
-    const tabela = $('#datatablesSimple').DataTable({
-        order: [[5, 'desc']], // ordena por "Data de Criação" (6ª coluna) mais recente primeiro
+    // DataTable
+    $('#datatablesSimple').DataTable({
+        order: [[5, 'desc']],
         language: {
             search: "Pesquisar:",
             lengthMenu: "Mostrar _MENU_ registros por página",
             info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
             infoEmpty: "Mostrando 0 a 0 de 0 registros",
             infoFiltered: "(filtrado de _MAX_ registros no total)",
-            paginate: {
-                first: "Primeiro",
-                last: "Último",
-                next: "Próximo",
-                previous: "Anterior"
-            },
+            paginate: { first: "Primeiro", last: "Último", next: "Próximo", previous: "Anterior" },
             zeroRecords: "Nenhum resultado encontrado",
             emptyTable: "Nenhum dado disponível na tabela",
             loadingRecords: "Carregando...",
@@ -609,136 +589,12 @@ $(document).ready(function() {
         },
         dom: '<"top"f>rt<"bottom"lip><"clear">',
         responsive: true,
-        pageLength: 25, // Itens por página padrão
-        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]], // Opções do menu
+        pageLength: 25,
+        lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
         columnDefs: [
-            {
-                // Coluna de Status (índice 4) - pode ser ordenável mas não pesquisável por texto
-                targets: [4],
-                searchable: false
-            },
-            {
-                // Coluna de Valor (índice 6) - formatação numérica
-                targets: [6],
-                render: function(data, type, row) {
-                    if (type === 'sort' || type === 'type') {
-                        return data.replace('R$ ', '').replace('.', '').replace(',', '.');
-                    }
-                    return data;
-                }
-            }
+            { targets: [4], searchable: false },
+            { targets: [6], render: function(data) { return data; } }
         ]
-    });
-});
-</script>
-<script>
-    // Função para limpar filtros do formulário principal
-function limparFiltros() {
-    // Resetar o select de período
-    $('#date-range').val('30');
-    
-    // Resetar selects com Select2
-    $('#cliente').val('all').trigger('change');
-    $('#colaborador').val('all').trigger('change');
-    $('#status').val('T');
-    
-    // Resetar select de usuário (se existir)
-    if ($('#usuario').length) {
-        $('#usuario').val('all');
-    }
-    
-    // Opcional: recarregar a página para aplicar os filtros limpos
-    window.location.href = "{% url 'relatorios' %}";
-}
-
-// Função para limpar filtros no modal
-function limparFiltrosModal() {
-    // Limpa campos de data
-    $('#data_inicio').val('');
-    $('#data_fim').val('');
-    
-    // Reseta selects
-    $('#cliente_modal').val('all').trigger('change');
-    $('#colaborador_modal').val('all').trigger('change');
-    $('#usuario_modal').val('all');
-    
-    // Desmarca todos os checkboxes e marca apenas "Todos"
-    $('.status-checkbox').prop('checked', false);
-    $('#status_todos').prop('checked', true);
-}
-
-// Função para aplicar filtros do modal
-function aplicarFiltrosModal() {
-    // Verifica se pelo menos um status está selecionado
-    const statusSelecionados = $('.status-checkbox:checked').not('#status_todos').length;
-    const todosSelecionado = $('#status_todos').is(':checked');
-    
-    if (!todosSelecionado && statusSelecionados === 0) {
-        alert('Selecione pelo menos um status ou marque "Todos"');
-        return false;
-    }
-    
-    return true;
-}
-
-// Inicializar Select2 e outras configurações
-$(document).ready(function() {
-    // Select2 do formulário principal
-    $('#cliente').select2({
-        placeholder: "Selecione um cliente",
-        allowClear: true,
-        width: '100%'
-    });
-    
-    $('#colaborador').select2({
-        placeholder: "Selecione um colaborador",
-        allowClear: true,
-        width: '100%'
-    });
-    
-    // Inicializar Select2 dentro do modal quando aberto
-    $('#customDateModal').on('shown.bs.modal', function () {
-        $('#cliente_modal').select2({
-            placeholder: "Selecione um cliente",
-            allowClear: true,
-            width: '100%',
-            dropdownParent: $('#customDateModal')
-        });
-        
-        $('#colaborador_modal').select2({
-            placeholder: "Selecione um colaborador",
-            allowClear: true,
-            width: '100%',
-            dropdownParent: $('#customDateModal')
-        });
-    });
-
-    // Lógica para o checkbox "Todos" no modal
-    $('#status_todos').change(function() {
-        const isChecked = $(this).is(':checked');
-        $('.status-checkbox').not(this).prop('checked', isChecked);
-    });
-    
-    // Se qualquer outro checkbox for desmarcado, desmarcar "Todos"
-    $('.status-checkbox').not('#status_todos').change(function() {
-        if (!$(this).is(':checked')) {
-            $('#status_todos').prop('checked', false);
-        }
-    });
-
-    // Quando selecionar "Personalizado" no dropdown, abrir o modal
-    $('#date-range').change(function() {
-        if ($(this).val() === 'custom') {
-            $('#customDateModal').modal('show');
-        }
-    });
-
-    // Prevenir envio do formulário principal quando "Personalizado" estiver selecionado
-    $('form').not('#customDateModal form').submit(function(e) {
-        if ($('#date-range').val() === 'custom') {
-            e.preventDefault();
-            $('#customDateModal').modal('show');
-        }
     });
 });
 </script>
