@@ -225,100 +225,156 @@
     </div>
   </div>
 
-  <!-- Orçamento e Itens -->
-  <div class="info-card card mb-4">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-          <h5 class="card-title mb-0"><i class="bi bi-receipt me-2"></i>ORÇAMENTO</h5>
-          {% if orcamento %}
-            <small class="text-transform:uppercase"><span>#{{ orcamento }}</span>{% if orcamento.descricao %} – {{ orcamento.descricao }}{% endif %}</small>
-          {% endif %}
-        </div>
-        <div class="btn-group btn-group-sm">
-          <button class="btn btn-sm btn-warning" {% if orcamento %} disabled {% endif %} data-bs-toggle="modal" data-bs-target="#ModalOrcamento">
-            <i class="bi bi-plus-circle me-1"></i>Adicionar Orçamento
+<!-- Orçamento e Itens -->
+<div class="info-card card mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="card-title mb-0"><i class="bi bi-receipt me-2"></i>ORÇAMENTO</h5>
+      <div class="btn-group btn-group-sm">
+        <button class="btn btn-sm btn-warning" {% if orcamento %} disabled {% endif %} data-bs-toggle="modal" data-bs-target="#ModalOrcamento">
+          <i class="bi bi-plus-circle me-1"></i>Novo Orçamento
+        </button>
+        {% if orcamento %}
+          <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#ModalItemOrcamento">
+            <i class="bi bi-list-check me-1"></i>Adicionar Item
           </button>
-          {% if orcamento %}
-            <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#ModalItemOrcamento">
-                <i class="bi bi-list-check me-1"></i>Adicionar Item
-            </button>
-            <a href="{% url 'gerar_pdf_orcamento' ticket.id %}" class="btn btn-outline-danger">
-                <i class="bi bi-file-pdf me-1"></i>Gerar PDF
-            </a>
-          {% endif %}
+          <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#ModalAnexo">
+            <i class="bi bi-paperclip me-1"></i>Anexar Arquivo
+          </button>
+          <a href="{% url 'gerar_pdf_orcamento' ticket.id %}" class="btn btn-outline-danger">
+            <i class="bi bi-file-pdf me-1"></i>PDF
+          </a>
+        {% endif %}
+      </div>
+    </div>
 
-        </div>
+    <!-- Informações do orçamento -->
+    {% if orcamento %}
+      <div class="mb-3">
+        <small class="text-muted">Orçamento:</small>
+        <span class="fw-bold">#{{ orcamento }}</span>
+        {% if orcamento.descricao %}
+          <span class="text-muted">– {{ orcamento.descricao }}</span>
+        {% endif %}
       </div>
 
-      {% if orcamento %}
-        <h6 class="text-muted mb-3"><i class="bi bi-list-check me-1"></i>Itens de Orçamento</h6>
-        {% if itens_orcamento %}
-          <div class="table-responsive mb-3">
-            <table class="table data-table">
+      <!-- Tabela de Itens -->
+      <h6 class="text-muted mb-3"><i class="bi bi-list-check me-1"></i>Itens do Orçamento</h6>
+      {% if itens_orcamento %}
+        <div class="table-responsive mb-3">
+          <table class="table data-table">
+            <thead class="table-light">
+              <tr>
+                <th>#</th>
+                <th>Código</th>
+                <th>Descrição</th>
+                <th>Quant.</th>
+                <th>Unidade</th>
+                <th>Valor Unitário</th>
+                <th>Tipo</th>
+                <th class="text-end">Subtotal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in itens_orcamento %}
+                <tr>
+                  <td>{{ forloop.counter }}</td>
+                  <td>{{ item.item.codigo }}</td>
+                  <td>
+                    <a class="btn btn-sm btn-link text-danger p-0 me-1" href="{% url 'deletar-item' item.id ticket.key %}" data-bs-toggle="tooltip" title="Remover">
+                      <i class="bi bi-trash"></i>
+                    </a>
+                    {{ item.item }}
+                  </td>
+                  <td>{{ item.quant }}</td>
+                  <td>{{ item.item.unidade }}</td>
+                  <td>R$ {{ item.item.valor_unit }}</td>
+                  <td>
+                    {% if item.item.tipo == 'M' %}
+                      <span class="status-badge bg-info bg-opacity-10 text-info">Material</span>
+                    {% elif item.item.tipo == 'S' %}
+                      <span class="status-badge bg-primary bg-opacity-10 text-primary">Serviço</span>
+                    {% elif item.item.tipo == 'O' %}
+                      <span class="status-badge bg-dark bg-opacity-10 text-dark">Mão de Obra</span>
+                    {% elif item.item.tipo == 'E' %}
+                      <span class="status-badge bg-secondary bg-opacity-10 text-secondary">Equipamento</span>
+                    {% elif item.item.tipo == 'T' %}
+                      <span class="status-badge bg-warning bg-opacity-10 text-warning">Taxa</span>
+                    {% else %}
+                      —
+                    {% endif %}
+                  </td>
+                  <td class="text-end">R$ {{ item.subtotal }}</td>
+                </tr>
+              {% endfor %}
+              <tr class="fw-bold" style="background-color: rgba(248, 249, 250, 0.7)">
+                <td colspan="7">Total Itens</td>
+                <td class="text-end">R$ {{ total_itens }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="alert alert-light mb-3">
+          <i class="bi bi-info-circle me-2"></i>Nenhum item de orçamento cadastrado.
+        </div>
+      {% endif %}
+
+      <!-- Anexos do Orçamento -->
+      <div class="mt-4">
+        <h6 class="text-muted mb-3"><i class="bi bi-paperclip me-1"></i>Anexos do Orçamento</h6>
+        {% if anexos %}
+          <div class="table-responsive">
+            <table class="table table-sm data-table">
               <thead class="table-light">
                 <tr>
-                  <th>#</th>
-                  <th>Código</th>
+                  <th>Arquivo</th>
                   <th>Descrição</th>
-                  <th>Quant.</th>
-                  <th>Unidade</th>
-                  <th>Valor Unitário</th>
-                  <th>Tipo</th>
-                  <th class="text-end">Subtotal</th>
+                  <th>Data de Upload</th>
+                  <th class="text-end">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {% for item in itens_orcamento %}
+                {% for anexo in anexos %}
                   <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ item.item.codigo }}</td>
                     <td>
-                      <a class="btn btn-sm btn-link text-danger p-0 me-1" href="{% url 'deletar-item' item.id ticket.key %}" data-bs-toggle="tooltip" title="Remover">
-                        <i class="bi bi-trash"></i>
+                      <i class="bi bi-file-earmark me-2"></i>
+                      <a href="{{ anexo.arquivo.url }}" target="_blank" title="Visualizar">
+                        {{ anexo.arquivo.name|slice:"7:" }}
                       </a>
-                      {{ item.item }}
                     </td>
-                    <td>{{ item.quant }}</td>
-                    <td>{{ item.item.unidade }}</td>
-                    <td>R$ {{ item.item.valor_unit }}</td>
-                    <td>
-                      {% if item.item.tipo == 'M' %}
-                        <span class="status-badge bg-info bg-opacity-10 text-info">Material</span>
-                      {% elif item.item.tipo == 'S' %}
-                        <span class="status-badge bg-primary bg-opacity-10 text-primary">Serviço</span>
-                      {% elif item.item.tipo == 'O' %}
-                        <span class="status-badge bg-dark bg-opacity-10 text-dark">Mão de Obra</span>
-                      {% elif item.item.tipo == 'E' %}
-                        <span class="status-badge bg-secondary bg-opacity-10 text-secondary">Equipamento</span>
-                      {% elif item.item.tipo == 'T' %}
-                        <span class="status-badge bg-warning bg-opacity-10 text-warning">Taxa</span>
-                      {% else %}
-                        —
-                      {% endif %}
+                    <td>{{ anexo.descricao_anexo|default:"-" }}</td>
+                    <td>{{ anexo.data_upload|date:"d/m/Y H:i" }}</td>
+                    <td class="text-end">
+                      <a href="{{ anexo.arquivo.url }}" class="btn btn-sm btn-outline-primary" download title="Download">
+                        <i class="bi bi-download"></i>
+                      </a>
+                      <form action="{% url 'deletar-anexo' anexo.id ticket.key %}" method="post" class="d-inline">
+                          {% csrf_token %}
+                          <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Tem certeza que deseja remover este anexo?')" title="Remover">
+                              <i class="bi bi-trash"></i>
+                          </button>
+                      </form>
                     </td>
-                    <td class="text-end">R$ {{ item.subtotal }}</td>
                   </tr>
                 {% endfor %}
-                <tr class="fw-bold" style="background-color: rgba(248, 249, 250, 0.7)">
-                  <td colspan="7">Total Itens</td>
-                  <td class="text-end">R$ {{ total_itens }}</td>
-                </tr>
               </tbody>
             </table>
           </div>
         {% else %}
           <div class="alert alert-light mb-0">
-            <i class="bi bi-info-circle me-2"></i>Nenhum item de orçamento cadastrado.
+            <i class="bi bi-info-circle me-2"></i>Nenhum anexo cadastrado.
           </div>
         {% endif %}
-      {% else %}
-        <div class="alert alert-light mb-0">
-          <i class="bi bi-info-circle me-2"></i>Nenhum orçamento registrado ainda.
-        </div>
-      {% endif %}
-    </div>
+      </div>
+
+    {% else %}
+      <div class="alert alert-light mb-0">
+        <i class="bi bi-info-circle me-2"></i>Nenhum orçamento registrado ainda.
+      </div>
+    {% endif %}
   </div>
+</div>
 
   <!-- Informações adicionais -->
   <div class="info-card card mb-4">
@@ -577,7 +633,7 @@
       Anexos
     </h5>
 
-    {% if ticket.status == 'V' or ticket.status == 'F' %}
+    {% if ticket.status %}
       {% if ticket.nfe_path %}
         <div class="d-flex align-items-center justify-content-between">
           <div>
@@ -668,6 +724,36 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
         </div>
         <div class="modal-body">{{ form.as_p }}</div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Anexo -->
+<div class="modal fade" id="ModalAnexo" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <!-- ADICIONE enctype -->
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="anexo">
+        <div class="modal-header">
+          <h5 class="modal-title">Novo Anexo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label for="id_arquivo" class="form-label">Arquivo</label>
+            <input type="file" name="arquivo" class="form-control" id="id_arquivo" required>
+          </div>
+          <div class="mb-3">
+            <label for="id_descricao_anexo" class="form-label">Descrição</label>
+            <input type="text" name="descricao_anexo" class="form-control" id="id_descricao_anexo" placeholder="Digite uma descrição para o anexo...">
+        </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
           <button type="submit" class="btn btn-primary">Salvar</button>

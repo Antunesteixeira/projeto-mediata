@@ -130,4 +130,12 @@ class Pagamentos(models.Model):
     def __str__(self):
         return f"Pagamento {self.id} - {self.get_tipo_display()}"
     
-    
+
+class Anexo(models.Model):
+    ticket_anexo = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="anexos")
+    arquivo = models.FileField(upload_to='anexos/')  # novo campo
+    descricao_anexo = models.CharField(max_length=255, null=True, blank=True)
+    data_upload = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.arquivo.name  # ou self.descricao_anexo

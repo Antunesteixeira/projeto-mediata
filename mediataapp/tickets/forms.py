@@ -1,5 +1,5 @@
 from django import forms
-from .models import Ticket, Orcamento, Servico, Material, HistoricoTicket, ItemOrcamento, Pagamentos
+from .models import Ticket, Orcamento, Servico, Material, HistoricoTicket, ItemOrcamento, Pagamentos, Anexo
 
 class TicketForm(forms.ModelForm):
     data_finalizar = forms.DateField(
@@ -182,3 +182,12 @@ class PagamentoForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if self.instance and self.instance.pk:
             self.initial['valor_pagamento'] = self.instance.valor_pagamento
+
+class AnexoForm(forms.ModelForm):
+    class Meta:
+        model = Anexo
+        fields = ['arquivo', 'descricao_anexo']  # 'nome_arquivo' removido, pois será derivado do arquivo
+        widgets = {
+            'descricao_anexo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Descrição (opcional)'}),
+            'arquivo': forms.FileInput(attrs={'class': 'form-control'}),
+        }

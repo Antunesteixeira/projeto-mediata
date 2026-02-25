@@ -17,8 +17,8 @@ from core.models import Empresa
 
 from django.http import HttpResponse, HttpResponseBadRequest
 
-from .models import Ticket, Orcamento, ItemOrcamento, Insumos, HistoricoTicket, Pagamentos  # ajuste se estiver em outro lugar
-from .forms import OrcamentoForm, ItemOrcamentoForm, TicketForm, HistorcoTicketForm, PagamentoForm  # importe só os forms que usa
+from .models import Ticket, Orcamento, ItemOrcamento, Insumos, HistoricoTicket, Pagamentos, Anexo  # ajuste se estiver em outro lugar
+from .forms import OrcamentoForm, ItemOrcamentoForm, TicketForm, HistorcoTicketForm, PagamentoForm, AnexoForm  # importe só os forms que usa
 
 from rolepermissions.checkers import has_role
 
@@ -80,22 +80,26 @@ def cadastro_ticket(request):
 @login_required
 def exibirticket(request, key):
     ticket = get_object_or_404(Ticket, key=key)
-    # No início da view (junto com os outros forms):
-    pagamento = PagamentoForm(prefix='pagamento')  # Mude o prefix para ser único
 
-    insumos = list(Insumos.objects.values('id', 'insumo', 'valor_unit'))
-    for insumo in insumos:
-        insumo['valor_unit'] = str(insumo['valor_unit'])
-
+    anexos = Anexo.objects.filter(ticket_anexo=ticket)
+    
+    # Buscar orçamento existente
     orcamento = Orcamento.objects.filter(ticket_orcamento=ticket).first()
-
+    
+    # Inicializar forms com valores padrão
     form = OrcamentoForm(prefix='orcamento')
     itemorcamento = ItemOrcamentoForm(prefix='itemorcamento')
     ticketformstatus = TicketForm()
-    pagamento = PagamentoForm(prefix='form-pagamento')
-
+    pagamento_form = PagamentoForm(prefix='form-pagamento')  # único, renomeado para evitar confusão
+    anexo_form = AnexoForm()  # form de anexo
+    
+    insumos = list(Insumos.objects.values('id', 'insumo', 'valor_unit'))
+    for insumo in insumos:
+        insumo['valor_unit'] = str(insumo['valor_unit'])
+    
     if request.method == 'POST':
         form_type = request.POST.get('form_type')
+        
         try:
             with transaction.atomic():
                 if form_type == 'orcamento':
@@ -104,48 +108,42 @@ def exibirticket(request, key):
                         orcamento = form.save(commit=False)
                         orcamento.ticket_orcamento = ticket
                         orcamento.save()
+                        messages.success(request, "Orçamento criado com sucesso!")
                         return redirect('exibir-ticket', key=ticket.key)
                     else:
-                        messages.error(request, "Erro ao salvar orçamento.")
+                        messages.error(request, "Erro ao salvar orçamento. Verifique os campos.")
+                
                 elif form_type == 'itemorcamento':
                     if not orcamento:
                         messages.error(request, "Crie primeiro um orçamento antes de adicionar itens.")
                     else:
-                        # Verifique os dados recebidos
-                        print("Dados recebidos:", request.POST)  # Para debug
-                        
                         item_id = request.POST.get('item')
                         quantidade = request.POST.get('quant')
                         
-                        # Validações básicas
                         if not item_id or not quantidade:
                             messages.error(request, "Dados incompletos para o item de orçamento.")
-                            return redirect('exibir-ticket', key=ticket.key)
-                        
-                        try:
-                            # Crie o item de orçamento manualmente
-                            item_orcamento = ItemOrcamento(
-                                orcamento=orcamento,
-                                item_id=item_id,
-                                quant=int(quantidade)
-                            )
-                            item_orcamento.save()
-                            messages.success(request, "Item adicionado com sucesso!")
-                            return redirect('exibir-ticket', key=ticket.key)
-                            
-                        except Insumos.DoesNotExist:
-                            messages.error(request, "Insumo não encontrado.")
-                        except Exception as e:
-                            messages.error(request, f"Erro ao salvar item: {str(e)}")
+                        else:
+                            try:
+                                item_orcamento = ItemOrcamento(
+                                    orcamento=orcamento,
+                                    item_id=item_id,
+                                    quant=int(quantidade)
+                                )
+                                item_orcamento.save()
+                                messages.success(request, "Item adicionado com sucesso!")
+                                return redirect('exibir-ticket', key=ticket.key)
+                            except Insumos.DoesNotExist:
+                                messages.error(request, "Insumo não encontrado.")
+                            except Exception as e:
+                                messages.error(request, f"Erro ao salvar item: {str(e)}")
                     
                     return redirect('exibir-ticket', key=ticket.key)
-                if form_type == 'form-pagamento':
-        
+                
+                elif form_type == 'form-pagamento':
                     valor = request.POST.get('valor_pagamento')
                     data = request.POST.get('data_pagamento')
                     status = 'status_pagamento' in request.POST
                     
-                    # Validação básica
                     if not all([valor, data]):
                         messages.error(request, "Preencha todos os campos obrigatórios!")
                     else:
@@ -159,13 +157,29 @@ def exibirticket(request, key):
                         messages.success(request, "Pagamento adicionado com sucesso!")
                         return redirect('exibir-ticket', key=ticket.key)
                 
-        except Exception:
-            messages.error(request, "Ocorreu um erro ao processar a requisição.")
+                elif form_type == 'anexo':
+                    anexo_form = AnexoForm(request.POST, request.FILES)
+                    if anexo_form.is_valid():
+                        anexo = anexo_form.save(commit=False)
+                        anexo.ticket_anexo = ticket
 
-    # recarregar orçamento
+                        anexo.save()
+                        messages.success(request, "Anexo adicionado com sucesso!")
+                        return redirect('exibir-ticket', key=ticket.key)
+                    else:
+                        messages.error(request, "Erro ao adicionar anexo. Verifique os campos.")
+                        # Não redireciona, continua para mostrar o form com erros
+                
+        except Exception as e:
+            messages.error(request, f"Ocorreu um erro ao processar a requisição: {str(e)}")
+    
+    # Recarregar orçamento (pode ter sido criado)
     orcamento = Orcamento.objects.filter(ticket_orcamento=ticket).first()
+    
+    # Lista de pagamentos
     list_pagamento = Pagamentos.objects.filter(ticket_pagamento=ticket.id)
-
+    
+    # Itens do orçamento e cálculo de total
     if orcamento:
         itens_orcamento = ItemOrcamento.objects.filter(orcamento=orcamento).annotate(
             subtotal=ExpressionWrapper(
@@ -179,25 +193,22 @@ def exibirticket(request, key):
     else:
         itens_orcamento = ItemOrcamento.objects.none()
         total_itens = Decimal('0')
-        
-
-    # Calcular resumo de pagamentos por tipo
+    
+    # Resumo de pagamentos (cálculo existente)
     resumo_pagamentos = {
-        'M': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},  # Material
-        'S': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},  # Serviço
-        'O': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},  # Mão de Obra
-        'E': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},  # Equipamento
-        'T': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},  # Taxa
+        'M': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},
+        'S': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},
+        'O': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},
+        'E': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},
+        'T': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},
     }
     
-    # Calcular totais orçados por tipo
     if itens_orcamento:
         for item in itens_orcamento:
             tipo = item.item.tipo
             if tipo in resumo_pagamentos:
                 resumo_pagamentos[tipo]['total_orcado'] += item.subtotal
     
-    # Calcular totais pagos e pendentes por tipo
     if list_pagamento:
         for pagamento in list_pagamento:
             tipo = pagamento.tipo
@@ -207,7 +218,6 @@ def exibirticket(request, key):
                 else:
                     resumo_pagamentos[tipo]['total_pendente'] += pagamento.valor_pagamento
     
-    # Calcular saldos
     for tipo in resumo_pagamentos:
         resumo_pagamentos[tipo]['saldo'] = (
             resumo_pagamentos[tipo]['total_orcado'] - 
@@ -215,28 +225,22 @@ def exibirticket(request, key):
             resumo_pagamentos[tipo]['total_pendente']
         )
     
-    # Calcular totais gerais
     resumo_geral = {
         'total_orcado': sum(v['total_orcado'] for v in resumo_pagamentos.values()),
         'total_pago': sum(v['total_pago'] for v in resumo_pagamentos.values()),
         'total_pendente': sum(v['total_pendente'] for v in resumo_pagamentos.values()),
         'saldo': sum(v['saldo'] for v in resumo_pagamentos.values()),
     }
-
+    
     valor_custo_total = resumo_geral['total_orcado'] - resumo_geral['total_pago'] if resumo_geral['total_pago'] else Decimal('0')
-
     bdi = ticket.func_bdi()
     
-    # MODIFICAÇÃO PRINCIPAL: Calcular margem considerando pagamentos pendentes também
-    # Soma total de pagamentos (pagos + pendentes)
     total_pagamentos = resumo_geral['total_pago'] + resumo_geral['total_pendente']
-    
-    # Calcular margem baseada no total de pagamentos (pagos + pendentes)
     if total_pagamentos > 0:
-        margem = (resumo_geral['total_orcado'] / total_pagamentos) 
+        margem = (resumo_geral['total_orcado'] / total_pagamentos)
     else:
         margem = Decimal('0')
-
+    
     historico = HistoricoTicket.objects.filter(ticket_historico=ticket.id)
     
     context = {
@@ -244,6 +248,8 @@ def exibirticket(request, key):
         'valor_custo_total': valor_custo_total,
         'bdi': bdi,
         'form': form,
+        'anexos': anexos,
+        'form_anexo': anexo_form,  # Agora pode conter erros se for inválido
         'margem': margem,
         'orcamento': orcamento,
         'itemorcamento': itemorcamento,
@@ -251,14 +257,13 @@ def exibirticket(request, key):
         'total_itens': total_itens,
         'historico': historico,
         'ticketformstatus': ticketformstatus,
-        'pagamento': pagamento,
+        'pagamento': pagamento_form,
         'list_pagamento': list_pagamento,
         'resumo_pagamentos': resumo_pagamentos,
         'resumo_geral': resumo_geral,
         'insumos_json': json.dumps(insumos, ensure_ascii=False),
         'MEDIA_URL': settings.MEDIA_URL,
     }
-    #return HttpResponse(json.dumps(insumos, ensure_ascii=False))
     return render(request, 'tickets/ticket.html', context)
 
 @login_required
@@ -646,3 +651,13 @@ def gerar_pdf_orcamento(request, ticket_id):
         return HttpResponse('Ticket não encontrado')
     except Orcamento.DoesNotExist:
         return HttpResponse('Orçamento não encontrado para este ticket')
+
+@login_required
+def deletar_anexo(request, anexo_id, key):
+    anexo = get_object_or_404(Anexo, id=anexo_id, ticket_anexo__key=key)
+    if request.method == 'POST':
+        anexo.delete()
+        messages.success(request, 'Anexo removido com sucesso.')
+    else:
+        messages.error(request, 'Método inválido para deletar anexo.')
+    return redirect('exibir-ticket', key=key)
