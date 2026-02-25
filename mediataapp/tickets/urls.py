@@ -26,4 +26,5 @@ urlpatterns = [
     path('ticket/<str:key>/delete-nfe/', views.delete_nfe, name='delete-nfe'),
     path('ticket/<int:id>/<str:key>/delete-comprovante/', views.delete_comprovante, name='delete-comprovante'),
     path('orcamento/pdf/<int:ticket_id>/', views.gerar_pdf_orcamento, name='gerar_pdf_orcamento'),
+    path('deletar-anexo/<int:anexo_id>/<uuid:key>/', views.deletar_anexo, name='deletar-anexo'),    
 ]

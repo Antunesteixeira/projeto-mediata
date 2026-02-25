@@ -2,6 +2,8 @@
 /mediataapp/static/
 /mediataapp/media/
 /mediataapp/mediata/local_settings.py
+/mediataapp/anexos/
+/mediataapp/nfe/
 data/
 certbot/
 certbot-etc/
