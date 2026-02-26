@@ -170,6 +170,14 @@
   }
 </style>
 
+<!-- Script de diagnóstico (opcional, pode remover depois) -->
+<script>
+  console.log('Bootstrap carregado?', typeof bootstrap !== 'undefined');
+  window.onerror = function(msg, url, line) {
+    console.error('Erro global:', msg, 'na linha', line);
+  };
+</script>
+
 <div class="container py-4">
   <!-- Cabeçalho -->
   <div class="ticket-header">
@@ -429,7 +437,7 @@
     </div>
   </div>
 
-  <!-- Pagamentos (SEÇÃO MODIFICADA) -->
+  <!-- Pagamentos -->
   <div class="info-card card mb-4">
     <div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-4">
@@ -439,7 +447,7 @@
         </button>
       </div>
 
-      <!-- NOVO: Resumo por tipo de pagamento -->
+      <!-- Resumo por tipo de pagamento -->
       {% if list_pagamento %}
       <div class="row mb-4">
         <div class="col-12">
@@ -498,7 +506,7 @@
       </div>
       {% endif %}
 
-      <!-- Lista de pagamentos (mantido com pequenos ajustes) -->
+      <!-- Lista de pagamentos -->
       {% if list_pagamento %}
         <div class="table-responsive">
           <table class="table data-table">
@@ -610,7 +618,6 @@
                       Pagamento pendente
                     </div>
                   {% endif %}
-
                 </td>
               </tr>
               {% endfor %}
@@ -672,7 +679,6 @@
   </div>
 </div>
 
-
   <!-- Timeline -->
   <div class="info-card card">
     <div class="card-body">
@@ -733,11 +739,10 @@
   </div>
 </div>
 
-<!-- Anexo -->
+<!-- Anexo (CORRIGIDO: modal-body fechado corretamente) -->
 <div class="modal fade" id="ModalAnexo" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <!-- ADICIONE enctype -->
       <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <input type="hidden" name="form_type" value="anexo">
@@ -753,7 +758,8 @@
           <div class="mb-3">
             <label for="id_descricao_anexo" class="form-label">Descrição</label>
             <input type="text" name="descricao_anexo" class="form-control" id="id_descricao_anexo" placeholder="Digite uma descrição para o anexo...">
-        </div>
+          </div>
+        </div> <!-- FECHA MODAL-BODY -->
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
           <button type="submit" class="btn btn-primary">Salvar</button>
@@ -774,14 +780,11 @@
           <h5 class="modal-title">Novo Item de Orçamento</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <!-- Adicione este HTML ao seu modal -->
         <div class="modal-body">
             <div class="mb-3">
                 <label class="form-label">Pesquisar Insumos</label>
-                <input type="text" class="form-control" name="item" id="insumoSearch" placeholder="Digite o nome do insumo...">
+                <input type="text" class="form-control" id="insumoSearch" placeholder="Digite o nome do insumo...">
                 <div id="insumoResults" class="list-group mt-1" style="display:none; max-height: 300px; overflow-y: auto;"></div>
-                
-                <!-- Adicione um input hidden para o item selecionado -->
                 <input type="hidden" name="item" id="itemInsumo">
               </div>
             
@@ -816,23 +819,21 @@
             </div>
         </div>
 
-      <style>
-      /* Estilos para os resultados */
-      #insumoResults {
-          position: relative;
-          z-index: 1000;
-      }
+        <style>
+        #insumoResults {
+            position: relative;
+            z-index: 1000;
+        }
+        #insumoResults .list-group-item {
+            cursor: pointer;
+            border-left: none;
+            border-right: none;
+        }
+        #insumoResults .list-group-item:hover {
+            background-color: #f8f9fa;
+        }
+        </style>
 
-      #insumoResults .list-group-item {
-          cursor: pointer;
-          border-left: none;
-          border-right: none;
-      }
-
-      #insumoResults .list-group-item:hover {
-          background-color: #f8f9fa;
-      }
-      </style>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
           <button type="submit" class="btn btn-primary">Salvar Item</button>
@@ -842,171 +843,21 @@
   </div>
 </div>
 
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Elementos do DOM
-    const itemInsumoField = document.getElementById('itemInsumo');
-
-    const insumoSearch = document.getElementById('insumoSearch');
-    const insumoResults = document.getElementById('insumoResults');
-    const selectedInsumoInfo = document.getElementById('selectedInsumoInfo');
-    const codigoField = document.getElementById('codigoInsumo');
-    const nomeField = document.getElementById('nomeInsumo');
-    const unidadeField = document.getElementById('unidadeInsumo');
-    const precoField = document.getElementById('precoInsumo');
-    const quantField = document.getElementById('quantidadeInsumo');
-    const formItemOrcamento = document.getElementById('itemorcamento');
-    
-    // Variável para armazenar o item selecionado
-    let selectedInsumo = null;
-    
-    // Quando o modal é aberto
-    document.getElementById('ModalItemOrcamento').addEventListener('show.bs.modal', function() {
-        resetSearchFields();
-    });
-    
-    // Evento de busca
-    insumoSearch.addEventListener('input', function() {
-        const searchTerm = this.value.trim();
-        
-        if (searchTerm.length < 2) {
-            hideResults();
-            return;
-        }
-        
-        fetchInsumos(searchTerm);
-    });
-    
-    // Função para buscar insumos na API
-    function fetchInsumos(term) {
-        showLoading();
-        
-        fetch(`/api/buscar-itens/?term=${encodeURIComponent(term)}`)
-            .then(response => {
-                if (!response.ok) throw new Error('Erro na requisição');
-                return response.json();
-            })
-            .then(data => {
-                displayResults(data);
-            })
-            .catch(error => {
-                showError(error);
-            });
-    }
-    
-    // Mostra estado de carregamento
-    function showLoading() {
-        insumoResults.innerHTML = '<div class="list-group-item">Buscando insumos...</div>';
-        insumoResults.style.display = 'block';
-    }
-    
-    // Exibe os resultados da busca
-    function displayResults(results) {
-        if (!results || results.length === 0) {
-            insumoResults.innerHTML = '<div class="list-group-item">Nenhum insumo encontrado</div>';
-            insumoResults.style.display = 'block';
-            return;
-        }
-        
-        insumoResults.innerHTML = '';
-        results.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'list-group-item list-group-item-action';
-            div.innerHTML = `
-                <div class="d-flex justify-content-between">
-                    <strong>${item.insumo || item.value}</strong>
-                    <span class="badge bg-secondary">${item.codigo}</span>
-                </div>
-                <div class="d-flex justify-content-between small mt-1">
-                    <span>${item.unidade_display || item.unidade || ''}</span>
-                    <span>R$ ${item.valor_unit}</span>
-                </div>
-            `;
-            div.addEventListener('click', function() {
-                selectInsumo(item);
-            });
-            insumoResults.appendChild(div);
-        });
-        
-        insumoResults.style.display = 'block';
-    }
-    
-    // Seleciona um insumo
-    function selectInsumo(item) {
-      selectedInsumo = item;
-      
-      // Preenche os campos
-      insumoSearch.value = item.insumo || item.value;
-      codigoField.textContent = item.codigo;
-      nomeField.textContent = item.insumo || item.value;
-      unidadeField.textContent = item.unidade_display || item.unidade || '-';
-      precoField.textContent = `R$ ${item.valor_unit}`;
-      
-      // Define o valor do campo hidden que será enviado
-      itemInsumoField.value = item.id; // ou item.codigo, dependendo do que sua view espera
-      
-      // Mostra a seção de insumo selecionado
-      selectedInsumoInfo.style.display = 'block';
-      
-      // Fecha os resultados
-      hideResults();
-      
-      // Foca no campo de quantidade
-      document.getElementById('quant').value = '';
-      document.getElementById('quant').focus();
-  }
-    
-    // Mostra mensagem de erro
-    function showError(error) {
-        console.error('Erro:', error);
-        insumoResults.innerHTML = '<div class="list-group-item text-danger">Erro ao buscar insumos</div>';
-        insumoResults.style.display = 'block';
-    }
-    
-    // Esconde os resultados
-    function hideResults() {
-        insumoResults.style.display = 'none';
-    }
-    
-    // Reseta os campos de busca
-    function resetSearchFields() {
-        insumoSearch.value = '';
-        selectedInsumo = null;
-        selectedInsumoInfo.style.display = 'none';
-        hideResults();
-    }
-    
-    // Evento de submit do formulário
-    formItemOrcamento.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        if (!selectedInsumo) {
-            alert('Selecione um insumo antes de salvar');
-            return;
-        }
-        
-        // Aqui você pode adicionar a lógica para enviar o formulário
-        this.submit();
-    });
-});
-</script>
-
-<!-- Modal Pagamento -->
+<!-- Modal Pagamento (Adicionar) -->
 <div class="modal fade" id="ModalPagamento" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <form method="post" id="pagamentoForm">
+      <form method="post" id="pagamentoFormAdd">
         {% csrf_token %}
         <input type="hidden" name="form_type" value="form-pagamento">
-        <input type="hidden" name="pagamento_id" id="pagamento_id">
         <div class="modal-header">
           <h5 class="modal-title">Adicionar Pagamento</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label">Tipo</label>
-            <select name="tipo" class="form-select" required>
+            <label for="id_tipo_add" class="form-label">Tipo</label>
+            <select name="tipo" id="id_tipo_add" class="form-select" required>
               <option value="">Selecione o tipo</option>
               <option value="M">Material</option>
               <option value="S">Serviço</option>
@@ -1016,25 +867,22 @@ document.addEventListener('DOMContentLoaded', function() {
             </select>
           </div>
           <div class="mb-3">
-            <label for="{{ pagamento.valor_pagamento.id_for_label }}" class="form-label">Valor</label>
-              <input type="number" 
-                    name="valor_pagamento"
-                    value="{{ pagamento.valor_pagamento.value|default_if_none:'' }}"
-                    class="form-control"
-                    step="0.01"
-                    id="{{ pagamento.valor_pagamento.id_for_label }}"
-                    placeholder="Ex: 100.00">
-              {% if pagamento.valor_pagamento.errors %}
-                  <div class="text-danger small">{{ pagamento.valor_pagamento.errors }}</div>
-              {% endif %}
+            <label for="id_valor_pagamento_add" class="form-label">Valor</label>
+            <input type="number" 
+                  name="valor_pagamento"
+                  id="id_valor_pagamento_add"
+                  class="form-control"
+                  step="0.01"
+                  placeholder="Ex: 100.00"
+                  required>
           </div>
           <div class="mb-3">
-            <label class="form-label">Data</label>
-            <input type="date" name="data_pagamento" class="form-control" required>
+            <label for="id_data_pagamento_add" class="form-label">Data</label>
+            <input type="date" name="data_pagamento" id="id_data_pagamento_add" class="form-control" required>
           </div>
           <div class="mb-3 form-check">
-            <input type="checkbox" name="status_pagamento" class="form-check-input" id="statusCheck">
-            <label class="form-check-label" for="statusCheck">Pagamento realizado</label>
+            <input type="checkbox" name="status_pagamento" class="form-check-input" id="statusCheckAdd">
+            <label class="form-check-label" for="statusCheckAdd">Pagamento realizado</label>
           </div>
         </div>
         <div class="modal-footer">
@@ -1050,10 +898,10 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="modal fade" id="ModalEditarPagamento" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <form method="post" id="pagamentoForm">
+      <form method="post" id="pagamentoFormEditar">
         {% csrf_token %}
         <input type="hidden" name="form_type" value="form-pagamento">
-        <input type="hidden" name="pagamento_id" id="pagamento_id" value="">
+        <input type="hidden" name="pagamento_id" id="pagamento_id_editar" value="">
         
         <div class="modal-header">
           <h5 class="modal-title">Editar Pagamento</h5>
@@ -1062,8 +910,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         <div class="modal-body">
           <div class="mb-3">
-            <label class="form-label">Tipo</label>
-            <select name="tipo" class="form-select" required>
+            <label for="id_tipo_editar" class="form-label">Tipo</label>
+            <select name="tipo" id="id_tipo_editar" class="form-select" required>
               <option value="">Selecione o tipo</option>
               <option value="M">Material</option>
               <option value="S">Serviço</option>
@@ -1074,9 +922,10 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           
           <div class="mb-3">
-            <label class="form-label">Valor</label>
+            <label for="id_valor_pagamento_editar" class="form-label">Valor</label>
             <input type="number" 
                   name="valor_pagamento"
+                  id="id_valor_pagamento_editar"
                   class="form-control"
                   step="0.01"
                   placeholder="Ex: 100.00"
@@ -1084,13 +933,13 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
           
           <div class="mb-3">
-            <label class="form-label">Data</label>
-            <input type="date" name="data_pagamento" class="form-control" required>
+            <label for="id_data_pagamento_editar" class="form-label">Data</label>
+            <input type="date" name="data_pagamento" id="id_data_pagamento_editar" class="form-control" required>
           </div>
           
           <div class="mb-3 form-check">
-            <input type="checkbox" name="status_pagamento" class="form-check-input" id="statusCheck">
-            <label class="form-check-label" for="statusCheck">Pagamento realizado</label>
+            <input type="checkbox" name="status_pagamento" class="form-check-input" id="statusCheckEditar">
+            <label class="form-check-label" for="statusCheckEditar">Pagamento realizado</label>
           </div>
         </div>
         
@@ -1117,7 +966,7 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <form method="post" action="{% url 'deletar-ticket' ticket.key %}">
+        <form method="post" action="{% url 'deletar-ticket' ticket.key %}" style="display: inline;">
           {% csrf_token %}
           <button type="submit" class="btn btn-danger">Deletar</button>
         </form>
@@ -1126,7 +975,7 @@ document.addEventListener('DOMContentLoaded', function() {
   </div>
 </div>
 
-<!-- Modal -->
+<!-- Modal Editar Status (CORRIGIDO) -->
 <div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="myModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content rounded-2 shadow-sm">
@@ -1135,8 +984,7 @@ document.addEventListener('DOMContentLoaded', function() {
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
       </div>
       <div class="modal-body">
-        <!-- Exemplo de conteúdo -->
-        <form action="{% url 'update-historico' ticket.key %}" method="post">
+        <form action="{% url 'update-historico' ticket.key %}" method="post" id="formStatus">
           {% csrf_token %}
           {{ ticketformstatus.status }}
           {% if ticketformstatus.status.errors %}
@@ -1144,27 +992,22 @@ document.addEventListener('DOMContentLoaded', function() {
               {{ ticketformstatus.status.errors }}
             </div>
           {% endif %}
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-            <button type="submit" class="btn btn-primary">Salvar</button>
-          </div>
         </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="submit" form="formStatus" class="btn btn-primary">Salvar</button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
+// Formatação do valor no campo de adicionar (opcional)
 document.addEventListener('DOMContentLoaded', function() {
-    // Formata o valor monetário ao carregar a página
-    const valorPagamento = document.getElementById('{{ pagamento.valor_pagamento.id_for_label }}');
-    if (valorPagamento && valorPagamento.value) {
-        valorPagamento.value = parseFloat(valorPagamento.value).toFixed(2);
-    }
-    
-    // Adiciona máscara para o valor monetário
-    if (valorPagamento) {
-        valorPagamento.addEventListener('blur', function() {
+    const valorPagamentoAdd = document.getElementById('id_valor_pagamento_add');
+    if (valorPagamentoAdd) {
+        valorPagamentoAdd.addEventListener('blur', function() {
             if (this.value) {
                 this.value = parseFloat(this.value).toFixed(2);
             }
@@ -1181,7 +1024,6 @@ document.querySelectorAll('.btn-editar-pagamento').forEach(btn => {
   btn.addEventListener('click', function(e) {
     e.preventDefault();
 
-    // Debug: mostra os dados recebidos
     console.log('Dados recebidos:', {
       id: this.dataset.id,
       tipo: this.dataset.tipo,
@@ -1190,31 +1032,27 @@ document.querySelectorAll('.btn-editar-pagamento').forEach(btn => {
       status: this.dataset.status
     });
 
-    // 1. Conversão segura do valor
+    // Conversão segura do valor
     let valorNumerico = 0;
     try {
-      // Remove todos os caracteres não numéricos exceto vírgula e ponto
       const valorString = this.dataset.valor.toString()
-        .replace(/[^\d,.]/g, '')  // Mantém apenas números, vírgula e ponto
-        .replace(/\./g, '')        // Remove pontos de milhar
-        .replace(',', '.');        // Converte vírgula para ponto decimal
-      
+        .replace(/[^\d,.]/g, '')
+        .replace(/\./g, '')
+        .replace(',', '.');
       valorNumerico = parseFloat(valorString) || 0;
     } catch (e) {
       console.error("Erro na conversão do valor:", e);
     }
 
-    // 2. Preenchimento do modal
+    // Preenchimento do modal
     const modal = document.getElementById('ModalEditarPagamento');
-    
-    // Preenche os campos
-    modal.querySelector('input[name="valor_pagamento"]').value = valorNumerico.toFixed(2);
     modal.querySelector('select[name="tipo"]').value = this.dataset.tipo;
+    modal.querySelector('input[name="valor_pagamento"]').value = valorNumerico.toFixed(2);
     modal.querySelector('input[name="data_pagamento"]').value = this.dataset.data;
     modal.querySelector('input[name="status_pagamento"]').checked = 
       ['True', 'true', '1'].includes(this.dataset.status);
 
-    // 3. Atualiza ação do formulário
+    // Atualiza ação do formulário e campo hidden
     const form = modal.querySelector('form');
     form.action = baseEditUrl.replace('/0/', `/${this.dataset.id}/`);
     form.querySelector('input[name="pagamento_id"]').value = this.dataset.id;
@@ -1223,15 +1061,127 @@ document.querySelectorAll('.btn-editar-pagamento').forEach(btn => {
 
 // Reset para novo pagamento
 document.getElementById('ModalEditarPagamento').addEventListener('show.bs.modal', function(e) {
-  if (!e.relatedTarget?.classList.contains('btn-editar-pagamento')) {
+  if (!e.relatedTarget || !e.relatedTarget.classList.contains('btn-editar-pagamento')) {
     const form = this.querySelector('form');
-    form.action = "{% url 'editar-pagamento' 0 ticket.key %}";
+    form.action = baseEditUrl.replace('/0/', '/0/');
     form.reset();
     form.querySelector('input[name="pagamento_id"]').value = '';
   }
 });
+</script>
 
-
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Script do ModalItemOrcamento (já incluso acima)
+    const itemInsumoField = document.getElementById('itemInsumo');
+    const insumoSearch = document.getElementById('insumoSearch');
+    const insumoResults = document.getElementById('insumoResults');
+    const selectedInsumoInfo = document.getElementById('selectedInsumoInfo');
+    const codigoField = document.getElementById('codigoInsumo');
+    const nomeField = document.getElementById('nomeInsumo');
+    const unidadeField = document.getElementById('unidadeInsumo');
+    const precoField = document.getElementById('precoInsumo');
+    const formItemOrcamento = document.getElementById('itemorcamento');
+    
+    let selectedInsumo = null;
+    
+    document.getElementById('ModalItemOrcamento').addEventListener('show.bs.modal', function() {
+        resetSearchFields();
+    });
+    
+    insumoSearch.addEventListener('input', function() {
+        const searchTerm = this.value.trim();
+        if (searchTerm.length < 2) {
+            hideResults();
+            return;
+        }
+        fetchInsumos(searchTerm);
+    });
+    
+    function fetchInsumos(term) {
+        showLoading();
+        fetch(`/api/buscar-itens/?term=${encodeURIComponent(term)}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Erro na requisição');
+                return response.json();
+            })
+            .then(data => displayResults(data))
+            .catch(error => showError(error));
+    }
+    
+    function showLoading() {
+        insumoResults.innerHTML = '<div class="list-group-item">Buscando insumos...</div>';
+        insumoResults.style.display = 'block';
+    }
+    
+    function displayResults(results) {
+        if (!results || results.length === 0) {
+            insumoResults.innerHTML = '<div class="list-group-item">Nenhum insumo encontrado</div>';
+            insumoResults.style.display = 'block';
+            return;
+        }
+        insumoResults.innerHTML = '';
+        results.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'list-group-item list-group-item-action';
+            div.innerHTML = `
+                <div class="d-flex justify-content-between">
+                    <strong>${item.insumo || item.value}</strong>
+                    <span class="badge bg-secondary">${item.codigo}</span>
+                </div>
+                <div class="d-flex justify-content-between small mt-1">
+                    <span>${item.unidade_display || item.unidade || ''}</span>
+                    <span>R$ ${item.valor_unit}</span>
+                </div>
+            `;
+            div.addEventListener('click', function() {
+                selectInsumo(item);
+            });
+            insumoResults.appendChild(div);
+        });
+        insumoResults.style.display = 'block';
+    }
+    
+    function selectInsumo(item) {
+        selectedInsumo = item;
+        insumoSearch.value = item.insumo || item.value;
+        codigoField.textContent = item.codigo;
+        nomeField.textContent = item.insumo || item.value;
+        unidadeField.textContent = item.unidade_display || item.unidade || '-';
+        precoField.textContent = `R$ ${item.valor_unit}`;
+        itemInsumoField.value = item.id;
+        selectedInsumoInfo.style.display = 'block';
+        hideResults();
+        document.getElementById('quant').value = '';
+        document.getElementById('quant').focus();
+    }
+    
+    function showError(error) {
+        console.error('Erro:', error);
+        insumoResults.innerHTML = '<div class="list-group-item text-danger">Erro ao buscar insumos</div>';
+        insumoResults.style.display = 'block';
+    }
+    
+    function hideResults() {
+        insumoResults.style.display = 'none';
+    }
+    
+    function resetSearchFields() {
+        insumoSearch.value = '';
+        selectedInsumo = null;
+        selectedInsumoInfo.style.display = 'none';
+        hideResults();
+    }
+    
+    formItemOrcamento.addEventListener('submit', function(e) {
+        e.preventDefault();
+        if (!selectedInsumo) {
+            alert('Selecione um insumo antes de salvar');
+            return;
+        }
+        this.submit();
+    });
+});
 </script>
 
 <style>
@@ -1252,7 +1202,4 @@ document.getElementById('ModalEditarPagamento').addEventListener('show.bs.modal'
 }
 </style>
 
-
-
 {% endblock %}
-
