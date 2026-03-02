@@ -13,7 +13,7 @@ from django.db.models import Q
 
 from rolepermissions.decorators import has_role_decorator
 
-@has_role_decorator('gerente')
+#@has_role_decorator('gerente')
 @login_required
 def insumos(request):
     insumos_obj = Insumos.objects.all()
@@ -37,7 +37,7 @@ def insumos(request):
     }
     return render(request, 'insumos/index-insumos.html', context)
 
-@has_role_decorator('gerente')
+#@has_role_decorator('gerente')
 @login_required
 def editar_insumos(request, id):
     insumo = Insumos.objects.get(id=id)
@@ -64,7 +64,7 @@ def editar_insumos(request, id):
     #return HttpResponse(insumo.valor_unit)
     return render(request, 'insumos/index-insumos.html', context)
 
-@has_role_decorator('gerente')
+#@has_role_decorator('gerente')
 @login_required
 def deletar_insumo(request, id):
     insumo = get_object_or_404(Insumos, id=id)
