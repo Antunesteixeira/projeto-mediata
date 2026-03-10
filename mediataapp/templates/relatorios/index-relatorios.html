@@ -185,7 +185,7 @@
                 <div class="col-md-5">
                     <label for="pagamentos" class="form-label">Tipo de Pagamento</label>
                     <select class="form-select" name="pagamentos" id="pagamentos">
-                        <option value="T" {% if filtro_pagamentos == "T" or not filtro_pagamentos %}selected{% endif %}>Todos os Tipos</option>
+                        <option value="A" {% if filtro_pagamentos == "A" or not filtro_pagamentos %}selected{% endif %}>Todos os Tipos</option>
                         <option value="M" {% if filtro_pagamentos == "M" %}selected{% endif %}>Material</option>
                         <option value="S" {% if filtro_pagamentos == "S" %}selected{% endif %}>Serviço</option>
                         <option value="O" {% if filtro_pagamentos == "O" %}selected{% endif %}>Mão de Obra</option>
@@ -205,6 +205,21 @@
                             <input class="form-check-input" type="checkbox" name="status_pagamento" value="False" id="status_pendente"
                                 {% if "False" in filtro_status_pagamento_list %}checked{% endif %}>
                             <label class="form-check-label" for="status_pendente">Pendente</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-5 mt-3">
+                    <label class="form-label">Status do Recebimento</label>
+                    <div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="status_recebimento" value="True" id="status_recebido"
+                                {% if "True" in filtro_status_recebimento_list %}checked{% endif %}>
+                            <label class="form-check-label" for="status_recebido">Recebido</label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <input class="form-check-input" type="checkbox" name="status_recebimento" value="False" id="status_a_receber"
+                                {% if "False" in filtro_status_recebimento_list %}checked{% endif %}>
+                            <label class="form-check-label" for="status_a_receber">A Receber</label>
                         </div>
                     </div>
                 </div>
@@ -404,7 +419,7 @@
                     <div class="mb-3">
                         <label for="pagamentos_modal" class="form-label">Tipo de Pagamento</label>
                         <select class="form-select" name="pagamentos" id="pagamentos_modal">
-                            <option value="T" {% if filtro_pagamentos == "T" or not filtro_pagamentos %}selected{% endif %}>Todos os Tipos</option>
+                            <option value="A" {% if filtro_pagamentos == "A" or not filtro_pagamentos %}selected{% endif %}>Todos os Tipos</option>
                             <option value="M" {% if filtro_pagamentos == "M" %}selected{% endif %}>Material</option>
                             <option value="S" {% if filtro_pagamentos == "S" %}selected{% endif %}>Serviço</option>
                             <option value="O" {% if filtro_pagamentos == "O" %}selected{% endif %}>Mão de Obra</option>
@@ -482,6 +497,22 @@
                                         {% if "R" in filtro_status_list %}checked{% endif %}>
                                     <label class="form-check-label" for="status_rejeitado">Rejeitado</label>
                                 </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Status do Recebimento</label>
+                        <div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" name="status_recebimento" value="True" id="status_recebido_modal"
+                                    {% if "True" in filtro_status_recebimento_list %}checked{% endif %}>
+                                <label class="form-check-label" for="status_recebido_modal">Recebido</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="checkbox" name="status_recebimento" value="False" id="status_a_receber_modal"
+                                    {% if "False" in filtro_status_recebimento_list %}checked{% endif %}>
+                                <label class="form-check-label" for="status_a_receber_modal">A Receber</label>
                             </div>
                         </div>
                     </div>

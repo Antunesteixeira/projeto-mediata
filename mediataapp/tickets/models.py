@@ -139,3 +139,41 @@ class Anexo(models.Model):
 
     def __str__(self):
         return self.arquivo.name  # ou self.descricao_anexo
+
+class Recebimentos(models.Model):
+
+    TIPO_PAGAMENTO_CHOICES = (
+        ('Cartão de Crédito', 'Cartão de Crédito'),
+        ('Cartão de Débito', 'Cartão de Débito'),
+        ('Transferência Bancária', 'Transferência Bancária'),
+        ('Pix', 'Pix'),
+        ('Cheque', 'Cheque'),
+        ('Boleto', 'Boleto'),
+        ('Outro', 'Outro'),
+    )
+
+    STATUS_RECEBIMENTO_CHOICES = (
+        (True, 'Recebido'),
+        (False, 'a Receber'),
+    )
+
+    FORMA_PAGAMENTO_CHOICES = (
+        ('À vista', 'À vista'),
+        ('Parcelado', 'Parcelado'),
+    )
+
+    razao_social = models.CharField(max_length=255, null=True, blank=True)
+    numero_nota_fiscal = models.CharField(max_length=255, null=True, blank=True)
+    serie_nota_fiscal = models.CharField(max_length=255, null=True, blank=True)
+    data_emissao = models.DateField(null=True, blank=True)
+    data_vencimento = models.DateField(null=True, blank=True)
+    valor_recebimento = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    status_recebimento = models.BooleanField(choices=STATUS_RECEBIMENTO_CHOICES, default=False)
+    ticket_recebimento = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="recebimentos")
+    descricao_recebimento = models.CharField(max_length=255, null=True, blank=True)
+    forma_pagamento = models.CharField(max_length=30, choices=FORMA_PAGAMENTO_CHOICES, null=True, blank=True)
+    tipo_pagamento = models.CharField(max_length=30, choices=TIPO_PAGAMENTO_CHOICES, null=True, blank=True)
+    comprovante_recebimento = models.CharField(max_length=255, null=True, blank=True)
+    data_recebimento = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    recebimento_realizado = models.BooleanField(default=False)
+    data_recebimento_realizado = models.DateTimeField(null=True, blank=True)

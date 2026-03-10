@@ -390,7 +390,7 @@
       <h5 class="card-title"><i class="bi bi-info-circle me-2"></i>INFORMAÇÕES ADICIONAIS</h5>
       <div class="row">
         <div class="col-md-4 mb-3">
-          <label class="text-muted small mb-1">Faturamento</label>
+          <label class="text-muted small mb-1">BDI</label>
           <div class="fw-bold">R$ {{ valor_custo_total }}</div>
         </div>
         <div class="col-md-4 mb-3">
@@ -632,12 +632,119 @@
     </div>
   </div>
 
-<!-- Nota Fiscal -->
+<!-- Seção Recebimentos -->
+<div class="info-card card mb-4">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h5 class="card-title mb-0">
+        <i class="bi bi-cash-stack me-2 text-primary"></i>Recebimentos
+      </h5>
+      <button type="button" 
+              class="btn btn-success btn-sm"
+              data-bs-toggle="modal" 
+              data-bs-target="#ModalRecebimentos"
+              data-ticket-id="{{ ticket.id }}">
+        <i class="bi bi-plus-circle me-1"></i>Adicionar Recebimento
+      </button>
+    </div>
+
+    {% if recebimentos %}
+      <div class="table-responsive">
+        <table class="table data-table">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Data Recebimento</th>
+              <th>Razão Social</th>
+              <th>Nota Fiscal</th>
+              <th>Valor</th>
+              <th>Status</th>
+              <th>Forma/Tipo</th>
+              <!--<th>Comprovante</th>-->
+              <th>Confirmação</th>
+              <th class="text-end">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for rec in recebimentos %}
+            <tr>
+              <td>{{ forloop.counter }}</td>
+              <td>{{ rec.data_recebimento|date:"d/m/Y H:i" }}</td>
+              <td>{{ rec.razao_social|default:"-" }}</td>
+              <td>
+                {% if rec.numero_nota_fiscal %}
+                  {{ rec.numero_nota_fiscal }}{% if rec.serie_nota_fiscal %} / {{ rec.serie_nota_fiscal }}{% endif %}
+                {% else %}
+                  -
+                {% endif %}
+              </td>
+              <td>R$ {{ rec.valor_recebimento|floatformat:2 }}</td>
+              <td>
+                {% if rec.status_recebimento %}
+                  <span class="badge bg-success">Recebido</span>
+                {% else %}
+                  <span class="badge bg-warning text-dark">A receber</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if rec.forma_pagamento %}
+                  <span class="badge bg-info">{{ rec.forma_pagamento }}</span>
+                {% endif %}
+                {% if rec.tipo_pagamento %}
+                  <br><small class="text-muted">{{ rec.tipo_pagamento }}</small>
+                {% endif %}
+              </td>
+              <!--<td>
+                {% if rec.comprovante_recebimento %}
+                  <a href="{{ MEDIA_URL }}{{ rec.comprovante_recebimento }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-file-earmark"></i> Ver
+                  </a>
+                {% else %}
+                  <span class="text-muted">—</span>
+                {% endif %}
+              </td>-->
+              <td>
+                {% if rec.recebimento_realizado %}
+                  <span class="badge bg-primary">Sim</span>
+                {% else %}
+                  <span class="badge bg-secondary text-dark">Não</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                <div class="btn-group btn-group-sm" role="group">
+                  <!-- Botão editar (se implementado)
+                  <button type="button" class="btn btn-outline-secondary" title="Editar" disabled>
+                    <i class="bi bi-pencil"></i>
+                  </button>-->
+                  <!-- Botão deletar -->
+                  <form action="{% url 'deletar-recebimento' rec.id ticket.key %}" method="post" class="d-inline" onsubmit="return confirm('Remover este recebimento?');">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-outline-danger" title="Remover">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="alert alert-light mb-0">
+        <i class="bi bi-info-circle me-2"></i>Nenhum recebimento cadastrado para este ticket.
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+
+<!-- Documento Fiscal (NFe) -->
 <div class="info-card card mb-4 shadow-sm">
   <div class="card-body">
     <h5 class="card-title d-flex align-items-center">
       <i class="bi bi-file-earmark-text me-2 text-primary"></i>
-      Nota Fiscal
+      Documento Fiscal (NFe)
     </h5>
 
     {% if ticket.status %}
@@ -1001,6 +1108,61 @@
     </div>
   </div>
 </div>
+
+
+<!-- Modal Recebimentos (corrigido) -->
+<div class="modal fade" id="ModalRecebimentos" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="recebimentos_form">
+        <input type="hidden" name="ticket_id" id="ticket_id_recebimento" value="">
+
+        <div class="modal-header">
+          <h5 class="modal-title">Novo Recebimento</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+
+        <div class="modal-body">
+          <!-- Bloco do cliente estilizado -->
+          <div class="row g-2 mb-3 p-3 border rounded bg-light">
+            <div class="col-md-6">
+              <small class="text-muted d-block">Cliente</small>
+              <span class="fw-bold">{{ ticket.cliente.nome_razao_social }}</span>
+            </div>
+            <div class="col-md-6">
+              <small class="text-muted d-block">CPF/CNPJ</small>
+              <span class="fw-bold">{{ ticket.cliente.cpf_cnpj }}</span>
+            </div>
+          </div>
+
+          {{ recebimentos_form.as_p }}
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+          <button type="submit" class="btn btn-primary">Salvar Recebimento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- JavaScript para preencher ticket_id (opcional) -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = document.getElementById('ModalRecebimentos');
+    if (modal) {
+        modal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const ticketId = button.getAttribute('data-ticket-id');
+            const input = modal.querySelector('#ticket_id_recebimento');
+            if (input) input.value = ticketId;
+        });
+    }
+});
+</script>
 
 <script>
 // Formatação do valor no campo de adicionar (opcional)
