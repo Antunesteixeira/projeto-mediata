@@ -1,5 +1,5 @@
 from django import forms
-from .models import Ticket, Orcamento, Servico, Material, HistoricoTicket, ItemOrcamento, Pagamentos, Anexo
+from .models import Ticket, Orcamento, Servico, Material, HistoricoTicket, ItemOrcamento, Pagamentos, Anexo, Recebimentos
 
 class TicketForm(forms.ModelForm):
     data_finalizar = forms.DateField(
@@ -191,3 +191,43 @@ class AnexoForm(forms.ModelForm):
             'descricao_anexo': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Descrição (opcional)'}),
             'arquivo': forms.FileInput(attrs={'class': 'form-control'}),
         }
+
+
+class RecebimentosForm(forms.ModelForm):
+    class Meta:
+        model = Recebimentos
+        exclude = ['razao_social', 'ticket_recebimento', 'comprovante_recebimento']  # ← exclui o campo FK
+        widgets = {
+            'data_emissao': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'data_vencimento': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'descricao_recebimento': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'recebimento_realizado': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'data_recebimento_realizado': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        }
+        labels = {
+            #'razao_social': 'Razão Social',
+            'numero_nota_fiscal': 'Número da Nota Fiscal',
+            'serie_nota_fiscal': 'Série da Nota Fiscal',
+            'data_emissao': 'Data de Emissão',
+            'data_vencimento': 'Data de Vencimento',
+            'valor_recebimento': 'Valor',
+            'status_recebimento': 'Status',
+            'descricao_recebimento': 'Descrição',
+            'forma_pagamento': 'Forma de Pagamento',
+            'tipo_pagamento': 'Tipo de Pagamento',
+            #'comprovante_recebimento': 'Comprovante',
+            'recebimento_realizado': 'Recebimento Realizado',
+            'data_recebimento_realizado': 'Data do Recebimento'
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Adiciona classe form-control a todos os campos que não são checkbox/radio
+        for field_name, field in self.fields.items():
+            if not isinstance(field.widget, (forms.CheckboxInput, forms.RadioSelect)):
+                field.widget.attrs.setdefault('class', 'form-control')
+        # Define todos como não obrigatórios (ajuste conforme necessário)
+        for field in self.fields.values():
+            field.required = False
+        # Exemplo: tornar valor_recebimento obrigatório
+        # self.fields['valor_recebimento'].required = True

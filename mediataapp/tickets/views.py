@@ -17,8 +17,8 @@ from core.models import Empresa
 
 from django.http import HttpResponse, HttpResponseBadRequest
 
-from .models import Ticket, Orcamento, ItemOrcamento, Insumos, HistoricoTicket, Pagamentos, Anexo  # ajuste se estiver em outro lugar
-from .forms import OrcamentoForm, ItemOrcamentoForm, TicketForm, HistorcoTicketForm, PagamentoForm, AnexoForm  # importe só os forms que usa
+from .models import Ticket, Orcamento, ItemOrcamento, Insumos, HistoricoTicket, Pagamentos, Anexo, Recebimentos  # ajuste se estiver em outro lugar
+from .forms import OrcamentoForm, ItemOrcamentoForm, TicketForm, HistorcoTicketForm, PagamentoForm, AnexoForm, RecebimentosForm  # importe só os forms que usa
 
 from rolepermissions.checkers import has_role
 
@@ -77,6 +77,23 @@ def cadastro_ticket(request):
     return render(request, 'tickets/editar-ticket.html', {'form': form})
 
 
+import json
+from decimal import Decimal
+from django.contrib.auth.decorators import login_required
+from django.db import transaction
+from django.db.models import F, Sum, ExpressionWrapper, DecimalField
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.conf import settings
+from .models import (
+    Ticket, Anexo, Orcamento, ItemOrcamento, Insumos,
+    Pagamentos, Recebimentos, HistoricoTicket
+)
+from .forms import (
+    OrcamentoForm, ItemOrcamentoForm, TicketForm,
+    PagamentoForm, AnexoForm, RecebimentosForm
+)
+
 @login_required
 def exibirticket(request, key):
     ticket = get_object_or_404(Ticket, key=key)
@@ -85,14 +102,19 @@ def exibirticket(request, key):
     
     # Buscar orçamento existente
     orcamento = Orcamento.objects.filter(ticket_orcamento=ticket).first()
+
+    # Lista de recebimentos do ticket
+    recebimentos = Recebimentos.objects.filter(ticket_recebimento=ticket).order_by('-data_recebimento')
     
     # Inicializar forms com valores padrão
     form = OrcamentoForm(prefix='orcamento')
     itemorcamento = ItemOrcamentoForm(prefix='itemorcamento')
     ticketformstatus = TicketForm()
-    pagamento_form = PagamentoForm(prefix='form-pagamento')  # único, renomeado para evitar confusão
-    anexo_form = AnexoForm()  # form de anexo
-    
+    pagamento_form = PagamentoForm(prefix='form-pagamento')
+    anexo_form = AnexoForm()
+    recebimentos_form = RecebimentosForm()  # ← sem prefixo
+
+    # Preparar dados dos insumos para JSON (usado em algum lugar do template)
     insumos = list(Insumos.objects.values('id', 'insumo', 'valor_unit'))
     for insumo in insumos:
         insumo['valor_unit'] = str(insumo['valor_unit'])
@@ -162,7 +184,6 @@ def exibirticket(request, key):
                     if anexo_form.is_valid():
                         anexo = anexo_form.save(commit=False)
                         anexo.ticket_anexo = ticket
-
                         anexo.save()
                         messages.success(request, "Anexo adicionado com sucesso!")
                         return redirect('exibir-ticket', key=ticket.key)
@@ -170,10 +191,23 @@ def exibirticket(request, key):
                         messages.error(request, "Erro ao adicionar anexo. Verifique os campos.")
                         # Não redireciona, continua para mostrar o form com erros
                 
+                elif form_type == 'recebimentos_form':  # ← nome correspondente ao modal
+                    recebimentos_form = RecebimentosForm(request.POST, request.FILES)
+                    if recebimentos_form.is_valid():
+                        recebimento = recebimentos_form.save(commit=False)
+                        recebimento.ticket_recebimento = ticket  # vincula ao ticket atual
+                        recebimento.save()
+                        messages.success(request, "Recebimento adicionado com sucesso!")
+                        return redirect('exibir-ticket', key=ticket.key)
+                    else:
+                        messages.error(request, "Erro ao adicionar recebimento. Verifique os campos.")
+                        # Não redireciona, continua para mostrar o form com erros
+                
         except Exception as e:
             messages.error(request, f"Ocorreu um erro ao processar a requisição: {str(e)}")
     
-    # Recarregar orçamento (pode ter sido criado)
+    # Recarregar orçamento (pode ter sido criado na mesma requisição, mas como já redirecionamos,
+    # isso é útil para o caso de GET ou formulários que não redirecionam)
     orcamento = Orcamento.objects.filter(ticket_orcamento=ticket).first()
     
     # Lista de pagamentos
@@ -194,7 +228,7 @@ def exibirticket(request, key):
         itens_orcamento = ItemOrcamento.objects.none()
         total_itens = Decimal('0')
     
-    # Resumo de pagamentos (cálculo existente)
+    # Resumo de pagamentos por tipo (M, S, O, E, T)
     resumo_pagamentos = {
         'M': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},
         'S': {'total_orcado': Decimal('0'), 'total_pago': Decimal('0'), 'total_pendente': Decimal('0'), 'saldo': Decimal('0')},
@@ -233,7 +267,7 @@ def exibirticket(request, key):
     }
     
     valor_custo_total = resumo_geral['total_orcado'] - resumo_geral['total_pago'] if resumo_geral['total_pago'] else Decimal('0')
-    bdi = ticket.func_bdi()
+    bdi = ticket.func_bdi()  # supondo que exista esse método no modelo Ticket
     
     total_pagamentos = resumo_geral['total_pago'] + resumo_geral['total_pendente']
     if total_pagamentos > 0:
@@ -249,7 +283,9 @@ def exibirticket(request, key):
         'bdi': bdi,
         'form': form,
         'anexos': anexos,
-        'form_anexo': anexo_form,  # Agora pode conter erros se for inválido
+        'recebimentos': recebimentos,
+        'recebimentos_form': recebimentos_form,      # ← agora sem prefixo
+        'form_anexo': anexo_form,                    # pode conter erros se for inválido
         'margem': margem,
         'orcamento': orcamento,
         'itemorcamento': itemorcamento,
@@ -265,6 +301,7 @@ def exibirticket(request, key):
         'MEDIA_URL': settings.MEDIA_URL,
     }
     return render(request, 'tickets/ticket.html', context)
+
 
 @login_required
 def editar_ticket(request, key):
@@ -660,4 +697,13 @@ def deletar_anexo(request, anexo_id, key):
         messages.success(request, 'Anexo removido com sucesso.')
     else:
         messages.error(request, 'Método inválido para deletar anexo.')
+    return redirect('exibir-ticket', key=key)
+
+@login_required
+def deletar_recebimento(request, recebimento_id, key):
+    ticket = get_object_or_404(Ticket, key=key)
+    recebimento = get_object_or_404(Recebimentos, id=recebimento_id, ticket_recebimento=ticket)
+    if request.method == 'POST':
+        recebimento.delete()
+        messages.success(request, 'Recebimento removido com sucesso.')
     return redirect('exibir-ticket', key=key)

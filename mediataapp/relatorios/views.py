@@ -3,7 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.utils.timezone import now
 from datetime import timedelta
 from django.db.models import Sum, Q, Prefetch
-from tickets.models import Ticket, Orcamento, Pagamentos
+from tickets.models import Ticket, Orcamento, Pagamentos, Recebimentos
 from clientes.models import Cliente
 from colaborador.models import Colaborador  
 from django.contrib.auth.models import User
@@ -22,22 +22,26 @@ def relatorio_view(request):
         'usuario': 'all',
         'cliente': 'all',
         'colaborador': 'all',
-        'pagamentos': 'T',  # Tipo de pagamento (Material, Serviço, etc.)
+        'pagamentos': 'A',  # Tipo de pagamento (Material, Serviço, etc.)
         'status_pagamento': [],  # Status do pagamento (Pendente/Pago) - múltipla seleção
         'data_inicio': '',
         'data_fim': '',
+        'status_recebimento': [],  # Status do recebimento (A receber/Recebido) - múltipla seleção
+        
     }
     
     # Obtém filtros do formulário
     source = request.POST if request.method == "POST" else request.GET
     for key in filtros.keys():
-        if key == 'status' and 'status' in source and source.getlist('status'):
-            # Para status do ticket, obtém a lista de valores
-            filtros[key] = source.getlist('status')
-        elif key == 'status_pagamento' and 'status_pagamento' in source:
-            # Para status de pagamento, obtém a lista de valores
-            filtros[key] = source.getlist('status_pagamento')
+        # Campos que podem ter múltiplos valores (checkboxes)
+        if key in ['status', 'status_pagamento', 'status_recebimento']:
+            if key in source and source.getlist(key):
+                filtros[key] = source.getlist(key)
+            else:
+                # Se não vier na requisição, mantém o valor padrão (lista vazia ou string)
+                filtros[key] = filtros[key]
         else:
+            # Campos de valor único
             filtros[key] = source.get(key, filtros[key])
     
     # Define data limite baseada no date_range ou datas personalizadas
@@ -65,6 +69,7 @@ def relatorio_view(request):
     tickets = tickets.prefetch_related(
         Prefetch("orcamento_set", queryset=Orcamento.objects.all(), to_attr="orcamentos_prefetch"),
         Prefetch("pagamentos", queryset=Pagamentos.objects.all(), to_attr="pagamentos_prefetch"),
+        Prefetch("recebimentos", queryset=Recebimentos.objects.all(), to_attr="recebimentos_prefetch"),  # <-- adicione esta linha
     )
 
     # Query base para Orçamentos (para métricas gerais)
@@ -139,7 +144,7 @@ def relatorio_view(request):
         pagamentos = pagamentos.filter(ticket_pagamento__colaborador_id=filtros['colaborador'])
     
     # Filtro por TIPO de pagamento (Material, Serviço, etc.)
-    if filtros['pagamentos'] != "T":
+    if filtros['pagamentos'] != "A":
         # Filtra tickets que têm pelo menos um pagamento do tipo selecionado
         tickets = tickets.filter(pagamentos__tipo=filtros['pagamentos']).distinct()
         # Filtra os querysets de pagamentos e orçamentos
@@ -163,6 +168,23 @@ def relatorio_view(request):
         # Filtra os pagamentos pelos status selecionados
         pagamentos = pagamentos.filter(status_pagamento__in=status_boolean)
     
+    # Filtro por STATUS de recebimento (A receber/Recebido) - múltipla seleção
+    if filtros['status_recebimento']:
+        status_recebimento_boolean = []
+        for val in filtros['status_recebimento']:
+            if val in ('True', 'true', '1'):
+                status_recebimento_boolean.append(True)
+            elif val in ('False', 'false', '0'):
+                status_recebimento_boolean.append(False)
+            else:
+                # Caso o valor já venha como booleano nativo
+                status_recebimento_boolean.append(val)
+
+        # Aplica o filtro nos tickets (ajuste o related_name e o campo)
+        tickets = tickets.filter(
+            recebimentos__status_recebimento__in=status_recebimento_boolean
+        ).distinct()
+
     # Calcula totais de orçamentos e pagamentos para cada ticket
     tickets_list = list(tickets)
     total_pagos = 0
@@ -253,6 +275,7 @@ def relatorio_view(request):
         "filtro_status_pagamento_list": filtros['status_pagamento'],  # Lista de status de pagamento selecionados
         "filtro_data_inicio": filtros['data_inicio'],
         "filtro_data_fim": filtros['data_fim'],
+        "filtro_status_recebimento": filtros['status_recebimento'],
         "is_gerente": is_gerente,
         "eh_lucro": total_lucros >= 0,
         "percentual_lucro": (total_lucros / orcamento_total * 100) if orcamento_total > 0 else 0,
