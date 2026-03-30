@@ -25,7 +25,6 @@
     <script src="{% static 'bootstrap/js/jquery.dataTables.min.js' %}"></script>
     <script src="{% static 'bootstrap/js/dataTables.bootstrap5.min.js' %}"></script>
 
-
     <style>
         :root {
             --sidebar-width: 250px;
@@ -128,6 +127,7 @@
 
         .nav-link.active {
             background-color: var(--active-bg);
+            color: white;
             font-weight: 500;
         }
 
@@ -264,7 +264,7 @@
             <div class="sidebar-content">
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a href="{% url 'dashboard' %}" class="nav-link active">
+                        <a href="{% url 'dashboard' %}" class="nav-link">
                             <i class="bi bi-speedometer2"></i>
                             <span class="nav-link-text">Dashboard</span>
                         </a>
@@ -440,6 +440,75 @@
             // Event Listeners
             sidebarToggle.addEventListener('click', toggleSidebar);
             window.addEventListener('resize', handleResize);
+        });
+    </script>
+
+    <!-- Script para realçar o link ativo na sidebar -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Obtém o caminho da URL atual (ex: /dashboard/, /tickets/)
+            const currentPath = window.location.pathname;
+            
+            // Seleciona todos os links da sidebar que não são apenas toggles de collapse
+            const allLinks = document.querySelectorAll('.sidebar .nav-link:not([data-bs-toggle="collapse"])');
+            
+            let activeLink = null;
+            
+            // Itera sobre os links para encontrar aquele cujo href corresponde à URL atual
+            allLinks.forEach(link => {
+                const linkPath = link.getAttribute('href');
+                if (!linkPath || linkPath === '#') return;
+                
+                // Converte o href em um caminho absoluto (ignora domínio)
+                let absolutePath;
+                try {
+                    absolutePath = new URL(linkPath, window.location.origin).pathname;
+                } catch(e) {
+                    absolutePath = linkPath;
+                }
+                
+                // Verifica se o caminho atual termina com o linkPath ou é exatamente igual
+                // Isso ajuda com URLs que podem ter trailing slash ou parâmetros
+                if (currentPath === absolutePath || 
+                    (currentPath.endsWith('/') && absolutePath === currentPath.slice(0, -1)) ||
+                    (absolutePath.endsWith('/') && currentPath === absolutePath.slice(0, -1))) {
+                    activeLink = link;
+                }
+            });
+            
+            // Remove a classe 'active' de todos os links
+            allLinks.forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Adiciona a classe 'active' ao link correspondente, se encontrado
+            if (activeLink) {
+                activeLink.classList.add('active');
+                
+                // Verifica se o link ativo está dentro de um submenu (collapse)
+                const parentCollapse = activeLink.closest('.collapse');
+                if (parentCollapse) {
+                    // Encontra o botão que controla este collapse (o link pai com data-bs-toggle)
+                    const toggleButton = document.querySelector(`[data-bs-toggle="collapse"][href="#${parentCollapse.id}"]`);
+                    if (toggleButton) {
+                        // Expande o collapse
+                        const bsCollapse = new bootstrap.Collapse(parentCollapse, {
+                            toggle: false
+                        });
+                        bsCollapse.show();
+                        // Atualiza o atributo aria-expanded
+                        toggleButton.setAttribute('aria-expanded', 'true');
+                    }
+                }
+            }
+            
+            // Opcional: ao clicar em um link, atualiza o active imediatamente (útil para navegação SPA, mas também para consistência)
+            allLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    allLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
         });
     </script>
 </body>
