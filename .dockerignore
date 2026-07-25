@@ -83,6 +83,12 @@ celerybeat.pid
 
 # Environments
 .env
+.env.*
+!**/.env-example
+!**/.env.prod.example
+dotenv_files/.env
+dotenv_files/.env.dev
+dotenv_files/.env.prod
 .venv
 env/
 venv/
@@ -112,3 +118,22 @@ node_modules/
 
 # VS Code
 .vscode
+
+# Git metadata, local data, user uploads and TLS certificates
+.git/
+.github/
+data/
+mediataapp/media/
+mediataapp/comprovantes/
+mediataapp/anexos/
+mediataapp/nfe/
+certbot/
+certbot-etc/
+certbot-var/
+
+# Local databases and backups
+*.sqlite3
+*.db
+*.sql
+*.dump
+*.bak

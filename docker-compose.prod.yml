@@ -8,19 +8,44 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./certbot/conf:/etc/letsencrypt
-      - ./certbot/www:/var/www/certbot
-      - ./data/web/static:/data/web/static
-      - ./data/web/media:/data/web/media
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./data/web/static:/data/web/static:ro
+      - ./data/web/media:/data/web/media:ro
     depends_on:
-      - mediataapp
+      mediataapp:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - mediata-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 512M
+        reservations:
+          cpus: '1'
+          memory: 256M
 
   mediataapp:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+      cache_from:
+        - mediataapp:latest
+    image: mediataapp:latest
     container_name: mediataapp_prod
     env_file:
       - ./dotenv_files/.env.prod
@@ -28,14 +53,34 @@ services:
       - ./data/web/static:/data/web/static
       - ./data/web/media:/data/web/media
     expose:
-      - "8000"  # ✅ MUDADO: de ports para expose
+      - "8000"
     environment:
       - ENVIRONMENT=production
     depends_on:
-      - psql
+      psql:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - mediata-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 1G
+        reservations:
+          cpus: '1'
+          memory: 512M
 
   psql:
     container_name: psql_prod
@@ -47,24 +92,55 @@ services:
     restart: unless-stopped
     networks:
       - mediata-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
 
   certbot:
-    image: certbot/certbot
+    image: certbot/certbot:latest
     container_name: certbot_prod
     volumes:
       - ./certbot/conf:/etc/letsencrypt
       - ./certbot/www:/var/www/certbot
     depends_on:
-      - nginx
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+      nginx:
+        condition: service_healthy
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet --non-interactive; sleep 12h & wait $${!}; done;'"
     restart: unless-stopped
     networks:
       - mediata-network
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "2"
 
 volumes:
   pgdata_prod:
     driver: local
+    labels:
+      backup: "true"
+      app: "mediata"
 
 networks:
   mediata-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

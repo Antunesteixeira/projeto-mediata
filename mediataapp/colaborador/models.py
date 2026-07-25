@@ -1,4 +1,5 @@
 from django.db import models
+from django.contrib.auth.models import User
 
 class Colaborador(models.Model):
     # Tipo de pessoa
@@ -10,6 +11,14 @@ class Colaborador(models.Model):
         max_length=2,
         choices=TIPO_PESSOA_CHOICES,
         default='PF'
+    )
+
+    user = models.OneToOneField(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='colaborador'
     )
 
     # Pessoa Física

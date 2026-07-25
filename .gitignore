@@ -1,10 +1,12 @@
 # Meus Ignore   
 #/mediataapp/static/
 /mediataapp/media/
+/mediataapp/comprovantes/
 /mediataapp/mediata/local_settings.py
 /mediataapp/anexos/
 /mediataapp/nfe/
-data/
+/data/web/media/
+/data/web/static/admin/
 certbot/
 certbot-etc/
 certbot-var/
@@ -114,7 +116,10 @@ celerybeat-schedule.*
 # Environments 
 .env
 .env.prod
-.env.dev 
+.env.dev
+/dotenv_files/.env
+/dotenv_files/.env.prod
+/dotenv_files/.env.dev
 .venv 
 env/ 
 venv/ 

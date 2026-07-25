@@ -294,7 +294,7 @@
                     </a>
                     {{ item.item }}
                   </td>
-                  <td>{{ item.quant }}</td>
+                  <td>{{ item.quant|floatformat:2 }}</td>
                   <td>{{ item.item.unidade }}</td>
                   <td>R$ {{ item.item.valor_unit }}</td>
                   <td>

@@ -2,10 +2,37 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from .forms import ColaboradorForm
 from .models import Colaborador
-
 from django.contrib.auth.decorators import login_required
+from usuarios.forms import CustomUserCreationForm
 
-from django.contrib import messages
+@login_required
+def criar_usuario_para_colaborador(request, colaborador_id):
+    colaborador = get_object_or_404(Colaborador, pk=colaborador_id)
+    if colaborador.user:
+        messages.error(request, 'Este colaborador já possui um usuário vinculado.')
+        return redirect('perfil_colaborador', id=colaborador.id)
+
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            group = form.cleaned_data.get('group')
+            if group:
+                user.groups.add(group)
+            colaborador.user = user
+            colaborador.save(update_fields=['user'])
+            messages.success(request, f'Usuário {user.username} criado e vinculado ao colaborador.')
+            return redirect('perfil_colaborador', id=colaborador.id)
+    else:
+        initial_data = {'email': colaborador.email} if colaborador.email else {}
+        form = CustomUserCreationForm(initial=initial_data)
+
+    return render(
+        request,
+        'colaboradores/criar_usuario.html',
+        {'form': form, 'colaborador': colaborador},
+    )
+
 
 @login_required
 def cadastrar_colaborador(request):

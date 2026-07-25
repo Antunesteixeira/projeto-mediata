@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import views
+from .health import health_check
 
 urlpatterns = [
     path('', views.index, name="index"),
@@ -12,4 +13,5 @@ urlpatterns = [
     path('empresa/<int:pk>/', views.EmpresaDetailView.as_view(), name='empresa_perfil'),
     path('empresas/', views.EmpresaListView.as_view(), name='empresa_lista'),
     path('empresa/success/', views.success_view, name='empresa_success'),
+    path('health/', health_check, name='health'),
 ]

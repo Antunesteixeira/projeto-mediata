@@ -12,7 +12,8 @@ RUN apk add --no-cache \
     jpeg-dev zlib-dev git gcc musl-dev python3-dev \
     pango cairo pango-dev cairo-dev \
     py3-pip py3-pillow py3-cffi \
-    g++ libffi-dev gdk-pixbuf-dev giflib-dev fontconfig ttf-dejavu
+    g++ libffi-dev gdk-pixbuf-dev giflib-dev fontconfig ttf-dejavu \
+    curl
 
 # ✅ CORREÇÃO DO FONTCONFIG - ADICIONE ESTAS 2 LINHAS:
 RUN mkdir -p /usr/share/fonts /root/.cache/fontconfig /var/cache/fontconfig

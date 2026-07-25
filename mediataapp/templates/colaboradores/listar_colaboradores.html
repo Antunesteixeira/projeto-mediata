@@ -43,9 +43,9 @@
                         <tr>
                             <th width="10%">Tipo</th>
                             <th width="25%">Nome/Razão Social</th>
-                            <th width="15%">CPF/CNPJ</th>
-                            <th width="20%">Contato</th>
-                            <th width="20%">Dados Bancários</th>
+                            <th width="15%">Função</th>
+                            <th width="20%">Telefone</th>
+                            <th width="20%">Endereço</th>
                             <th width="10%" class="text-end">Ações</th>
                         </tr>
                     </thead>
@@ -83,22 +83,18 @@
                                 </div>
                             </td>
                             <td>
-                                {% if colaborador.tipo_pessoa == 'PF' %}
-                                    {{ colaborador.cpf|default:"—" }}
-                                {% else %}
-                                    {{ colaborador.cnpj|default:"—" }}
-                                {% endif %}
-                            </td>
-                            <td>
                                 <div>
-                                    <div><i class="bi bi-envelope me-1"></i> {{ colaborador.email|default:"—" }}</div>
-                                    <small><i class="bi bi-telephone me-1"></i> {{ colaborador.telefone|default:"—" }}</small>
+                                    <div><i class="bi bi-briefcase me-1"></i> {{ colaborador.funcao|default:"—" }}</div>
                                 </div>
                             </td>
                             <td>
                                 <div>
-                                    <div><i class="bi bi-bank me-1"></i> {{ colaborador.banco|default:"—" }}</div>
-                                    <small><i class="bi bi-wallet me-1"></i> {{ colaborador.chave_pix|default:"—" }}</small>
+                                    <div><i class="bi bi-telephone me-1"></i> {{ colaborador.telefone|default:"—" }}</div>
+                                </div>
+                            </td>
+                            <td>
+                                <div>
+                                    <div><i class="bi bi-geo-alt me-1"></i> {{ colaborador.endereco|default:"—" }}</div>
                                 </div>
                             </td>
                             <td class="text-end">

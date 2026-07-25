@@ -17,3 +17,14 @@ class Operador(AbstractUserRole):
         'criar_insumo': True,
     }
 
+class Cliente(AbstractUserRole):
+    available_permissions = {
+        'criar_ticket': True,
+        'ver_ticket': True,
+    }
+
+class Colaborador(AbstractUserRole):
+    available_permissions = {
+        'ver_ticket': True,
+    }
+

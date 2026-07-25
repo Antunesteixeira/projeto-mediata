@@ -146,10 +146,11 @@ def exibirticket(request, key):
                             messages.error(request, "Dados incompletos para o item de orçamento.")
                         else:
                             try:
+                                quantidade = quantidade.replace(',', '.')
                                 item_orcamento = ItemOrcamento(
                                     orcamento=orcamento,
                                     item_id=item_id,
-                                    quant=int(quantidade)
+                                    quant=Decimal(quantidade)
                                 )
                                 item_orcamento.save()
                                 messages.success(request, "Item adicionado com sucesso!")

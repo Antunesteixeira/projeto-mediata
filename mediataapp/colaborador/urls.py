@@ -7,4 +7,5 @@ urlpatterns = [
     path('editar-colaborador/<int:colaborador_id>/', views.editar_colaborador, name='editar-colaborador'),
     path('deletar/<int:colaborador_id>/', views.deletar_colaborador, name='deletar-colaborador'),
     path('colaboradores/<int:id>/', views.perfil_colaborador, name='perfil_colaborador'),
+    path('colaborador/<int:colaborador_id>/criar-usuario/', views.criar_usuario_para_colaborador, name='criar_usuario_colaborador'),
 ]

@@ -1,5 +1,6 @@
 from django.db import models
 import uuid
+from decimal import Decimal
 
 from django.contrib.auth.models import User
 from insumos.models import Insumos
@@ -84,7 +85,7 @@ class ItemOrcamento(models.Model):
     orcamento = models.ForeignKey(Orcamento, on_delete=models.SET_NULL, null=True)
     item = models.ForeignKey(Insumos, on_delete=models.SET_NULL, null=True)
     data_cadastro = models.DateTimeField(auto_now_add=True)
-    quant =  models.IntegerField(default=1)
+    quant = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('1.00'))
 
 
 class Material(models.Model):
@@ -159,7 +160,7 @@ class Recebimentos(models.Model):
 
     FORMA_PAGAMENTO_CHOICES = (
         ('À vista', 'À vista'),
-        ('Parcelado', 'Parcelado'),
+        ('A Prazo', 'A Prazo'),
     )
 
     razao_social = models.CharField(max_length=255, null=True, blank=True)

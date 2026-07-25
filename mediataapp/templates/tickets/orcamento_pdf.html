@@ -114,7 +114,7 @@
                 <td>{{ forloop.counter }}</td>
                 <td>{{ item.item.insumo }}</td>
                 <td>{{ item.item.unidade }}</td>
-                <td>{{ item.quant }}</td>
+                <td>{{ item.quant|floatformat:2 }}</td>
                 <td>R$ {{ item.item.valor_unit|floatformat:2 }}</td>
                 <td>R$ {{ item.subtotal_calculado|floatformat:2 }}</td>
             </tr>

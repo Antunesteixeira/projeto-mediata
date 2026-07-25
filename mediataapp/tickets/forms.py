@@ -155,7 +155,9 @@ class ItemOrcamentoForm(forms.ModelForm):
             }),
             'quant': forms.NumberInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Ex: 5'
+                'placeholder': 'Ex: 5.50',
+                'step': '0.01',
+                'min': '0'
             }),
         }
 
