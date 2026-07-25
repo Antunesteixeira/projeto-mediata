@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   nginx:
     image: nginx:alpine
@@ -40,12 +38,7 @@ services:
           memory: 256M
 
   mediataapp:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      cache_from:
-        - mediataapp:latest
-    image: mediataapp:latest
+    image: antuneszi/projeto-mediata:latest
     container_name: mediataapp_prod
     env_file:
       - ./dotenv_files/.env.prod
@@ -93,7 +86,7 @@ services:
     networks:
       - mediata-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -141,6 +134,3 @@ volumes:
 networks:
   mediata-network:
     driver: bridge
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
