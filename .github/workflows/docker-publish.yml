@@ -64,8 +64,9 @@ jobs:
           set -eu
 
           APP_DIR="$HOME/projeto-mediata"
-          COMPOSE_FILE="docker-compose.prod.yml"
           IMAGE="antuneszi/projeto-mediata:latest"
+          CONTAINER="mediataapp_prod"
+          NETWORK="projeto-mediata_mediata-network"
           BACKUP_DIR="$HOME/mediata-vm-backup/automaticos"
 
           cd "$APP_DIR"
@@ -76,16 +77,30 @@ jobs:
             'pg_dump -U "$POSTGRES_USER" "$POSTGRES_DB"' > "$BACKUP_FILE"
           test -s "$BACKUP_FILE"
 
-          PREVIOUS_IMAGE_ID="$(docker inspect mediataapp_prod \
+          PREVIOUS_IMAGE_ID="$(docker inspect "$CONTAINER" \
             --format '{{.Image}}' 2>/dev/null || true)"
 
+          start_app() {
+            target_image="$1"
+            docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
+            docker run -d \
+              --name "$CONTAINER" \
+              --restart unless-stopped \
+              --network "$NETWORK" \
+              --network-alias mediataapp \
+              --env-file "$APP_DIR/dotenv_files/.env.prod" \
+              -e ENVIRONMENT=production \
+              -v "$APP_DIR/data/web/static:/data/web/static" \
+              -v "$APP_DIR/data/web/media:/data/web/media" \
+              "$target_image"
+          }
+
           docker pull "$IMAGE"
-          docker compose -f "$COMPOSE_FILE" up -d \
-            --no-deps --force-recreate mediataapp
+          start_app "$IMAGE"
 
           APP_READY=0
           for attempt in $(seq 1 18); do
-            if docker exec mediataapp_prod \
+            if docker exec "$CONTAINER" \
               curl -fsS http://localhost:8000/health/ >/dev/null 2>&1; then
               APP_READY=1
               break
@@ -94,11 +109,9 @@ jobs:
           done
 
           if [ "$APP_READY" -ne 1 ]; then
-            docker logs --tail=100 mediataapp_prod || true
+            docker logs --tail=100 "$CONTAINER" || true
             if [ -n "$PREVIOUS_IMAGE_ID" ]; then
-              docker tag "$PREVIOUS_IMAGE_ID" "$IMAGE"
-              docker compose -f "$COMPOSE_FILE" up -d \
-                --no-deps --force-recreate mediataapp
+              start_app "$PREVIOUS_IMAGE_ID"
               docker restart nginx_prod
             fi
             echo "A nova imagem não ficou saudável; rollback executado."
@@ -108,6 +121,6 @@ jobs:
           docker restart nginx_prod
           find "$BACKUP_DIR" -type f -name 'banco-*.sql' -mtime +7 -delete
 
-          docker inspect mediataapp_prod \
+          docker inspect "$CONTAINER" \
             --format 'Imagem={{.Config.Image}} Status={{.State.Status}}'
           DEPLOY
