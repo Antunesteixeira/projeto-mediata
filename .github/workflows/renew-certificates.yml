@@ -1,0 +1,46 @@
+name: Renovar certificado TLS
+
+on:
+  schedule:
+    - cron: "17 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: producao-mediata
+  cancel-in-progress: false
+
+jobs:
+  renew:
+    name: Verificar certificado e recarregar Nginx
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configurar acesso SSH
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VM_SSH_PRIVATE_KEY" > ~/.ssh/mediata_deploy
+          chmod 600 ~/.ssh/mediata_deploy
+          ssh-keyscan -H "$VM_HOST" >> ~/.ssh/known_hosts
+
+      - name: Renovar e ativar certificado
+        env:
+          VM_HOST: ${{ secrets.VM_HOST }}
+          VM_USER: ${{ secrets.VM_USER }}
+        run: |
+          ssh -i ~/.ssh/mediata_deploy "$VM_USER@$VM_HOST" 'bash -se' <<'RENEW'
+          set -eu
+
+          docker exec certbot_prod certbot renew --quiet --non-interactive
+          docker exec nginx_prod nginx -t
+          docker exec nginx_prod nginx -s reload
+
+          echo | openssl s_client \
+            -connect 127.0.0.1:443 \
+            -servername mediatanordeste.com.br 2>/dev/null \
+            | openssl x509 -noout -subject -dates
+          RENEW
