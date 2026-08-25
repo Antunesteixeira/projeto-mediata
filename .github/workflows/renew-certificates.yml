@@ -1,6 +1,11 @@
 name: Renovar certificado TLS
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/renew-certificates.yml
   schedule:
     - cron: "17 8 * * *"
   workflow_dispatch:
