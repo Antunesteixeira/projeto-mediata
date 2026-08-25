@@ -14,7 +14,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: producao-mediata
+  group: certificado-mediata
   cancel-in-progress: false
 
 jobs:
