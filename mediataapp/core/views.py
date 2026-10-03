@@ -4,7 +4,7 @@ from django.contrib.auth import login as login_django
 from django.contrib.auth.decorators import login_required
 
 from django.http import Http404
-from tickets.models import Ticket, Orcamento, Pagamentos
+from tickets.models import Ticket
 from insumos.models import Insumos 
 
 from rolepermissions.checkers import has_role
@@ -23,6 +23,7 @@ import logging
 # views.py
 from django.contrib import messages
 from .models import Empresa
+from .dashboard import build_dashboard_context
 
 # views.py
 from django.views.generic import DetailView
@@ -32,9 +33,6 @@ from django.views.generic import CreateView, UpdateView, DetailView, ListView
 from django.urls import reverse_lazy
 from .models import Empresa, HorarioFuncionamento, Funcionario, Servico
 from .forms import EmpresaForm, HorarioFuncionamentoForm, FuncionarioForm, ServicoForm
-
-from django.db.models import Sum, Case, When, Value, IntegerField, F, Prefetch
-
 
 logger = logging.getLogger(__name__)
 
@@ -67,70 +65,17 @@ def sair(request):
 
 @login_required
 def dashboard(request):
-    usuario = request.user
-    hoje = timezone.now()
-    
-    if not Empresa.objects.exists():
+    empresa = Empresa.objects.first()
+    if empresa is None:
         # Se não houver empresa cadastrada, redireciona para o cadastro
         messages.info(request, 'Por favor, cadastre a empresa antes de acessar o dashboard.')
         return redirect('empresa_cadastrar')
 
-    # Tickets base
-    tickets = Ticket.objects.filter(
-        usuario=usuario,
-        status__in=["V", "X", "E", "A"]
-    ).annotate(
-        custom_order=Case(
-            When(status='L', then=Value(0)),
-            When(status='A', then=Value(1)),
-            default=Value(2),
-            output_field=IntegerField(),
-        )
-    ).order_by('custom_order')
-
-    # Se for superuser ou gerente -> vê todos
-    if usuario.is_superuser or has_role(usuario, [User, 'gerente']):
-        tickets_total = Ticket.objects.count()
-        orcamentos = Orcamento.objects.filter(
-            data_criacao__year=hoje.year,
-            data_criacao__month=hoje.month
-        )
-        tickets = Ticket.objects.all()
-    else:
-        tickets_total = Ticket.objects.filter(usuario=usuario).count()
-        orcamentos = Orcamento.objects.filter(
-            ticket_orcamento__usuario=usuario,
-            data_criacao__year=hoje.year,
-            data_criacao__month=hoje.month
-        )
-        tickets = Ticket.objects.filter(usuario=usuario)
-
-    # Soma do valor total de orçamentos no mês
-    total_mes = orcamentos.aggregate(total=Sum('valor_total'))['total'] or 0
-
-    # Calcula totais de orçamentos e pagamentos por ticket
-    tickets = tickets.prefetch_related(
-        Prefetch("orcamento_set", queryset=Orcamento.objects.all(), to_attr="orcamentos_prefetch"),
-        Prefetch("pagamentos", queryset=Pagamentos.objects.all(), to_attr="pagamentos_prefetch"),
-    )
-
-    for ticket in tickets:
-        ticket.total_orcamentos = sum([orc.valor_total for orc in getattr(ticket, "orcamentos_prefetch", [])])
-        ticket.total_pagamentos = sum([pag.valor_pagamento for pag in getattr(ticket, "pagamentos_prefetch", [])])
-
-    # Calcula métricas gerais
-    orcamento_total = sum([ticket.total_orcamentos for ticket in tickets])
-    total_pagamentos = sum([ticket.total_pagamentos for ticket in tickets])
-    total_lucros = orcamento_total - total_pagamentos
-
-    context = {
-        'tickets': tickets,
-        'tickets_total': tickets_total,
-        "orcamentos": orcamentos,
-        "total_mes": total_mes,
-        "total_lucros": total_lucros,
-    }
-
+    can_view_all = request.user.is_superuser or has_role(request.user, 'gerente')
+    tickets = Ticket.objects.all()
+    if not can_view_all:
+        tickets = tickets.filter(usuario=request.user)
+    context = build_dashboard_context(tickets, empresa, can_view_all, now=timezone.now())
     return render(request, 'home/dashboard.html', context)
 
 @login_required

@@ -708,3 +708,36 @@ def deletar_recebimento(request, recebimento_id, key):
         recebimento.delete()
         messages.success(request, 'Recebimento removido com sucesso.')
     return redirect('exibir-ticket', key=key)
+
+
+@login_required
+def gerar_pdf_ticket(request, key):
+    from django.utils.text import slugify
+    from .reports import ticket_report
+    from pathlib import Path
+    import base64
+
+    tickets = Ticket.objects.select_related('usuario', 'cliente', 'colaborador')
+    if not (request.user.is_superuser or has_role(request.user, 'gerente')):
+        tickets = tickets.filter(usuario=request.user)
+    ticket = get_object_or_404(tickets, key=key)
+    context = ticket_report(ticket)
+    context['company'] = Empresa.objects.first()
+    context['generated_by'] = request.user.get_full_name() or request.user.username
+    logo_path = Path(settings.BASE_DIR) / 'tickets' / 'assets' / 'logo-mediata.png'
+    context['logo_data_uri'] = (
+        'data:image/png;base64,' + base64.b64encode(Path(logo_path).read_bytes()).decode('ascii')
+        if logo_path.is_file() else None
+    )
+    responsible = ticket.usuario
+    context['operation_responsible'] = (
+        responsible.get_full_name() or responsible.username if responsible else ''
+    )
+    html = get_template('tickets/ticket_pdf.html').render(context)
+    # A logo é incorporada ao documento, sem requisições HTTP externas.
+    pdf = HTML(string=html).write_pdf()
+    response = HttpResponse(pdf, content_type='application/pdf')
+    filename = slugify(ticket.ticket) or str(ticket.key)
+    response['Content-Disposition'] = f'attachment; filename="ticket_{filename}_completo.pdf"'
+    response['Cache-Control'] = 'private, no-store'
+    return response

@@ -1,152 +1,125 @@
 {% extends '_layout/base.html' %}
-{% load permission_tags %}
+{% load permission_tags l10n %}
 
 {% block conteudo %}
-<div class="container-fluid px-4">
-    <h2 class="mt-4"><i class="bi bi-speedometer2 me-2"></i>Visão Geral</h2>
-    
-    <!-- Cards de Métricas -->
-    <div class="row g-4 mt-3">
-        <!-- Tickets -->
-        <div class="col-xl-3 col-md-6">
-            <a href="{% url 'index-tickets' %}" class="text-decoration-none">
-                <div class="card bg-primary text-white h-100 shadow-lg border-0">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="card-title mb-2">Tickets</h5>
-                                <h2 class="mb-0">{{ tickets_total }}</h2>
-                                <p class="small mb-0">Total registrados</p>
-                            </div>
-                            <i class="bi bi-ticket-detailed-fill fs-1 opacity-50"></i>
-                        </div>
-                    </div>
-                    <div class="card-footer bg-primary-dark bg-opacity-10 d-flex justify-content-between align-items-center">
-                        <span class="small">Ver todos</span>
-                        <i class="bi bi-arrow-right-short"></i>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <!-- Relatórios 
-        <div class="col-xl-3 col-md-6">
-            <a href="{% url 'relatorios' %}" class="text-decoration-none">
-                <div class="card bg-success text-white h-100 shadow-lg border-0">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="card-title mb-2">Relatórios</h5>
-                                <h2 class="mb-0">R$ {{ total_lucros }}</h2>
-                                <p class="small mb-0">Meu Lucro este mês</p>
-                            </div>
-                            <i class="bi bi-graph-up-arrow fs-1 opacity-50"></i>
-                        </div>
-                    </div>
-                    <div class="card-footer bg-success-dark bg-opacity-10 d-flex justify-content-between align-items-center">
-                        <span class="small">Ver relatórios</span>
-                        <i class="bi bi-arrow-right-short"></i>
-                    </div>
-                </div>
-            </a>
-        </div> -->
-
-        <!-- Orçamentos -->
-        <div class="col-xl-3 col-md-6">
-            <a href="#" class="text-decoration-none">
-                <div class="card bg-danger text-white h-100 shadow-lg border-0">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="card-title mb-2">Orçamentos</h5>
-                                <h2 class="mb-0">R$ {{ total_mes }}</h2>
-                                <p class="small mb-0">Este mês</p>
-                            </div>
-                            <i class="bi bi-cash-coin fs-1 opacity-50"></i>
-                        </div>
-                    </div>
-                    <div class="card-footer bg-danger-dark bg-opacity-10 d-flex justify-content-between align-items-center">
-                        <span class="small">Ver orçamentos</span>
-                        <i class="bi bi-arrow-right-short"></i>
-                    </div>
-                </div>
-            </a>
-        </div>
-
-        <!-- Suporte -->
-        <div class="col-xl-3 col-md-6">
-            <a href="#" class="text-decoration-none">
-                <div class="card bg-warning text-dark h-100 shadow-lg border-0">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h5 class="card-title mb-2">Suporte</h5>
-                                <h4 class="mb-0">(86) 99481-5923</h4>
-                                <p class="small mb-0">Contato direto</p>
-                            </div>
-                            <i class="bi bi-headset fs-1 opacity-50"></i>
-                        </div>
-                    </div>
-                    <div class="card-footer bg-warning-dark bg-opacity-10 d-flex justify-content-between align-items-center">
-                        <span class="small">Ligar agora</span>
-                        <i class="bi bi-arrow-right-short"></i>
-                    </div>
-                </div>
-            </a>
-        </div>
+{% include 'home/dashboard_styles.html' %}
+<div class="dashboard-shell">
+  <header class="dashboard-heading">
+    <div>
+      <div class="dashboard-eyebrow">MEDIATA <span></span> GESTÃO DE SERVIÇOS</div>
+      <h1>Visão geral da operação</h1>
+      <p>Acompanhe sua operação, suas finanças e as pessoas que fazem acontecer.</p>
     </div>
+    <div class="dashboard-heading-actions">
+      <span class="dashboard-scope"><span class="scope-dot"></span>{{ dashboard_scope }}</span>
+      {% if user|can:'criar_ticket' %}<a class="btn dashboard-primary" href="{% url 'cadastro-ticket' %}"><i class="bi bi-plus-lg" aria-hidden="true"></i> Novo ticket</a>{% else %}<a class="btn dashboard-primary" href="{% url 'index-tickets' %}">Ver tickets <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% endif %}
+    </div>
+  </header>
+  <div class="dashboard-toolbar">
+    <nav aria-label="Seções do dashboard" class="dashboard-sections">
+      <a href="#dashboard-overview" class="is-active">Visão geral</a>
+      <a href="#dashboard-people">Pessoas</a>
+      <a href="#dashboard-tickets">Tickets</a>
+    </nav>
+    <span class="dashboard-updated"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> Atualizado em {{ dashboard_updated_at|date:"d/m/Y H:i" }}</span>
+  </div>
 
-    <!-- Seção de Tickets -->
-    <div class="card mt-4 shadow-lg border-0">
-        <div class="card-header bg-white d-flex justify-content-between align-items-center py-3">
-            <h3 class="mb-0"><i class="bi bi-ticket-detailed me-2"></i>Tickets Recentes</h3>
-            <a href="{% url 'index-tickets' %}" class="btn btn-outline-primary btn-sm">
-                Ver todos <i class="bi bi-arrow-right ms-1"></i>
-            </a>
+  <section id="dashboard-overview" aria-label="Indicadores da operação" class="dashboard-metrics">
+    <article class="dashboard-metric">
+      <div class="metric-top"><span>Total de tickets</span><span class="metric-icon metric-blue"><i class="bi bi-ticket-perforated" aria-hidden="true"></i></span></div>
+      <strong>{{ dashboard_metrics.tickets_total }}</strong>
+      <div class="metric-foot"><span class="metric-tag">{{ dashboard_metrics.active }} ativos</span><span>{{ dashboard_metrics.finalized }} finalizados</span></div>
+    </article>
+    <article class="dashboard-metric">
+      <div class="metric-top"><span>Orçamentos do mês</span><span class="metric-icon metric-violet"><i class="bi bi-file-earmark-text" aria-hidden="true"></i></span></div>
+      <strong class="metric-money">R$ {{ dashboard_metrics.budget_month|floatformat:"2g" }}</strong>
+      <div class="metric-foot">{{ dashboard_updated_at|date:"F/Y" }} <span class="metric-divider">·</span> valores cadastrados</div>
+    </article>
+    <article class="dashboard-metric">
+      <div class="metric-top"><span>Pagamentos realizados</span><span class="metric-icon metric-green"><i class="bi bi-check2-circle" aria-hidden="true"></i></span></div>
+      <strong class="metric-money">R$ {{ dashboard_metrics.paid_total|floatformat:"2g" }}</strong>
+      <div class="metric-foot">Total pago nos tickets desta visão</div>
+    </article>
+    <article class="dashboard-metric">
+      <div class="metric-top"><span>A receber</span><span class="metric-icon metric-orange"><i class="bi bi-wallet2" aria-hidden="true"></i></span></div>
+      <strong class="metric-money">R$ {{ dashboard_metrics.receivable_total|floatformat:"2g" }}</strong>
+      <div class="metric-foot">Recebimentos ainda pendentes</div>
+    </article>
+  </section>
+
+  <section class="dashboard-chart-grid" aria-label="Evolução e distribuição dos tickets">
+    <article class="dashboard-panel trend-panel">
+      <div class="panel-heading">
+        <div><div class="panel-eyebrow">ACOMPANHAMENTO</div><h2>Evolução mensal</h2><p>Últimos 6 meses, por data de cadastro</p></div>
+        <div class="chart-switch" role="group" aria-label="Indicador da evolução mensal">
+          <button type="button" class="is-active" data-trend="budget" aria-pressed="true">Orçamentos</button>
+          <button type="button" data-trend="tickets" aria-pressed="false">Tickets</button>
         </div>
-        
-        <div class="card-body">
-            <!-- Filtros -->
-            <div class="row mb-4 g-3 align-items-end">
-                <div class="col-md-4">
-                    <label for="filtro-status" class="form-label">Filtrar por Status</label>
-                    <select id="filtro-status" class="form-select">
-                        <option value="">Todos os Status</option>
-                        <option value="Executado">Executado</option>
-                        <option value="Em execução">Em execução</option>
-                        <option value="Cotação">Cotação</option>
-                        <option value="Levantamento">Levantamento</option>
-                        <option value="Aprovado">Aprovado</option>
-                        <option value="Finalizado">Finalizado</option>
-                        <option value="Vistoriado">Vistoriado</option>
-                        <option value="Rejeitado">Rejeitado</option>
-                    </select>
-                </div>
-                
-                <div class="col-md-4">
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="bi bi-search"></i></span>
-                        <input type="text" id="search-box" class="form-control" placeholder="Pesquisar tickets...">
-                    </div>
-                </div>
-            </div>
+      </div>
+      <div class="chart-kicker"><span id="trend-total">R$ 0,00</span><span id="trend-caption">orçados no período</span></div>
+      <div class="dashboard-chart" id="monthly-chart" aria-label="Gráfico de evolução mensal"></div>
+      <details class="chart-data"><summary>Ver dados do gráfico</summary><div class="table-responsive"><table class="chart-data-table"><thead><tr><th>Mês</th><th>Tickets</th><th>Orçamentos</th></tr></thead><tbody>{% for month in dashboard_charts.monthly %}<tr><td>{{ month.label }}</td><td>{{ month.tickets }}</td><td>R$ {{ month.budget|floatformat:"2g" }}</td></tr>{% endfor %}</tbody></table></div></details>
+    </article>
+    <article class="dashboard-panel status-panel">
+      <div class="panel-heading"><div><div class="panel-eyebrow">OPERAÇÃO</div><h2>Tickets por status</h2><p>Clique em um status para filtrar a tabela</p></div><span class="panel-icon"><i class="bi bi-pie-chart" aria-hidden="true"></i></span></div>
+      <div class="status-donut-wrap"><div class="status-donut" id="status-donut" role="img" aria-label="Distribuição dos tickets por status"><div><strong>{{ dashboard_metrics.tickets_total }}</strong><span>tickets</span></div></div></div>
+      <div id="status-legend" class="status-legend"></div>
+      {% if not dashboard_metrics.tickets_total %}<p class="chart-empty-note">Os status aparecerão após o primeiro ticket.</p>{% endif %}
+    </article>
+  </section>
 
-            
+  <section class="dashboard-secondary-grid" aria-label="Análise financeira">
+    <article class="dashboard-panel">
+      <div class="panel-heading"><div><div class="panel-eyebrow">DISTRIBUIÇÃO FINANCEIRA</div><h2>Tickets por faixa de orçamento</h2><p>Quantidade de tickets com orçamento maior que zero</p></div><span class="panel-icon"><i class="bi bi-bar-chart" aria-hidden="true"></i></span></div>
+      <div class="dashboard-chart histogram-chart" id="histogram-chart" aria-label="Histograma de tickets por faixa de orçamento"></div>
+      <details class="chart-data"><summary>Ver dados do histograma</summary><table class="chart-data-table"><thead><tr><th>Faixa</th><th>Tickets</th></tr></thead><tbody>{% for bin in dashboard_charts.histogram %}<tr><td>{{ bin.label }}</td><td>{{ bin.value }}</td></tr>{% endfor %}</tbody></table></details>
+    </article>
+    <article class="dashboard-panel financial-panel">
+      <div class="panel-heading"><div><div class="panel-eyebrow">FINANCEIRO</div><h2>Valores da operação</h2><p>Totais dos tickets disponíveis nesta visão</p></div><span class="panel-icon"><i class="bi bi-currency-dollar" aria-hidden="true"></i></span></div>
+      <dl class="financial-list">
+        <div><dt><span class="financial-dot dot-blue"></span>Total orçado</dt><dd>R$ {{ dashboard_metrics.budget_total|floatformat:"2g" }}</dd></div>
+        <div><dt><span class="financial-dot dot-green"></span>Pagamentos realizados</dt><dd>R$ {{ dashboard_metrics.paid_total|floatformat:"2g" }}</dd></div>
+        <div><dt><span class="financial-dot dot-orange"></span>Pagamentos pendentes</dt><dd>R$ {{ dashboard_metrics.pending_payments|floatformat:"2g" }}</dd></div>
+        <div><dt><span class="financial-dot dot-cyan"></span>Recebido</dt><dd>R$ {{ dashboard_metrics.received_total|floatformat:"2g" }}</dd></div>
+        <div><dt><span class="financial-dot dot-violet"></span>A receber</dt><dd>R$ {{ dashboard_metrics.receivable_total|floatformat:"2g" }}</dd></div>
+      </dl>
+      <div class="financial-note"><i class="bi bi-info-circle" aria-hidden="true"></i><span>Orçamentos, pagamentos e recebimentos representam etapas diferentes da operação.</span></div>
+    </article>
+  </section>
 
-            <!-- Tabela -->
-            <div class="table-responsive">
+  <section id="dashboard-people" aria-labelledby="people-title">
+    <div class="dashboard-section-heading"><div><h2 id="people-title">Pessoas e participação</h2><p>Os 5 principais por quantidade de tickets vinculados</p></div><span class="section-chip"><i class="bi bi-people" aria-hidden="true"></i> Conexões da operação</span></div>
+    <div class="dashboard-people-grid">
+      {% include 'home/dashboard_ranking.html' with ranking_title='Operadores' ranking_count=dashboard_metrics.operators_count ranking_data=dashboard_charts.operators ranking_icon='bi-person-badge' ranking_class='rank-blue' ranking_empty='Nenhum operador vinculado aos tickets.' %}
+      {% include 'home/dashboard_ranking.html' with ranking_title='Clientes' ranking_count=dashboard_metrics.clients_count ranking_data=dashboard_charts.clients ranking_icon='bi-building' ranking_class='rank-cyan' ranking_empty='Vincule clientes para acompanhar sua participação.' %}
+      {% include 'home/dashboard_ranking.html' with ranking_title='Colaboradores' ranking_count=dashboard_metrics.collaborators_count ranking_data=dashboard_charts.collaborators ranking_icon='bi-people' ranking_class='rank-violet' ranking_empty='Vincule colaboradores para acompanhar sua participação.' %}
+    </div>
+  </section>
+
+  <section class="dashboard-panel ticket-panel" id="dashboard-tickets" aria-labelledby="tickets-title">
+    <div class="panel-heading"><div><div class="panel-eyebrow">CENTRAL DE SERVIÇOS</div><h2 id="tickets-title">Seus tickets, em um só lugar</h2><p>Consulte os detalhes e acompanhe cada etapa da execução.</p></div><a href="{% url 'index-tickets' %}" class="dashboard-text-link">Ver todos <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div>
+    {% if dashboard_metrics.emergency %}<div class="dashboard-emergency"><i class="bi bi-lightning-charge" aria-hidden="true"></i> {{ dashboard_metrics.emergency }} ticket{{ dashboard_metrics.emergency|pluralize }} {% if dashboard_metrics.emergency == 1 %}emergencial{% else %}emergenciais{% endif %} nesta visão.</div>{% endif %}
+    <div class="ticket-filters">
+      <label class="dashboard-search" for="search-box"><i class="bi bi-search" aria-hidden="true"></i><span class="visually-hidden">Pesquisar tickets</span><input id="search-box" type="search" placeholder="Pesquisar ticket, cliente ou colaborador…"></label>
+      <label for="filtro-status" class="visually-hidden">Filtrar por status</label>
+      <select id="filtro-status" class="form-select"><option value="">Todos os status</option>{% for status in dashboard_charts.status %}<option value="{{ status.label }}">{{ status.label }}</option>{% endfor %}</select>
+      <button type="button" id="clear-ticket-filters" class="dashboard-clear">Limpar filtros</button>
+    </div>
+    {% if tickets %}
+    <div class="table-responsive dashboard-table-wrap">
                 <table class="table table-hover align-middle" id="datatablesSimple">
                     <thead class="table-light">
                         <tr>
                             <th scope="col" width="10%">Ticket</th>
                             <th scope="col">Colaborador</th>
                             <th scope="col">Cliente</th>
-                            {% if user|has_role:'gerente' %}
-                            <th scope="col">Prestador</th>
+                            {% if dashboard_can_view_all %}
+                            <th scope="col">Operador</th>
                             {% endif %}
                             <th scope="col" width="12%">Criação</th>
                             <th scope="col" width="10%">Finalização</th>
                             <th scope="col" width="12%">Status</th>
+                            <th scope="col" class="text-end text-nowrap">Valor do orçamento</th>
                             <th scope="col" width="10%">Ações</th>
                         </tr>
                     </thead>
@@ -176,21 +149,21 @@
                                     </a>
                                 {% endif %}
                             </td>
-                            {% if user|has_role:'gerente' %}
+                            {% if dashboard_can_view_all %}
                             <td>
-                                <span class="text-muted">{{ ticket.usuario }}</span>
+                                <span class="text-muted">{% if ticket.usuario %}{{ ticket.usuario.get_full_name|default:ticket.usuario.username }}{% else %}—{% endif %}</span>
                             </td>
                             {% endif %}
-                            <td>
+                            <td data-order="{{ ticket.data_criacao|date:'U' }}">
                                 <small class="text-muted">{{ ticket.data_criacao|date:"d/m/Y H:i" }}</small>
                             </td>
                             <td>
-                                <small class="text-muted">{{ ticket.data_finalizar|date:"d/m/Y" }}</small>
+                                <small class="text-muted">{{ ticket.data_finalizar|date:"d/m/Y"|default:"—" }}</small>
                             </td>
                             <td>
-                                <span class="badge 
-                                    {% if ticket.status == 'L' %}bg-warning text-white
-                                    {% elif ticket.status == 'C' %}bg-primary text-dark
+                                <span class="badge dashboard-status
+                                    {% if ticket.status == 'L' %}bg-warning text-dark
+                                    {% elif ticket.status == 'C' %}bg-primary text-white
                                     {% elif ticket.status == 'A' %}bg-secondary text-white
                                     {% elif ticket.status == 'E' %}bg-info text-dark
                                     {% elif ticket.status == 'X' %}bg-warning text-dark
@@ -210,14 +183,17 @@
                                     {{ ticket.get_status_display }}
                                 </span>
                             </td>
+                            <td class="text-end text-nowrap" data-order="{{ ticket.total_orcamentos|unlocalize }}">
+                                R$ {{ ticket.total_orcamentos|floatformat:"2g" }}
+                            </td>
                             <td>
                                 <div class="d-flex gap-2">
-                                    <a href="{% url 'exibir-ticket' ticket.key %}" class="btn btn-sm btn-outline-primary" 
-                                       data-bs-toggle="tooltip" title="Visualizar">
+                                    <a href="{% url 'exibir-ticket' ticket.key %}" class="btn btn-sm btn-outline-primary"
+                                       data-bs-toggle="tooltip" title="Visualizar" aria-label="Visualizar ticket {{ ticket.ticket }}">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                     <a href="{% url 'editar-ticket' ticket.key %}" class="btn btn-sm btn-outline-success"
-                                       data-bs-toggle="tooltip" title="Editar">
+                                       data-bs-toggle="tooltip" title="Editar" aria-label="Editar ticket {{ ticket.ticket }}">
                                         <i class="bi bi-pencil"></i>
                                     </a>
                                 </div>
@@ -226,121 +202,14 @@
                         {% endfor %}
                     </tbody>
                 </table>
-            </div>
-        </div>
     </div>
+    <p id="ticket-filter-empty" class="chart-empty-note" hidden>Nenhum ticket encontrado com estes filtros.</p>
+    {% else %}
+    <div class="dashboard-empty"><span><i class="bi bi-ticket-perforated" aria-hidden="true"></i></span>{% if user|can:'criar_ticket' %}<h3>Sua operação começa com um ticket</h3><p>Cadastre o primeiro serviço para acompanhar indicadores, pessoas e resultados.</p><a href="{% url 'cadastro-ticket' %}" class="btn dashboard-primary">Criar primeiro ticket <i class="bi bi-arrow-right" aria-hidden="true"></i></a>{% else %}<h3>Seus tickets aparecerão aqui</h3><p>Quando houver tickets disponíveis para sua conta, acompanhe nesta visão os indicadores e as etapas de cada serviço.</p>{% endif %}</div>
+    {% endif %}
+  </section>
+  <footer class="dashboard-footer"><span>MEDIATA <span class="metric-divider">·</span> Gestão conectada, operação organizada.</span><a href="tel:+5586994815923"><i class="bi bi-headset" aria-hidden="true"></i> Suporte</a></footer>
 </div>
-
-<script>
-    $(document).ready(function () {
-        // Determinar a coluna correta para o status
-        // Se o usuário é gerente, a coluna de status está na posição 6 (índice 6)
-        // Se não é gerente, a coluna de status está na posição 5 (índice 5)
-        const isGerente = {% if user|has_role:'gerente' %}true{% else %}false{% endif %};
-        const statusColumnIndex = isGerente ? 6 : 5;
-        
-        // Inicializa DataTable
-        const tabela = $('#datatablesSimple').DataTable({
-            order: [[4, 'desc']], // ordena por "Criação" mais recente primeiro
-            language: {
-                search: "Pesquisar:",
-                lengthMenu: "Mostrar _MENU_ registros por página",
-                info: "Mostrando _START_ a _END_ de _TOTAL_ registros",
-                paginate: {
-                    first: "Primeiro",
-                    last: "Último",
-                    next: "Próximo",
-                    previous: "Anterior"
-                },
-                zeroRecords: "Nenhum resultado encontrado",
-            },
-            dom: '<"top"f>rt<"bottom"lip><"clear">',
-            responsive: true,
-            columnDefs: [
-                {
-                    // Coluna de ações não é pesquisável/ordenável
-                    targets: [statusColumnIndex + 1], // Coluna após o status (Ações)
-                    orderable: false,
-                    searchable: false
-                }
-            ]
-        });
-
-        // Filtro por Status
-        $('#filtro-status').on('change', function () {
-            const statusValue = this.value;
-            
-            if (statusValue === "") {
-                // Se selecionou "Todos os Status", limpa o filtro
-                tabela.column(statusColumnIndex).search('').draw();
-            } else {
-                // Filtra pela coluna de status
-                tabela.column(statusColumnIndex).search(statusValue).draw();
-            }
-        });
-
-        // Pesquisa geral
-        $('#search-box').on('keyup', function() {
-            tabela.search(this.value).draw();
-        });
-
-        // Ativa tooltips
-        $('[data-bs-toggle="tooltip"]').tooltip();
-        
-        // Linhas clicáveis
-        $('.clickable-row').on('click', function() {
-            window.location = $(this).data('href');
-        });
-    });
-
-</script>
-
-<style>
-    .card {
-        border-radius: 0.5rem;
-        transition: transform 0.2s ease-in-out;
-    }
-    
-    .card:hover {
-        transform: translateY(-2px);
-    }
-    
-    .card-header {
-        border-radius: 0.5rem 0.5rem 0 0 !important;
-    }
-    
-    .card-footer {
-        border-radius: 0 0 0.5rem 0.5rem !important;
-    }
-    
-    .bg-primary-dark {
-        background-color: rgba(0, 0, 0, 0.1);
-    }
-    
-    .bg-success-dark, .bg-danger-dark, .bg-warning-dark {
-        background-color: rgba(0, 0, 0, 0.1);
-    }
-    
-    .table-hover tbody tr:hover {
-        background-color: rgba(13, 110, 253, 0.05);
-    }
-    
-    .badge {
-        font-weight: 500;
-        padding: 0.35em 0.65em;
-    }
-    
-    .clickable-row {
-        cursor: pointer;
-    }
-    
-    .clickable-row:hover td {
-        background-color: rgba(13, 110, 253, 0.05);
-    }
-    
-    /* Estilo para o DataTables */
-    .dataTables_filter {
-        display: none; /* Esconde o filtro padrão do DataTables */
-    }
-</style>
+{{ dashboard_charts|json_script:"dashboard-chart-data" }}
+{% include 'home/dashboard_scripts.html' %}
 {% endblock %}

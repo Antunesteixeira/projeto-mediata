@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <title>Ticket {{ ticket.ticket }} — Relatório completo</title>
+  <style>
+    @page { size: A4; margin: 18mm 14mm 20mm;
+      @bottom-right { content: "Página " counter(page) " de " counter(pages); font-size: 9px; color: #64748b; }
+    }
+    body { font-family: "DejaVu Sans", sans-serif; color: #1e293b; font-size: 10px; line-height: 1.5; }
+    header { border-bottom: 3px solid #2563eb; padding-bottom: 12px; }
+    .header-content { display: flex; align-items: center; gap: 18px; }
+    .company-logo { width: 110px; height: auto; max-height: 75px; object-fit: contain; }
+    .signature { margin-top: 35px; padding-top: 16px; break-inside: avoid; text-align: center; }
+    .signature-line { width: 75%; margin: 55px auto 8px; border-top: 1px solid #334155; }
+    .signature p { margin: 4px 0; }
+    h1 { font-size: 22px; margin: 0; } h2 { font-size: 14px; margin-top: 22px; color: #1d4ed8; break-after: avoid; }
+    h3 { font-size: 11px; break-after: avoid; }
+    p { color: #64748b; }
+    table { border-collapse: collapse; width: 100%; margin-bottom: 12px; table-layout: fixed; }
+    th, td { border: 1px solid #e2e8f0; padding: 6px; text-align: left; vertical-align: top; overflow-wrap: anywhere; }
+    th { background: #f1f5f9; font-weight: bold; }
+    .fields th { width: 33%; } thead { display: table-header-group; }
+    .total { text-align: right; font-weight: bold; color: #1e293b; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      {% if logo_data_uri %}<img class="company-logo" src="{{ logo_data_uri }}" alt="Logo da empresa">{% endif %}
+      <div>
+    <h1>Ticket #{{ ticket.ticket }}</h1>
+    <p>Relatório completo • Emitido em {{ issued_at|date:"d/m/Y H:i" }} por {{ generated_by }}</p>
+    {% if company %}<strong>{{ company.nome_fantasia }}</strong> • CNPJ: {{ company.cnpj }}{% endif %}
+      </div>
+    </div>
+  </header>
+  <h2>Informações do ticket</h2>
+  {% include 'tickets/ticket_pdf_fields.html' with fields=ticket_fields %}
+  <h2>Cliente</h2>
+  {% if client_fields %}{% include 'tickets/ticket_pdf_fields.html' with fields=client_fields %}{% else %}<p>Cliente não atribuído.</p>{% endif %}
+  <h2>Colaborador</h2>
+  {% if collaborator_fields %}{% include 'tickets/ticket_pdf_fields.html' with fields=collaborator_fields %}{% else %}<p>Colaborador não atribuído.</p>{% endif %}
+  <h2>Resumo financeiro</h2>
+  {% include 'tickets/ticket_pdf_fields.html' with fields=summary %}
+  <h2>Orçamentos</h2>
+  {% for budget in budgets %}
+    <h3>{{ budget.name }}</h3>
+    {% include 'tickets/ticket_pdf_fields.html' with fields=budget.fields %}
+    <table>
+      <thead><tr><th>Insumo / código</th><th>Tipo / unidade</th><th>Quantidade</th><th>Valor unitário</th><th>Subtotal</th></tr></thead>
+      <tbody>{% for item in budget.items %}<tr><td>{{ item.name }}<br>{{ item.code }}</td><td>{{ item.type }}<br>{{ item.unit|default:"—" }}</td><td>{{ item.quantity|floatformat:2 }}</td><td>{{ item.price }}</td><td>{{ item.subtotal }}</td></tr>{% empty %}<tr><td colspan="5">Nenhum item cadastrado.</td></tr>{% endfor %}</tbody>
+    </table>
+    <p class="total">Total dos itens: {{ budget.total }}</p>
+    {% for fields in budget.materials %}<h3>Material adicional</h3>{% include 'tickets/ticket_pdf_fields.html' %}{% endfor %}
+    {% for fields in budget.services %}<h3>Serviço adicional</h3>{% include 'tickets/ticket_pdf_fields.html' %}{% endfor %}
+  {% empty %}<p>Nenhum orçamento cadastrado.</p>{% endfor %}
+  <h2>Pagamentos e comprovantes</h2>
+  {% for fields in payments %}{% include 'tickets/ticket_pdf_fields.html' %}{% empty %}<p>Nenhum pagamento cadastrado.</p>{% endfor %}
+  <h2>Recebimentos e notas fiscais</h2>
+  {% for fields in receipts %}{% include 'tickets/ticket_pdf_fields.html' %}{% empty %}<p>Nenhum recebimento cadastrado.</p>{% endfor %}
+  <h2>Histórico</h2>
+  {% for fields in history %}{% include 'tickets/ticket_pdf_fields.html' %}{% empty %}<p>Nenhum histórico cadastrado.</p>{% endfor %}
+  <h2>Anexos</h2>
+  {% for fields in attachments %}{% include 'tickets/ticket_pdf_fields.html' %}{% empty %}<p>Nenhum anexo cadastrado.</p>{% endfor %}
+  <p>Os arquivos de anexos, notas fiscais e comprovantes são identificados neste relatório. Consulte seus conteúdos na tela do ticket.</p>
+  <section class="signature">
+    <h2>Assinatura do responsável pela operação</h2>
+    <div class="signature-line"></div>
+    {% if operation_responsible %}<strong>{{ operation_responsible }}</strong>{% endif %}
+    <p>Responsável pela operação</p>
+    <p>Local: ______________________________ &nbsp; Data: ____/____/________</p>
+  </section>
+</body>
+</html>

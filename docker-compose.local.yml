@@ -7,7 +7,7 @@ services:
       - ./dotenv_files/.env.dev
     volumes:
       - ./mediataapp:/mediataapp
-      - static_dev:/data/web/static
+      - ./data/web/static:/data/web/static
       - media_dev:/data/web/media
     ports:
       - "127.0.0.1:8000:8000"
@@ -40,5 +40,4 @@ services:
 
 volumes:
   pgdata_dev:
-  static_dev:
   media_dev:

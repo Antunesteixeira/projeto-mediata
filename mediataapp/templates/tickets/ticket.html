@@ -193,9 +193,14 @@
           {% endif %}
         </div>
       </div>
-      <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
-        <i class="bi bi-trash"></i>
-      </button>
+      <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'gerar_pdf_ticket' ticket.key %}" class="btn btn-sm btn-outline-primary">
+          <i class="bi bi-file-earmark-pdf me-1"></i>PDF completo
+        </a>
+        <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
     </div>
   </div>
 

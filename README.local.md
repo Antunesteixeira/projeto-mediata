@@ -48,7 +48,8 @@ Não é criada uma `.venv` no computador.
 ## Dados locais
 
 O projeto Compose é `mediata-local`. PostgreSQL usa o volume persistente
-`mediata-local_pgdata_dev`; uploads e estáticos usam `media_dev` e `static_dev`.
+`mediata-local_pgdata_dev`; uploads usam `media_dev`. Os estáticos compartilhados
+vêm de `data/web/static` no repositório, montados para leitura pela aplicação.
 Os uploads antigos em `data/web/media` continuam na máquina, mas não são
 copiados automaticamente para o novo volume.
 `./local.sh down` mantém os dados; `./local.sh down -v` apaga os volumes locais.

@@ -1,0 +1,9 @@
+{% load l10n %}
+<article class="dashboard-panel ranking-panel {{ ranking_class }}">
+  <div class="panel-heading"><div class="ranking-title"><span class="ranking-icon"><i class="bi {{ ranking_icon }}" aria-hidden="true"></i></span><div><h3>{{ ranking_title }}</h3><p>{{ ranking_count }} vinculado{{ ranking_count|pluralize }} aos tickets</p></div></div><span class="ranking-count">{{ ranking_count }}</span></div>
+  <ol class="ranking-list">
+    {% for item in ranking_data %}
+    <li><div class="ranking-person"><span class="ranking-position">{{ forloop.counter|stringformat:"02d" }}</span><span class="ranking-name" title="{{ item.label }}">{{ item.label }}</span><strong>{{ item.value }} <span>ticket{{ item.value|pluralize }}</span></strong></div><div class="ranking-track"><div class="ranking-bar" data-rank-value="{{ item.value|unlocalize }}" role="img" aria-label="{{ item.label }}: {{ item.value }} tickets"></div></div></li>
+    {% empty %}<li class="ranking-empty"><i class="bi {{ ranking_icon }}" aria-hidden="true"></i><p>{{ ranking_empty }}</p></li>{% endfor %}
+  </ol>
+</article>

@@ -1,0 +1,174 @@
+<script>
+(() => {
+  'use strict';
+  document.body.classList.add('has-operation-dashboard');
+  const chartData = JSON.parse(document.getElementById('dashboard-chart-data').textContent);
+  const money = value => new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL'}).format(value);
+  const number = value => new Intl.NumberFormat('pt-BR').format(value);
+  const shortMoney = value => value === 0 ? 'R$ 0' : 'R$ ' + new Intl.NumberFormat('pt-BR', {notation:'compact', maximumFractionDigits:1}).format(value);
+  const svgNS = 'http://www.w3.org/2000/svg';
+  function svgNode(tag, attributes = {}, text = '') {
+    const node = document.createElementNS(svgNS, tag);
+    Object.entries(attributes).forEach(([name, value]) => node.setAttribute(name, value));
+    if (text !== '') node.textContent = text;
+    return node;
+  }
+  function chartSVG(container, label) {
+    container.dataset.chartWidth = String(container.clientWidth);
+    const width = Math.min(620, Math.max(280, container.clientWidth));
+    const svg = svgNode('svg', {viewBox:`0 0 ${width} 240`, role:'img', 'aria-label':label});
+    svg.appendChild(svgNode('title', {}, label));
+    container.replaceChildren(svg);
+    return svg;
+  }
+  function bars(containerID, entries, labels, values, currency = false, histogram = false) {
+    const container = document.getElementById(containerID);
+    if (!container) return;
+    const svg = chartSVG(container, histogram ? 'Quantidade de tickets por faixa de orçamento' : currency ? 'Orçamentos cadastrados por mês' : 'Tickets cadastrados por mês');
+    const width = svg.viewBox.baseVal.width;
+    const compact = width < 480;
+    const plot = {left:compact ? 54 : 65, right:width - 18, top:25, bottom:192};
+    const maximum = Math.max(...values, currency ? 1 : 4);
+    const rawStep = maximum / 4;
+    const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep || 1)));
+    const step = Math.max(currency ? 0.25 : 1, Math.ceil(rawStep / magnitude) * magnitude);
+    const maxY = step * 4;
+    for (let tick = 0; tick <= 4; tick++) {
+      const value = tick * step;
+      const y = plot.bottom - (plot.bottom - plot.top) * tick / 4;
+      svg.appendChild(svgNode('line', {x1:plot.left, y1:y, x2:plot.right, y2:y, stroke:'#edf2f8', 'stroke-dasharray':tick ? '4 5' : '0'}));
+      svg.appendChild(svgNode('text', {x:plot.left - 12, y:y + 4, 'text-anchor':'end'}, currency ? (compact ? shortMoney(value).replace(/^R\$\s*/, '') : shortMoney(value)) : number(value)));
+    }
+    const slot = (plot.right - plot.left) / entries.length;
+    const barWidth = slot * (histogram ? 0.85 : 0.42);
+    entries.forEach((entry, index) => {
+      const value = values[index];
+      const height = (value / maxY) * (plot.bottom - plot.top);
+      const x = plot.left + slot * index + (slot - barWidth) / 2;
+      const y = plot.bottom - height;
+      const color = histogram ? '#62afc6' : (index === entries.length - 1 ? '#3268dd' : '#b5c9f7');
+      const label = labels[index] + ': ' + (currency ? money(value) : number(value) + ' tickets');
+      const rect = svgNode('rect', {x, y, width:barWidth, height:Math.max(height, 1), rx:histogram ? 3 : 5, fill:color, tabindex:'0', role:'img', 'aria-label':label});
+      rect.appendChild(svgNode('title', {}, label));
+      svg.appendChild(rect);
+      svg.appendChild(svgNode('text', {x:x + barWidth / 2, y:Math.max(y - 8, 14), 'text-anchor':'middle', class:'chart-value', style:compact ? 'font-size:9px' : ''}, currency ? (compact ? shortMoney(value).replace(/^R\$\s*/, '').replace(/\s/g, '') : shortMoney(value)) : number(value)));
+      const labelNode = svgNode('text', {x:x + barWidth / 2, y:plot.bottom + 24, 'text-anchor':'middle'});
+      const lines = histogram ? labels[index].replace(/R\$\s*/g, '').replace('Até ', '≤ ').replace('Acima de ', '> ').replace('Acima ', '> ').split(/\s+(?=mil)/) : compact ? labels[index].split('/') : [labels[index]];
+      lines.slice(0,2).forEach((line, lineIndex) => labelNode.appendChild(svgNode('tspan', {x:x + barWidth / 2, dy:lineIndex ? 13 : 0}, line)));
+      svg.appendChild(labelNode);
+    });
+    if (values.every(value => value === 0)) {
+      svg.appendChild(svgNode('text', {x:(plot.left + plot.right) / 2, y:97, 'text-anchor':'middle'}, histogram ? 'Sem orçamentos nesta visão' : 'Sem movimento neste período'));
+    }
+  }
+  let activeTrend = 'budget';
+  function renderTrend(metric) {
+    activeTrend = metric;
+    const months = chartData.monthly;
+    const values = months.map(month => Number(month[metric]));
+    bars('monthly-chart', months, months.map(month => month.label), values, metric === 'budget');
+    const total = values.reduce((sum, value) => sum + value, 0);
+    document.getElementById('trend-total').textContent = metric === 'budget' ? money(total) : number(total);
+    document.getElementById('trend-caption').textContent = metric === 'budget' ? 'orçados no período' : 'tickets cadastrados no período';
+    document.querySelectorAll('[data-trend]').forEach(button => {
+      const active = button.dataset.trend === metric;
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', String(active));
+    });
+  }
+  renderTrend('budget');
+  document.querySelectorAll('[data-trend]').forEach(button => button.addEventListener('click', () => renderTrend(button.dataset.trend)));
+  bars('histogram-chart', chartData.histogram, chartData.histogram.map(bin => bin.label), chartData.histogram.map(bin => bin.value), false, true);
+  if (window.ResizeObserver) {
+    const observer = new ResizeObserver(entries => {
+      entries.forEach(({target}) => {
+        if (target.dataset.chartWidth === String(target.clientWidth)) return;
+        if (target.id === 'monthly-chart') renderTrend(activeTrend);
+        else bars('histogram-chart', chartData.histogram, chartData.histogram.map(bin => bin.label), chartData.histogram.map(bin => bin.value), false, true);
+      });
+    });
+    ['monthly-chart', 'histogram-chart'].forEach(id => observer.observe(document.getElementById(id)));
+  }
+
+
+  let angle = 0;
+  const total = chartData.status.reduce((sum, status) => sum + status.value, 0);
+  const stops = chartData.status.filter(status => status.value > 0).map(status => {
+    const previous = angle;
+    angle += status.value / total * 360;
+    return `${status.color} ${previous}deg ${angle}deg`;
+  });
+  if (total > 0) document.getElementById('status-donut').style.background = `conic-gradient(${stops.join(',')})`;
+  document.getElementById('status-donut').setAttribute('aria-label', chartData.status.map(status => `${status.label}: ${status.value}`).join('; '));
+  const legend = document.getElementById('status-legend');
+  chartData.status.forEach(status => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.setAttribute('aria-label', `Filtrar ${status.value} tickets com status ${status.label}`);
+    const dot = document.createElement('span'); dot.style.background = status.color;
+    const label = document.createElement('span'); label.textContent = status.label;
+    const count = document.createElement('strong'); count.textContent = number(status.value);
+    button.append(dot, label, count);
+    button.addEventListener('click', () => {
+      const select = document.getElementById('filtro-status');
+      select.value = status.label;
+      select.dispatchEvent(new Event('change', {bubbles:true}));
+      document.getElementById('dashboard-tickets').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+    });
+    legend.appendChild(button);
+  });
+  document.querySelectorAll('.ranking-list').forEach(list => {
+    const bars = Array.from(list.querySelectorAll('[data-rank-value]'));
+    const maximum = Math.max(...bars.map(bar => Number(bar.dataset.rankValue)), 1);
+    bars.forEach(bar => {bar.style.width = Number(bar.dataset.rankValue) / maximum * 100 + '%';});
+  });
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.querySelectorAll('.dashboard-sections a').forEach(link => link.addEventListener('click', event => {
+    event.preventDefault();
+    document.querySelectorAll('.dashboard-sections a').forEach(item => item.classList.toggle('is-active', item === link));
+    document.querySelector(link.getAttribute('href')).scrollIntoView({behavior:reduceMotion ? 'auto' : 'smooth', block:'start'});
+  }));
+
+  const table = document.getElementById('datatablesSimple');
+  const search = document.getElementById('search-box');
+  const statusFilter = document.getElementById('filtro-status');
+  let dataTable = null;
+  const headers = table ? Array.from(table.querySelectorAll('thead th')) : [];
+  const columnIndex = name => headers.findIndex(header => header.textContent.trim() === name);
+  if (table && window.jQuery && window.jQuery.fn.DataTable) {
+    dataTable = window.jQuery(table).DataTable({
+      order:[[columnIndex('Criação'), 'desc']],
+      pageLength:10,
+      language:{lengthMenu:'_MENU_ por página', info:'_START_–_END_ de _TOTAL_ tickets', infoEmpty:'Nenhum ticket', infoFiltered:'(de _MAX_ tickets)', emptyTable:'Nenhum ticket cadastrado', zeroRecords:'Nenhum ticket com estes filtros', paginate:{first:'Primeira', last:'Última', next:'Próxima', previous:'Anterior'}},
+      dom:'rt<"bottom"lip><"clear">',
+      columnDefs:[{targets:[columnIndex('Ações')], orderable:false, searchable:false}]
+    });
+  }
+  const rows = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
+  function applyFilters() {
+    if (!table) return;
+    if (dataTable) {
+      const escapeRegex = window.jQuery.fn.dataTable.util.escapeRegex;
+      dataTable.search(search.value).column(columnIndex('Status')).search(statusFilter.value ? '^\\s*' + escapeRegex(statusFilter.value) + '\\s*$' : '', true, false).draw();
+    } else {
+      let visible = 0;
+      const term = search.value.toLocaleLowerCase('pt-BR');
+      rows.forEach(row => {
+        const status = row.cells[columnIndex('Status')].textContent.trim();
+        row.hidden = !(row.textContent.toLocaleLowerCase('pt-BR').includes(term) && (!statusFilter.value || status === statusFilter.value));
+        if (!row.hidden) visible++;
+      });
+      document.getElementById('ticket-filter-empty').hidden = visible > 0;
+    }
+  }
+  search.addEventListener('input', applyFilters);
+  statusFilter.addEventListener('change', applyFilters);
+  document.getElementById('clear-ticket-filters').addEventListener('click', () => {search.value = ''; statusFilter.value = ''; applyFilters();});
+  if (table) table.addEventListener('click', event => {
+    if (event.target.closest('a,button,input,select')) return;
+    const row = event.target.closest('tr[data-href]');
+    if (row) window.location.assign(row.dataset.href);
+  });
+  if (window.bootstrap && window.bootstrap.Tooltip) document.querySelectorAll('.dashboard-shell [data-bs-toggle="tooltip"]').forEach(element => new window.bootstrap.Tooltip(element));
+})();
+</script>
