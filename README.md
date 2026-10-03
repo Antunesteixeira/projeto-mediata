@@ -12,6 +12,12 @@ cd ~/projetos/projeto-mediata
 
 GitHub: `Antunesteixeira/projeto-mediata`. Imagem: `antuneszi/projeto-mediata`.
 
+## Desenvolvimento local
+
+Com Docker e Docker Compose instalados, execute `./local.sh setup`.
+Acesse http://localhost:8000. Consulte [README.local.md](README.local.md) para
+credenciais, comandos e integração do VS Code com Dev Containers.
+
 ## Publicar uma alteração
 
 Cada push na branch `main` inicia automaticamente o GitHub Actions. Ele constrói a imagem, publica no Docker Hub e atualiza a aplicação na VM, mesmo quando o PC estiver desligado após o push.

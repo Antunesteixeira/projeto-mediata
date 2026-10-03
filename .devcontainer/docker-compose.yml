@@ -1,0 +1,5 @@
+name: mediata-local
+services:
+  mediataapp:
+    volumes:
+      - ..:/workspace

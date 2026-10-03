@@ -1,0 +1,33 @@
+{
+  "name": "Mediata — Docker",
+  "dockerComposeFile": [
+    "../docker-compose.local.yml",
+    "docker-compose.yml"
+  ],
+  "service": "mediataapp",
+  "workspaceFolder": "/workspace",
+  "initializeCommand": "bash local.sh prepare",
+  "remoteUser": "duser",
+  "updateRemoteUserUID": true,
+  "overrideCommand": false,
+  "shutdownAction": "none",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "ms-python.vscode-pylance"
+      ],
+      "settings": {
+        "python.defaultInterpreterPath": "/venv/bin/python",
+        "python.analysis.extraPaths": [
+          "/workspace/mediataapp"
+        ],
+        "terminal.integrated.cwd": "/workspace/mediataapp"
+      }
+    }
+  },
+  "remoteEnv": {
+    "HOME": "/tmp/mediata-dev-home",
+    "VSCODE_AGENT_FOLDER": "/tmp/mediata-dev-home/.vscode-server"
+  }
+}
