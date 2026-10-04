@@ -122,10 +122,13 @@
             </div>
 
             <div class="sidebar-footer">
-                <a href="{% url 'logout' %}" class="nav-link text-danger">
-                    <i class="bi bi-box-arrow-right"></i>
-                    <span class="nav-link-text">Sair</span>
-                </a>
+                <form method="post" action="{% url 'logout' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="nav-link text-danger" aria-label="Sair do sistema" title="Sair do sistema">
+                        <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+                        <span class="nav-link-text">Sair</span>
+                    </button>
+                </form>
             </div>
 
         </aside>

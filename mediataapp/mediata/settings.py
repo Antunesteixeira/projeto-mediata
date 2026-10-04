@@ -116,6 +116,7 @@ else:
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = 'login'
 MESSAGE_STORAGE = "django.contrib.messages.storage.cookie.CookieStorage"
 
 MESSAGE_TAGS = {

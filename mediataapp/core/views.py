@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import authenticate, logout
+from django.contrib.auth import authenticate
 from django.contrib.auth import login as login_django
 from django.contrib.auth.decorators import login_required
 
@@ -58,11 +58,6 @@ def login(request):
         else:
             return redirect('accounts/login/')
         
-@login_required
-def sair(request):
-    logout(request)
-    return redirect('/')
-
 @login_required
 def dashboard(request):
     empresa = Empresa.objects.first()

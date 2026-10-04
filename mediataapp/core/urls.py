@@ -1,11 +1,12 @@
 from django.urls import path
+from django.contrib.auth.views import LogoutView
 
 from . import views
 from .health import health_check
 
 urlpatterns = [
     path('', views.index, name="index"),
-    path('logout/', views.sair, name="logout"),
+    path('logout/', LogoutView.as_view(), name="logout"),
     path('dashboard/', views.dashboard, name="dashboard"),
     path('api/buscar-itens/', views.buscar_itens, name='buscar-itens'),
     path('empresa/cadastrar/', views.EmpresaCreateView.as_view(), name='empresa_cadastrar'),
