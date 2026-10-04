@@ -5,43 +5,43 @@
 <style>
   /* Estilos melhorados para a timeline */
   
-  .timeline {
+  .ticket-page .timeline {
     position: relative;
     padding-left: 2.5rem;
     margin: 2rem 0;
   }
   
-  .timeline::before {
+  .ticket-page .timeline::before {
     content: '';
     position: absolute;
     top: 0;
     bottom: 0;
     left: 1rem;
     width: 3px;
-    background: linear-gradient(to bottom, #dee2e6, #0d6efd, #dee2e6);
+    background: #dbe5f5;
     border-radius: 3px;
   }
   
-  .timeline-item {
+  .ticket-page .timeline-item {
     position: relative;
     margin-bottom: 1.5rem;
     padding-bottom: 1rem;
     border-bottom: 1px dashed #e9ecef;
   }
   
-  .timeline-item:last-child {
+  .ticket-page .timeline-item:last-child {
     border-bottom: none;
     margin-bottom: 0;
     padding-bottom: 0;
   }
   
-  .timeline-marker {
+  .ticket-page .timeline-marker {
     position: absolute;
     left: 0;
     top: 0;
     width: 1.5rem;
     height: 1.5rem;
-    background-color: #0d6efd;
+    background-color: #245bdf;
     border: 3px solid white;
     border-radius: 50%;
     display: flex;
@@ -52,33 +52,27 @@
     box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.2);
   }
   
-  .timeline-content {
+  .ticket-page .timeline-content {
     padding-left: 1.5rem;
   }
   
-  .timeline-date {
+  .ticket-page .timeline-date {
     font-weight: 600;
-    color: #495057;
+    color: #16243a;
     font-size: 0.9rem;
     margin-bottom: 0.3rem;
   }
   
   /* Estilos para cards */
-  .info-card {
-    border-radius: 0.5rem;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.03);
-    transition: all 0.2s ease;
+  .ticket-page .info-card {
+    border-radius: 12px;
+    border: 1px solid #e8edf5;
+    box-shadow: 0 3px 10px #152c4e03;
   }
   
-  .info-card:hover {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
-    transform: translateY(-2px);
-  }
-  
-  .info-card .card-title {
+  .ticket-page .info-card .card-title {
     font-size: 1rem;
-    color: #495057;
+    color: #16243a;
     border-bottom: 1px solid #f1f3f5;
     padding-bottom: 0.75rem;
     margin-bottom: 1rem;
@@ -86,34 +80,34 @@
     align-items: center;
   }
   
-  .info-card .card-title i {
+  .ticket-page .info-card .card-title i {
     margin-right: 0.5rem;
-    color: #0d6efd;
+    color: #245bdf;
   }
   
   /* Estilos para tabelas */
-  .data-table {
+  .ticket-page .data-table {
     border-radius: 0.5rem;
     overflow: hidden;
   }
   
-  .data-table thead th {
-    background-color: #f8f9fa;
+  .ticket-page .data-table thead th {
+    background-color: #f7f9fd;
     font-weight: 600;
-    color: #495057;
-    border-bottom-width: 2px;
+    color: #16243a;
+    border-bottom-width: 1px;
   }
   
-  .data-table tbody tr {
+  .ticket-page .data-table tbody tr {
     transition: background-color 0.15s ease;
   }
   
-  .data-table tbody tr:hover {
+  .ticket-page .data-table tbody tr:hover {
     background-color: rgba(13, 110, 253, 0.03);
   }
   
   /* Badges melhorados */
-  .status-badge {
+  .ticket-page .status-badge {
     font-weight: 500;
     padding: 0.35em 0.65em;
     font-size: 0.75em;
@@ -122,7 +116,7 @@
   }
   
   /* Botões de ação */
-  .action-btn {
+  .ticket-page .action-btn {
     width: 30px;
     height: 30px;
     display: inline-flex;
@@ -132,39 +126,18 @@
     border-radius: 50%;
   }
   
-  /* Header do ticket */
-  .ticket-header {
-    background-color: #f8fafc;
-    border-radius: 0.5rem;
-    padding: 1.5rem;
-    margin-bottom: 1.5rem;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-  }
-  
-  .ticket-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    color: #212529;
-    margin-bottom: 0.5rem;
-  }
-  
-  .ticket-meta {
-    font-size: 0.9rem;
-    color: #6c757d;
-  }
-  
   /* Uploader de arquivos */
-  .file-upload-label {
+  .ticket-page .file-upload-label {
     display: inline-block;
     padding: 0.5rem 1rem;
     border-radius: 0.5rem;
-    background-color: #f8f9fa;
+    background-color: #f7f9fd;
     border: 1px dashed #dee2e6;
     cursor: pointer;
     transition: all 0.2s ease;
   }
   
-  .file-upload-label:hover {
+  .ticket-page .file-upload-label:hover {
     background-color: #e9ecef;
     border-color: #ced4da;
   }
@@ -178,13 +151,12 @@
   };
 </script>
 
-<div class="container py-4">
+<div class="container-fluid app-page ticket-page px-0">
   <!-- Cabeçalho -->
-  <div class="ticket-header">
-    <div class="d-flex justify-content-between align-items-start">
+  <header class="app-page-header">
       <div>
-        <h1 class="ticket-title">TICKET: #{{ ticket.ticket }}</h1>
-        <div class="ticket-meta">
+        <h1 class="app-page-title">Ticket #{{ ticket.ticket }}</h1>
+        <div class="app-page-description ticket-meta">
           <span class="me-3">Operador Mediata: <strong>{{user.username}}</strong></span>
           {% if ticket.emergencial %}
             <span class="status-badge bg-danger bg-opacity-10 text-danger">
@@ -193,7 +165,7 @@
           {% endif %}
         </div>
       </div>
-      <div class="d-flex flex-wrap gap-2">
+      <div class="app-page-actions">
         <a href="{% url 'gerar_pdf_ticket' ticket.key %}" class="btn btn-sm btn-outline-primary">
           <i class="bi bi-file-earmark-pdf me-1"></i>PDF completo
         </a>
@@ -201,8 +173,7 @@
           <i class="bi bi-trash"></i>
         </button>
       </div>
-    </div>
-  </div>
+  </header>
 
   <!-- Informações Gerais -->
   <div class="row g-3 mb-4">
@@ -241,20 +212,20 @@
 <!-- Orçamento e Itens -->
 <div class="info-card card mb-4">
   <div class="card-body">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-3 ticket-toolbar">
       <h5 class="card-title mb-0"><i class="bi bi-receipt me-2"></i>ORÇAMENTO</h5>
-      <div class="btn-group btn-group-sm">
+      <div class="d-flex flex-wrap gap-2 ticket-toolbar-actions">
         <button class="btn btn-sm btn-warning" {% if orcamento %} disabled {% endif %} data-bs-toggle="modal" data-bs-target="#ModalOrcamento">
           <i class="bi bi-plus-circle me-1"></i>Novo Orçamento
         </button>
         {% if orcamento %}
-          <button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#ModalItemOrcamento">
+          <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#ModalItemOrcamento">
             <i class="bi bi-list-check me-1"></i>Adicionar Item
           </button>
-          <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#ModalAnexo">
+          <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#ModalAnexo">
             <i class="bi bi-paperclip me-1"></i>Anexar Arquivo
           </button>
-          <a href="{% url 'gerar_pdf_orcamento' ticket.id %}" class="btn btn-outline-danger">
+          <a href="{% url 'gerar_pdf_orcamento' ticket.id %}" class="btn btn-sm btn-outline-danger">
             <i class="bi bi-file-pdf me-1"></i>PDF
           </a>
         {% endif %}
@@ -445,7 +416,7 @@
   <!-- Pagamentos -->
   <div class="info-card card mb-4">
     <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4 ticket-toolbar">
         <h5 class="card-title mb-0"><i class="bi bi-cash me-2"></i>Pagamentos</h5>
         <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#ModalPagamento">
           <i class="bi bi-plus-circle me-1"></i>Adicionar Pagamento
@@ -640,7 +611,7 @@
 <!-- Seção Recebimentos -->
 <div class="info-card card mb-4">
   <div class="card-body">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4 ticket-toolbar">
       <h5 class="card-title mb-0">
         <i class="bi bi-cash-stack me-2 text-primary"></i>Recebimentos
       </h5>
@@ -754,7 +725,7 @@
 
     {% if ticket.status %}
       {% if ticket.nfe_path %}
-        <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
           <div>
             {% if ".pdf" in ticket.nfe_path|lower %}
               <a href="{{ MEDIA_URL }}{{ ticket.nfe_path }}" class="btn btn-outline-danger btn-sm d-inline-flex align-items-center" target="_blank" data-bs-toggle="tooltip" title="Visualizar PDF da NFe">
@@ -942,7 +913,7 @@
             border-right: none;
         }
         #insumoResults .list-group-item:hover {
-            background-color: #f8f9fa;
+            background-color: #f7f9fd;
         }
         </style>
 

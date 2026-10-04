@@ -1,6 +1,8 @@
 {% extends '_layout/base.html' %}
 {% load permission_tags l10n %}
 
+{% block body_class %}has-operation-dashboard{% endblock %}
+
 {% block conteudo %}
 {% include 'home/dashboard_styles.html' %}
 <div class="dashboard-shell">

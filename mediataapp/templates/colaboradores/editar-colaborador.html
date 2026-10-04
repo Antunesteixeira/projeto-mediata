@@ -1,13 +1,16 @@
 {% extends '_layout/base.html' %}
 
 {% block conteudo %}
-<div class="container mt-4">
+<div class="app-page">
+<div class="app-page-header">
+    <div>
+        <h1 class="app-page-title">Editar colaborador</h1>
+        <p class="app-page-description">Atualize as informações e a situação do colaborador.</p>
+    </div>
+</div>
     <div class="row justify-content-center">
         <div class="col-lg-10">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0"><i class="bi bi-person-gear me-2"></i>Editar Colaborador</h3>
-                </div>
                 
                 <div class="card-body">
                     <form method="POST" novalidate>
@@ -203,20 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 <style>
-    .card {
-        border-radius: 10px;
-    }
-    .card-header {
-        border-radius: 10px 10px 0 0 !important;
-    }
-    textarea {
-        min-height: 100px;
-    }
-    .form-section {
-        margin-bottom: 2rem;
-    }
-    .invalid-feedback {
-        display: block;
-    }
+.app-page textarea { min-height: 100px; }
+.app-page .form-section { margin-bottom: 2rem; }
 </style>
 {% endblock %}

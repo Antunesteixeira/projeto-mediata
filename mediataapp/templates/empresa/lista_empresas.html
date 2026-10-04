@@ -5,15 +5,17 @@
 {% block title %}Nossas Empresas{% endblock %}
 
 {% block conteudo %}
+<div class="app-page">
+<div class="app-page-header">
+    <div>
+        <h1 class="app-page-title">Empresas</h1>
+        <p class="app-page-description">Consulte os perfis e as informações das empresas do grupo.</p>
+    </div>
+</div>
 <div class="row">
     <div class="col-12">
-        <div class="company-card">
-            <div class="company-header">
-                <h1 class="display-4 fw-bold">Nossas Empresas</h1>
-                <p class="lead">Conheça todas as empresas do nosso grupo</p>
-            </div>
-            
-            <div class="company-body">
+        <div class="card">
+            <div class="card-body">
                 <div class="row">
                     {% for empresa in empresas %}
                     <div class="col-md-6 col-lg-4 mb-4">
@@ -51,5 +53,6 @@
             </div>
         </div>
     </div>
+</div>
 </div>
 {% endblock %}

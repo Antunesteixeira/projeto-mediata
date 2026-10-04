@@ -1,302 +1,79 @@
-{% load static %}
-{% load permission_tags %}
-
+{% load static permission_tags theme_assets %}
 <!DOCTYPE html>
 <html lang="pt-br">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Mediata</title>
-
-    <!-- Bootstrap CSS -->
-    <link href="{% static 'bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
-
+    <title>{% block title %}Mediata | Gestão de serviços{% endblock %}</title>
     <link rel="shortcut icon" href="{% static 'img/logo-mediata.ico' %}" type="image/x-icon">
-
-    <!-- Bootstrap Icons -->
+    <link href="{% static 'bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-    
-    <!-- CSS do DataTables -->
     <link rel="stylesheet" href="{% static 'bootstrap/css/dataTables.bootstrap5.min.css' %}">
-
-    <!-- JS do jQuery e DataTables -->
+    <link rel="stylesheet" href="{% theme_asset 'css/app.css' %}">
     <script src="{% static 'bootstrap/js/jquery-3.7.0.min.js' %}"></script>
+    <script src="{% static 'mediata/vendor/jquery.mask-1.14.16.min.js' %}"></script>
     <script src="{% static 'bootstrap/js/jquery.dataTables.min.js' %}"></script>
     <script src="{% static 'bootstrap/js/dataTables.bootstrap5.min.js' %}"></script>
-
-    <style>
-        :root {
-            --sidebar-width: 250px;
-            --sidebar-collapsed-width: 70px;
-            --navbar-height: 56px;
-            --transition-speed: 0.3s;
-            --primary-bg: #ffffff;
-            --secondary-bg: #495057;
-            --active-bg: #007bff;
-            --text-color: #000000;
-            --hover-bg: rgba(255, 255, 255, 0.1);
-        }
-
-        body {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow-x: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        .wrapper {
-            display: flex;
-            flex: 1;
-            position: relative;
-        }
-
-        /* Sidebar Styles */
-        .sidebar {
-            width: var(--sidebar-width);
-            background-color: var(--primary-bg);
-            color: var(--text-color);
-            min-height: calc(100vh - var(--navbar-height));
-            transition: all var(--transition-speed) ease;
-            position: relative;
-            z-index: 1000;
-            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-            display: flex;
-            flex-direction: column;
-        }
-
-        .sidebar.collapsed {
-            width: var(--sidebar-collapsed-width);
-            overflow: hidden;
-        }
-
-        .sidebar.collapsed .nav-link-text,
-        .sidebar.collapsed h4,
-        .sidebar.collapsed .bi-chevron-down {
-            display: none !important;
-        }
-
-        .sidebar.collapsed .nav-link {
-            justify-content: center;
-        }
-
-        .sidebar.collapsed .nav-link i {
-            margin-right: 0;
-            font-size: 1.2rem;
-        }
-
-        .sidebar-header {
-            padding: 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            margin-bottom: 1rem;
-        }
-
-        .sidebar-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 0 0.9rem;
-        }
-
-        .sidebar-footer {
-            padding: 1rem;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-        }
-
-        .nav-link {
-            color: var(--text-color);
-            border-radius: 4px;
-            margin-bottom: 0.25rem;
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            transition: all 0.2s;
-        }
-
-        .nav-link i {
-            margin-right: 0.75rem;
-            font-size: 1.1rem;
-            min-width: 20px;
-        }
-
-        .nav-link:hover,
-        .nav-link:focus {
-            background-color: var(--hover-bg);
-            color: var(--text-color);
-        }
-
-        .nav-link.active {
-            background-color: var(--active-bg);
-            color: white;
-            font-weight: 500;
-        }
-
-        .nav-item .collapse {
-            margin-left: 1.5rem;
-        }
-
-        /* Main Content Styles */
-        .main-content {
-            flex: 1;
-            padding: 2rem;
-            background-color: #f8f9fa;
-            transition: margin-left var(--transition-speed) ease;
-            min-height: calc(100vh - var(--navbar-height));
-        }
-
-        .main-content.expanded {
-            margin-left: var(--sidebar-collapsed-width);
-        }
-
-        /* Navbar Styles */
-        .navbar {
-            background-color: #fff;
-            border-bottom: 1px solid #dee2e6;
-            height: var(--navbar-height);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-            z-index: 1001;
-        }
-
-        .toggle-btn {
-            background: none;
-            border: none;
-            color: var(--primary-bg);
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 0.5rem;
-            transition: transform 0.2s;
-        }
-
-        .toggle-btn:hover {
-            transform: scale(1.1);
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-        }
-
-        .user-avatar {
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            margin-right: 0.75rem;
-            background-color: var(--primary-bg);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-
-        /* Responsive Styles */
-        @media (max-width: 768px) {
-            .sidebar {
-                position: fixed;
-                left: 0;
-                top: var(--navbar-height);
-                height: calc(100vh - var(--navbar-height));
-                transform: translateX(-100%);
-                z-index: 1000;
-            }
-
-            .sidebar.show {
-                transform: translateX(0);
-            }
-
-            .main-content {
-                width: 100%;
-                padding: 1rem;
-            }
-
-            .toggle-btn {
-                display: block;
-            }
-        }
-
-        @media (min-width: 769px) {
-            .toggle-btn {
-                display: block;
-            }
-        }
-
-        /* Scrollbar Styles */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.2);
-            border-radius: 3px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-    </style>
+    {% block extra_css %}{% endblock %}
 </head>
-
-<body>
-    <!-- Top Navbar -->
-    <nav class="navbar navbar-expand navbar-light">
-        <div class="container-fluid">
-            <button class="toggle-btn text-dark" id="sidebarToggle" >
-                <i class="bi bi-list"></i>
+<body class="app-layout {% block body_class %}{% endblock %}">
+    <header class="app-navbar">
+        <div class="app-navbar-start">
+            <button type="button" class="toggle-btn" id="sidebarToggle" aria-label="Abrir ou recolher menu" aria-controls="sidebar" aria-expanded="true">
+                <i class="bi bi-list" aria-hidden="true"></i>
             </button>
-            <div class="user-info">
-                <div class="user-avatar">{{ user.username|first|upper }}</div>
-                <span class="navbar-brand mb-0 h5">Bem-vindo, {{ user.get_full_name|default:user.username }}</span>
-            </div>
+            <span class="app-navbar-label">Gestão de serviços</span>
         </div>
-    </nav>
-
+        <a class="user-info" href="{% if user.is_authenticated %}{% url 'perfil-usuario' user.id %}{% else %}{% url 'login' %}{% endif %}" aria-label="Meu perfil">
+            <span class="user-avatar" aria-hidden="true">{{ user.username|default:'M'|first|upper }}</span>
+            <span class="app-user-name">{{ user.get_full_name|default:user.username|default:'Visitante' }}</span>
+        </a>
+    </header>
     <div class="wrapper">
-        <!-- Sidebar -->
-        <div class="sidebar" id="sidebar">
+        <aside class="sidebar" id="sidebar" aria-label="Menu principal">
             <div class="sidebar-header">
-                <h4 class="mb-0 text-center"><img src="{% static 'img/logo-mediata-5.1.png' %}" alt="Logo" width="100" height="auto" class="mx-auto d-block"></h4>
+                <a class="sidebar-brand" href="{% url 'dashboard' %}" aria-label="Mediata — Dashboard">
+                    <img src="{% static 'img/logo-mediata-5.1.png' %}" alt="Mediata">
+                    <span class="app-brand-mark" aria-hidden="true">M</span>
+                </a>
             </div>
-            
+            <div class="sidebar-section-label">MENU PRINCIPAL</div>
             <div class="sidebar-content">
                 <ul class="nav flex-column">
                     <li class="nav-item">
-                        <a href="{% url 'dashboard' %}" class="nav-link">
+                        <a href="{% url 'dashboard' %}" class="nav-link" data-nav-prefix="/dashboard/">
                             <i class="bi bi-speedometer2"></i>
                             <span class="nav-link-text">Dashboard</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{% url 'index-tickets' %}" class="nav-link">
+                        <a href="{% url 'index-tickets' %}" class="nav-link" data-nav-prefix="/tickets/">
                             <i class="bi bi-ticket-detailed"></i>
                             <span class="nav-link-text">Tickets</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{% url 'lista_colaboradores' %}" class="nav-link">
+                        <a href="{% url 'lista_colaboradores' %}" class="nav-link" data-nav-prefix="/colaborador/">
                             <i class="bi bi-people"></i>
                             <span class="nav-link-text">Colaboradores</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{% url 'listar-clientes' %}" class="nav-link">
+                        <a href="{% url 'listar-clientes' %}" class="nav-link" data-nav-prefix="/clientes/">
                             <i class="bi bi-building"></i>
                             <span class="nav-link-text">Clientes</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{% url 'relatorios' %}" class="nav-link">
+                        <a href="{% url 'relatorios' %}" class="nav-link" data-nav-prefix="/relatorios/">
                             <i class="bi bi-graph-up"></i>
                             <span class="nav-link-text">Relatórios</span>
                         </a>
                     </li>
-                    
+
                     <!-- Menu com submenu -->
                     <li class="nav-item">
-                        <a class="nav-link" data-bs-toggle="collapse" href="#submenuLayouts" role="button"
+                        <a class="nav-link" data-bs-toggle="collapse" href="#submenuLayouts" data-nav-prefix="/usuarios/" role="button"
                             aria-expanded="false" aria-controls="submenuLayouts">
                             <i class="bi bi-person-gear"></i>
                             <span class="nav-link-text">Usuários</span>
@@ -305,7 +82,7 @@
                         <div class="collapse" id="submenuLayouts">
                             <ul class="nav flex-column ms-3">
                                 <li class="nav-item">
-                                    <a href="{% url 'perfil-usuario' user.id %}" class="nav-link">
+                                    <a href="{% if user.is_authenticated %}{% url 'perfil-usuario' user.id %}{% else %}{% url 'login' %}{% endif %}" class="nav-link">
                                         <i class="bi bi-person"></i>
                                         <span class="nav-link-text">Perfil Usuário</span>
                                     </a>
@@ -327,190 +104,39 @@
                             </ul>
                         </div>
                     </li>
-                    
+
                     <li class="nav-item">
-                        <a href="{% url 'index-insumos' %}" class="nav-link">
+                        <a href="{% url 'index-insumos' %}" class="nav-link" data-nav-prefix="/insumos/">
                             <i class="bi bi-box-seam"></i>
                             <span class="nav-link-text">Insumos</span>
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a href="{% url 'empresa_lista' %}" class="nav-link">
+                        <a href="{% url 'empresa_lista' %}" class="nav-link" data-nav-prefix="/empresa/,/empresas/">
                             <i class="bi bi-gear"></i>
                             <span class="nav-link-text">Configurações</span>
                         </a>
                     </li>
-                    
+
                 </ul>
             </div>
-            
+
             <div class="sidebar-footer">
                 <a href="{% url 'logout' %}" class="nav-link text-danger">
                     <i class="bi bi-box-arrow-right"></i>
                     <span class="nav-link-text">Sair</span>
                 </a>
             </div>
-        </div>
 
-        <!-- Main Content -->
-        <div class="main-content" id="mainContent">
-            {% include '../paginas/menssagens.html' %}
-
-            {% block conteudo %}
-            {% endblock %}
-        </div>
+        </aside>
+        <main class="main-content" id="mainContent">
+            {% include 'paginas/menssagens.html' %}
+            {% block conteudo %}{% endblock %}
+        </main>
     </div>
-
+    <button type="button" class="sidebar-backdrop" id="sidebarBackdrop" aria-label="Fechar menu" tabindex="-1" hidden></button>
     <script src="{% static 'bootstrap/js/bootstrap.bundle.min.js' %}"></script>
-    <script src="{% static 'bootstrap/js/simple-datatables.min.js' %}" crossorigin="anonymous"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.getElementById('sidebar');
-            const sidebarToggle = document.getElementById('sidebarToggle');
-            const mainContent = document.getElementById('mainContent');
-            const navLinks = document.querySelectorAll('.sidebar a:not([data-bs-toggle="collapse"])');
-            
-            // Verifica o estado inicial baseado no tamanho da tela e localStorage
-            function initSidebarState() {
-                const isMobile = window.innerWidth < 769;
-                const savedState = localStorage.getItem('sidebarCollapsed');
-                
-                if (isMobile) {
-                    // Em mobile, sempre começa fechado
-                    sidebar.classList.remove('show');
-                    sidebar.classList.remove('collapsed');
-                } else {
-                    // Em desktop, usa o estado salvo ou padrão (aberto)
-                    const shouldCollapse = savedState === 'true';
-                    sidebar.classList.toggle('collapsed', shouldCollapse);
-                    mainContent.classList.toggle('expanded', shouldCollapse);
-                }
-            }
-            
-            // Alternar sidebar
-            function toggleSidebar() {
-                const isMobile = window.innerWidth < 769;
-                
-                if (isMobile) {
-                    // Em mobile, usa show/hide
-                    sidebar.classList.toggle('show');
-                } else {
-                    // Em desktop, usa collapsed/expanded
-                    sidebar.classList.toggle('collapsed');
-                    mainContent.classList.toggle('expanded');
-                    
-                    // Salva o estado no localStorage apenas para desktop
-                    const isNowCollapsed = sidebar.classList.contains('collapsed');
-                    localStorage.setItem('sidebarCollapsed', isNowCollapsed);
-                }
-            }
-            
-            // Fechar sidebar ao clicar em um link (apenas mobile)
-            function closeSidebarOnLinkClick() {
-                if (window.innerWidth < 769) {
-                    navLinks.forEach(link => {
-                        link.addEventListener('click', () => {
-                            sidebar.classList.remove('show');
-                        });
-                    });
-                }
-            }
-            
-            // Manipulador de redimensionamento
-            function handleResize() {
-                const isMobile = window.innerWidth < 769;
-                
-                if (isMobile) {
-                    // Se mudou para mobile, remove collapsed
-                    sidebar.classList.remove('collapsed');
-                    mainContent.classList.remove('expanded');
-                } else {
-                    // Se mudou para desktop, aplica o estado salvo
-                    const shouldCollapse = localStorage.getItem('sidebarCollapsed') === 'true';
-                    sidebar.classList.toggle('collapsed', shouldCollapse);
-                    mainContent.classList.toggle('expanded', shouldCollapse);
-                }
-            }
-            
-            // Inicialização
-            initSidebarState();
-            closeSidebarOnLinkClick();
-            
-            // Event Listeners
-            sidebarToggle.addEventListener('click', toggleSidebar);
-            window.addEventListener('resize', handleResize);
-        });
-    </script>
-
-    <!-- Script para realçar o link ativo na sidebar -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Obtém o caminho da URL atual (ex: /dashboard/, /tickets/)
-            const currentPath = window.location.pathname;
-            
-            // Seleciona todos os links da sidebar que não são apenas toggles de collapse
-            const allLinks = document.querySelectorAll('.sidebar .nav-link:not([data-bs-toggle="collapse"])');
-            
-            let activeLink = null;
-            
-            // Itera sobre os links para encontrar aquele cujo href corresponde à URL atual
-            allLinks.forEach(link => {
-                const linkPath = link.getAttribute('href');
-                if (!linkPath || linkPath === '#') return;
-                
-                // Converte o href em um caminho absoluto (ignora domínio)
-                let absolutePath;
-                try {
-                    absolutePath = new URL(linkPath, window.location.origin).pathname;
-                } catch(e) {
-                    absolutePath = linkPath;
-                }
-                
-                // Verifica se o caminho atual termina com o linkPath ou é exatamente igual
-                // Isso ajuda com URLs que podem ter trailing slash ou parâmetros
-                if (currentPath === absolutePath || 
-                    (currentPath.endsWith('/') && absolutePath === currentPath.slice(0, -1)) ||
-                    (absolutePath.endsWith('/') && currentPath === absolutePath.slice(0, -1))) {
-                    activeLink = link;
-                }
-            });
-            
-            // Remove a classe 'active' de todos os links
-            allLinks.forEach(link => {
-                link.classList.remove('active');
-            });
-            
-            // Adiciona a classe 'active' ao link correspondente, se encontrado
-            if (activeLink) {
-                activeLink.classList.add('active');
-                
-                // Verifica se o link ativo está dentro de um submenu (collapse)
-                const parentCollapse = activeLink.closest('.collapse');
-                if (parentCollapse) {
-                    // Encontra o botão que controla este collapse (o link pai com data-bs-toggle)
-                    const toggleButton = document.querySelector(`[data-bs-toggle="collapse"][href="#${parentCollapse.id}"]`);
-                    if (toggleButton) {
-                        // Expande o collapse
-                        const bsCollapse = new bootstrap.Collapse(parentCollapse, {
-                            toggle: false
-                        });
-                        bsCollapse.show();
-                        // Atualiza o atributo aria-expanded
-                        toggleButton.setAttribute('aria-expanded', 'true');
-                    }
-                }
-            }
-            
-            // Opcional: ao clicar em um link, atualiza o active imediatamente (útil para navegação SPA, mas também para consistência)
-            allLinks.forEach(link => {
-                link.addEventListener('click', function() {
-                    allLinks.forEach(l => l.classList.remove('active'));
-                    this.classList.add('active');
-                });
-            });
-        });
-    </script>
+    <script src="{% theme_asset 'js/app.js' %}"></script>
+    {% block extra_js %}{% endblock %}
 </body>
-
 </html>

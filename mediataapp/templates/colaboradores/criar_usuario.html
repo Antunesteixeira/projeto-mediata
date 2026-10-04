@@ -1,13 +1,16 @@
 {% extends '_layout/base.html' %}
 
 {% block conteudo %}
-<div class="container py-4">
+<div class="app-page">
+<div class="app-page-header">
+    <div>
+        <h1 class="app-page-title">Criar usuário</h1>
+        <p class="app-page-description">Crie e vincule um acesso ao sistema para {{ colaborador }}.</p>
+    </div>
+</div>
     <div class="row justify-content-center">
         <div class="col-lg-7">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Criar usuário para {{ colaborador }}</h4>
-                </div>
                 <div class="card-body">
                     <form method="post" novalidate>
                         {% csrf_token %}

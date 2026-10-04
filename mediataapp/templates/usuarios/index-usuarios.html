@@ -1,15 +1,18 @@
 {% extends '../_layout/base.html' %}
 
 {% block conteudo %}
-<div class="container-fluid px-4">
-    <!-- Cabeçalho -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2 class="mb-0"><i class="bi bi-people-fill me-2"></i>Gerenciamento de Usuários</h2>
-        
-        <a href="{% url 'registrar-usuarios' %}" class="btn btn-primary">
+<div class="app-page">
+<div class="app-page-header">
+    <div>
+        <h1 class="app-page-title">Usuários</h1>
+        <p class="app-page-description">Gerencie os acessos e os grupos de usuários do sistema.</p>
+    </div>
+    <div class="app-page-actions">
+<a href="{% url 'registrar-usuarios' %}" class="btn btn-primary">
             <i class="bi bi-person-plus-fill me-1"></i> Adicionar Usuário
         </a>
     </div>
+</div>
 
     <!-- Card da Tabela -->
     <div class="card shadow-sm border-0">
@@ -17,13 +20,13 @@
             <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Lista de Usuários</h5>
             
             <!-- Filtros -->
-            <div class="d-flex gap-3">
-                <div class="input-group input-group-sm" style="width: 250px;">
+            <div class="app-filter-actions d-flex flex-wrap gap-3">
+                <div class="input-group input-group-sm app-search">
                     <span class="input-group-text"><i class="bi bi-search"></i></span>
                     <input type="text" id="search-box" class="form-control" placeholder="Pesquisar usuários...">
                 </div>
                 
-                <select id="filtro-grupo" class="form-select form-select-sm" style="width: 200px;">
+                <select id="filtro-grupo" class="form-select form-select-sm app-filter-select">
                     <option value="">Todos os Grupos</option>
                     {% for grupo in grupos %}
                     <option value="{{ grupo.name }}">{{ grupo.name }}</option>
@@ -173,47 +176,5 @@ $(document).ready(function() {
 });
 </script>
 
-<style>
-    .card {
-        border-radius: 0.5rem;
-        border: none;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-    }
-    
-    .card-header {
-        border-radius: 0.5rem 0.5rem 0 0 !important;
-        background-color: #f8f9fa;
-    }
-    
-    .avatar-sm {
-        width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .avatar-title {
-        font-weight: 600;
-        color: white;
-    }
-    
-    .table-hover tbody tr:hover {
-        background-color: rgba(13, 110, 253, 0.05);
-    }
-    
-    .badge {
-        font-weight: 500;
-        padding: 0.35em 0.65em;
-    }
-    
-    .clickable-row {
-        cursor: pointer;
-    }
-    
-    .page-item.active .page-link {
-        background-color: #0d6efd;
-        border-color: #0d6efd;
-    }
-</style>
+
 {% endblock %}

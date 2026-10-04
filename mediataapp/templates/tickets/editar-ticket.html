@@ -1,14 +1,17 @@
 {% extends '../_layout/base.html' %}
 
 {% block conteudo %}
-<div class="container-fluid">
+<div class="container-fluid app-page ticket-form-page px-0">
   <!-- Cabeçalho -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">{% if form.instance.pk %}Editar{% else %}Adicionar{% endif %} Ticket</h2>
-  </div>
+  <header class="app-page-header">
+    <div>
+      <h1 class="app-page-title">{% if form.instance.pk %}Editar{% else %}Adicionar{% endif %} Ticket</h1>
+      <p class="app-page-description">Atualize os detalhes do serviço, o status e o prazo de atendimento.</p>
+    </div>
+  </header>
   
   <!-- Card do Formulário -->
-  <div class="card shadow-sm">
+  <div class="card">
     <div class="card-body">
       <form method="post" novalidate>
         {% csrf_token %}
@@ -107,16 +110,16 @@
 </div>
 
 <style>
-  .form-group {
+  .ticket-form-page .form-group {
     margin-bottom: 1.5rem;
   }
   
-  textarea.form-control {
+  .ticket-form-page textarea.form-control {
     min-height: 120px;
   }
   
   /* Melhora a aparência dos campos de data */
-  .input-group-text {
+  .ticket-form-page .input-group-text {
     cursor: pointer;
   }
 </style>
@@ -124,17 +127,22 @@
 <!-- Adicione este script para melhorar o campo de data -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Inicializa o datepicker se estiver usando algum plugin
-    if (typeof $.fn.datepicker !== 'undefined') {
-        $('#id_data_finalizar').datepicker({
+    // Campos nativos de data preservam o valor ISO e o calendário do navegador.
+    const campoDataTexto = $('#id_data_finalizar[type="text"]');
+    if (!campoDataTexto.length) return;
+
+    if (typeof $.fn.datepicker === 'function') {
+        campoDataTexto.datepicker({
             format: 'dd/mm/yyyy',
             autoclose: true,
             todayHighlight: true
         });
     }
     
-    // Adiciona máscara para o campo de data
-    $('#id_data_finalizar').mask('00/00/0000');
+    // Mantém a máscara somente para versões do formulário com campo de texto.
+    if (typeof $.fn.mask === 'function') {
+        campoDataTexto.mask('00/00/0000');
+    }
 });
 </script>
 {% endblock %}

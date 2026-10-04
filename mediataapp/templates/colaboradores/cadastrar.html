@@ -2,13 +2,16 @@
 {% load static %}
 
 {% block conteudo %}
-<div class="container mt-4">
+<div class="app-page">
+<div class="app-page-header">
+    <div>
+        <h1 class="app-page-title">Cadastrar colaborador</h1>
+        <p class="app-page-description">Registre os dados pessoais, profissionais e de contato.</p>
+    </div>
+</div>
     <div class="row justify-content-center">
         <div class="col-lg-10">
             <div class="card shadow-sm">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="mb-0"><i class="bi bi-person-plus me-2"></i>Cadastrar Novo Colaborador</h3>
-                </div>
                 
                 <div class="card-body">
                     <form method="POST" novalidate id="colaboradorForm">
@@ -277,7 +280,7 @@
                                 <a href="{% url 'lista_colaboradores' %}" class="btn btn-outline-secondary me-2">
                                     <i class="bi bi-arrow-left me-1"></i> Cancelar
                                 </a>
-                                <button type="submit" class="btn btn-success">
+                                <button type="submit" class="btn btn-primary">
                                     <i class="bi bi-check-circle me-1"></i> Cadastrar
                                 </button>
                             </div>
@@ -436,29 +439,8 @@ function formatarTelefone(campo) {
 </script>
 
 <style>
-    .card {
-        border-radius: 10px;
-    }
-    .card-header {
-        border-radius: 10px 10px 0 0 !important;
-    }
-    textarea {
-        min-height: 100px;
-    }
-    .invalid-feedback {
-        display: block;
-    }
-    .form-check-input:checked {
-        background-color: #0d6efd;
-        border-color: #0d6efd;
-    }
-    .form-label.required:after {
-        content: ' *';
-        color: #dc3545;
-    }
-    /* Garante que o label da data de nascimento não tenha asterisco */
-    label[for="{{ form.data_nascimento.id_for_label }}"]:after {
-        content: '' !important;
-    }
+.app-page textarea { min-height: 100px; }
+.app-page .form-label.required:after { content: ' *'; color: #dc3545; }
+.app-page label[for="{{ form.data_nascimento.id_for_label }}"]:after { content: '' !important; }
 </style>
 {% endblock %}

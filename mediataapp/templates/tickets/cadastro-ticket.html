@@ -1,14 +1,17 @@
 {% extends '../_layout/base.html' %}
 
 {% block conteudo %}
-<div class="container-fluid">
+<div class="container-fluid app-page ticket-form-page px-0">
   <!-- Cabeçalho -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2 class="mb-0">Adicionar Ticket</h2>
-  </div>
+  <header class="app-page-header">
+    <div>
+      <h1 class="app-page-title">Adicionar Ticket</h1>
+      <p class="app-page-description">Cadastre os detalhes do serviço e defina o prazo de atendimento.</p>
+    </div>
+  </header>
 
   <!-- Card do Formulário -->
-  <div class="card shadow-sm">
+  <div class="card">
     <div class="card-body">
       <form method="post" novalidate>
         {% csrf_token %}
@@ -22,7 +25,7 @@
 
         <!-- Primeira linha de campos -->
         <div class="row mb-4">
-          <div class="col-md-2">
+          <div class="col-md-4">
             <div class="form-group">
               {{ form.ticket.label_tag }}
               {{ form.ticket }}
@@ -34,7 +37,7 @@
             </div>
           </div>
 
-          <div class="col-md-2">
+          <div class="col-md-4">
             <div class="form-group">
               {{ form.status.label_tag }}
               {{ form.status }}
@@ -46,7 +49,7 @@
             </div>
           </div>
 
-          <div class="col-md-2">
+          <div class="col-md-4">
             <div class="form-group">
               {{ form.data_finalizar.label_tag }}
               {{ form.data_finalizar }}
@@ -104,11 +107,11 @@
 </div>
 
 <style>
-  .form-group {
+  .ticket-form-page .form-group {
     margin-bottom: 1.5rem;
   }
   
-  textarea.form-control {
+  .ticket-form-page textarea.form-control {
     min-height: 120px;
   }
 </style>

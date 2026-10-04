@@ -2,6 +2,7 @@ from django.shortcuts import render, HttpResponse
 from django.contrib.auth.decorators import login_required
 from django.utils.timezone import now
 from datetime import timedelta
+from decimal import Decimal
 from django.db.models import Sum, Q, Prefetch
 from tickets.models import Ticket, Orcamento, Pagamentos, Recebimentos
 from clientes.models import Cliente
@@ -10,6 +11,9 @@ from django.contrib.auth.models import User
 from django.core.exceptions import FieldError
 from django.db.models import Exists, OuterRef
 from django.core.paginator import Paginator
+
+
+PENDING_TICKET_STATUSES = ('V', 'X', 'E', 'A')
 
 
 @login_required
@@ -68,7 +72,6 @@ def relatorio_view(request):
     
     tickets = tickets.prefetch_related(
         Prefetch("orcamento_set", queryset=Orcamento.objects.all(), to_attr="orcamentos_prefetch"),
-        Prefetch("pagamentos", queryset=Pagamentos.objects.all(), to_attr="pagamentos_prefetch"),
         Prefetch("recebimentos", queryset=Recebimentos.objects.all(), to_attr="recebimentos_prefetch"),  # <-- adicione esta linha
     )
 
@@ -97,12 +100,10 @@ def relatorio_view(request):
         # Filtro por datas personalizadas
         tickets = tickets.filter(data_criacao__range=[filtros['data_inicio'], filtros['data_fim']])
         orcamentos = orcamentos.filter(data_criacao__range=[filtros['data_inicio'], filtros['data_fim']])
-        pagamentos = pagamentos.filter(data_pagamento__range=[filtros['data_inicio'], filtros['data_fim']])
     else:
         # Filtro por período padrão
         tickets = tickets.filter(data_criacao__gte=data_limite)
         orcamentos = orcamentos.filter(data_criacao__gte=data_limite)
-        pagamentos = pagamentos.filter(data_pagamento__gte=data_limite)
     
     # Filtro de status do ticket - agora suporta múltiplos valores
     if isinstance(filtros['status'], list):
@@ -145,8 +146,6 @@ def relatorio_view(request):
     
     # Filtro por TIPO de pagamento (Material, Serviço, etc.)
     if filtros['pagamentos'] != "A":
-        # Filtra tickets que têm pelo menos um pagamento do tipo selecionado
-        tickets = tickets.filter(pagamentos__tipo=filtros['pagamentos']).distinct()
         # Filtra os querysets de pagamentos e orçamentos
         pagamentos = pagamentos.filter(tipo=filtros['pagamentos'])
         # Nota: orçamentos não têm tipo de pagamento, então não filtramos
@@ -163,10 +162,17 @@ def relatorio_view(request):
             else:
                 status_boolean.append(val)  # caso venha como booleano nativo
         
-        # Filtra tickets que têm pelo menos um pagamento com status na lista selecionada
-        tickets = tickets.filter(pagamentos__status_pagamento__in=status_boolean).distinct()
         # Filtra os pagamentos pelos status selecionados
         pagamentos = pagamentos.filter(status_pagamento__in=status_boolean)
+
+        # Quando Pendente é selecionado, só os quatro estágios operacionais são elegíveis.
+        if False in status_boolean:
+            tickets = tickets.filter(status__in=PENDING_TICKET_STATUSES)
+            pagamentos = pagamentos.filter(ticket_pagamento__status__in=PENDING_TICKET_STATUSES)
+
+    # Tipo e status precisam corresponder ao mesmo registro de pagamento.
+    if filtros['pagamentos'] != 'A' or filtros['status_pagamento']:
+        tickets = tickets.filter(Exists(pagamentos.filter(ticket_pagamento_id=OuterRef('pk'))))
     
     # Filtro por STATUS de recebimento (A receber/Recebido) - múltipla seleção
     if filtros['status_recebimento']:
@@ -185,24 +191,32 @@ def relatorio_view(request):
             recebimentos__status_recebimento__in=status_recebimento_boolean
         ).distinct()
 
-    # Calcula totais de orçamentos e pagamentos para cada ticket
+    # A janela de datas continua sendo a de criação dos tickets. Os pagamentos
+    # usados nos totais e na coluna respeitam os filtros de tipo/status aplicados.
+    tickets = tickets.prefetch_related(
+        Prefetch('pagamentos', queryset=pagamentos, to_attr='pagamentos_prefetch'),
+    )
     tickets_list = list(tickets)
-    total_pagos = 0
-    total_pendentes = 0
+    total_pagos = Decimal('0')
+    total_pendentes = Decimal('0')
     
     for ticket in tickets_list:
         # Soma dos orçamentos
         ticket.total_orcamentos = sum(o.valor_total for o in getattr(ticket, "orcamentos_prefetch", []))
 
-        # Soma dos pagamentos (considerando apenas os que passaram pelos filtros)
-        ticket.total_pagamentos = sum(p.valor_pagamento for p in getattr(ticket, "pagamentos_prefetch", []))
-        
-        # Calcula totais de pagamentos por status
+        # Distribui somente os pagamentos que passaram pelos filtros do relatório.
+        ticket.pagamentos_por_tipo = {tipo: Decimal('0') for tipo, _ in Pagamentos.TIPO_CHOICES}
+        ticket.total_pagamentos = Decimal('0')
         for pagamento in getattr(ticket, "pagamentos_prefetch", []):
+            valor = pagamento.valor_pagamento or Decimal('0')
+            ticket.total_pagamentos += valor
+            ticket.pagamentos_por_tipo[pagamento.tipo] = (
+                ticket.pagamentos_por_tipo.get(pagamento.tipo, Decimal('0')) + valor
+            )
             if pagamento.status_pagamento:
-                total_pagos += pagamento.valor_pagamento
+                total_pagos += valor
             else:
-                total_pendentes += pagamento.valor_pagamento
+                total_pendentes += valor
 
     # Calcula métricas gerais
     try:

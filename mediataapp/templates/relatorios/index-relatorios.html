@@ -1,89 +1,159 @@
 {% extends '_layout/base.html' %}
-{% load permission_tags %}
+{% load permission_tags l10n %}
+
+{% block body_class %}has-payment-report{% endblock %}
 
 {% block conteudo %}
-<div class="container-fluid">
+<div class="container-fluid app-page report-page">
+    <header class="app-page-header">
+        <div>
+            <h1 class="app-page-title">Relatórios</h1>
+            <p class="app-page-description">Analise os tickets, os orçamentos e os pagamentos da operação.</p>
+        </div>
+    </header>
     <style>
-        .btn-outline-secondary {
-            border-color: #6c757d;
-            color: #6c757d;
+        body.has-payment-report .main-content {
+            min-width: 0;
+            padding: 1rem;
         }
-        .btn-outline-secondary:hover {
-            background-color: #6c757d;
-            color: white;
+        .report-page {
+            padding-inline: 0;
         }
-        .btn-outline-danger {
-            border-color: #dc3545;
-            color: #dc3545;
+        .report-table-container {
+            max-width: 100%;
         }
-        .btn-outline-danger:hover {
-            background-color: #dc3545;
-            color: white;
+        #datatablesSimple {
+            width: 100% !important;
+            min-width: 52rem;
+            margin: 0 !important;
+            font-size: 0.8125rem;
         }
-        .d-flex.gap-2 {
-            gap: 0.5rem;
+        #datatablesSimple th,
+        #datatablesSimple td {
+            padding: 0.5rem 0.375rem;
+            vertical-align: middle;
         }
-        [title] {
-            position: relative;
+        #datatablesSimple tbody td {
+            padding-inline: 0.3125rem;
         }
-        [title]:hover::after {
-            content: attr(title);
-            position: absolute;
-            bottom: -30px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: #333;
-            color: white;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
+        #datatablesSimple thead th {
+            white-space: normal;
+            font-size: 0.75rem;
+            padding-right: 0.875rem;
+        }
+        #datatablesSimple tbody td:nth-child(2),
+        #datatablesSimple tbody td:nth-child(3),
+        #datatablesSimple tbody td:nth-child(4) {
+            min-width: 4rem;
+            max-width: 8rem;
+            overflow-wrap: anywhere;
+        }
+        #datatablesSimple .badge {
+            white-space: normal;
+            font-size: 0.75rem;
+            line-height: 1.3;
+        }
+        #datatablesSimple td.text-end {
+            font-variant-numeric: tabular-nums;
+        }
+        #datatablesSimple .report-amount {
             white-space: nowrap;
-            z-index: 1000;
         }
-        .dashboard {
+        #datatablesSimple thead th.sorting::before,
+        #datatablesSimple thead th.sorting::after {
+            right: 0.125rem;
+            font-size: 0.625rem;
+        }
+        #datatablesSimple thead th.sorting::before {
+            content: "\25B2";
+        }
+        #datatablesSimple thead th.sorting::after {
+            content: "\25BC";
+        }
+        .report-table-tools,
+        .report-table-footer {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.8125rem;
+        }
+        .report-table-tools {
+            justify-content: flex-end;
+            margin-bottom: 0.75rem;
+        }
+        .report-table-tools .dataTables_filter label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0;
+        }
+        .report-table-tools .dataTables_filter input {
+            width: 12rem;
+            min-width: 0;
+            margin-left: 0;
+        }
+        .report-table-footer {
+            margin-top: 0.75rem;
+        }
+        .report-table-footer .dataTables_length label {
+            white-space: normal;
+        }
+        .report-table-footer .dataTables_info {
+            padding-top: 0;
+        }
+        .report-table-footer .dataTables_paginate {
+            margin-left: auto;
+        }
+        @media (max-width: 575px) {
+            .report-table-tools .dataTables_filter,
+            .report-table-tools .dataTables_filter label {
+                width: 100%;
+            }
+            .report-table-tools .dataTables_filter input {
+                flex: 1;
+                width: 0;
+            }
+            .report-table-footer .dataTables_paginate {
+                margin-left: 0;
+            }
+        }
+        .report-metrics {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
             gap: 1rem;
             margin-bottom: 2rem;
         }
-        .stat-card {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            text-align: center;
-            transition: transform 0.2s ease;
+        .report-page .stat-card {
+            min-width: 0;
+            background: #fff;
+            padding: 1.25rem;
+            border: 1px solid #e8edf5;
+            border-radius: 12px;
+            box-shadow: 0 3px 10px #152c4e03;
         }
-        .stat-card:hover {
-            transform: translateY(-2px);
-        }
-        .stat-card h3 {
-            font-size: 0.9rem;
-            color: #6c757d;
-            margin-bottom: 0.5rem;
+        .report-page .stat-card h3 {
+            font-size: 0.75rem;
+            color: #5a6b83;
+            margin-bottom: 0.875rem;
             font-weight: 600;
         }
-        .stat-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #007bff;
+        .report-page .stat-value {
+            font-size: 1.5rem;
+            line-height: 1.35;
+            font-weight: 750;
+            letter-spacing: -0.5px;
+            color: #16243a;
+            overflow-wrap: anywhere;
         }
-        .stat-value-lucro {
-            color: #28a745;
+        .report-page .stat-value-lucro {
+            color: #1e9478;
         }
-        .stat-value-prejuizo {
-            color: #dc3545;
+        .report-page .stat-value-prejuizo {
+            color: #c84d61;
         }
-        .badge {
-            font-size: 0.8em;
-            padding: 0.5em 0.8em;
-            border-radius: 0.375rem;
-        }
-        .table th {
-            background-color: #f8f9fa;
-            border-top: none;
-            font-weight: 600;
-            color: #495057;
+        .report-page .stat-value-pendente {
+            color: #b87813;
         }
         #customDateModal .form-check {
             margin-bottom: 0.5rem;
@@ -95,8 +165,8 @@
             margin-left: 0.5rem;
         }
         #customDateModal .form-check-input:checked {
-            background-color: #0d6efd;
-            border-color: #0d6efd;
+            background-color: #245bdf;
+            border-color: #245bdf;
         }
     </style>
 
@@ -207,6 +277,7 @@
                             <label class="form-check-label" for="status_pendente">Pendente</label>
                         </div>
                     </div>
+                    <div class="form-text">Pendente considera apenas tickets Vistoriado, Executado, Em execução e Aprovado.</div>
                 </div>
                 <div class="col-md-5 mt-3">
                     <label class="form-label">Status do Recebimento</label>
@@ -233,7 +304,7 @@
     </form>
 
     <!-- Dashboard de Métricas -->
-    <div class="dashboard mb-4">
+    <div class="report-metrics mb-4">
         <div class="stat-card">
             <h3>Orçamentos Totais</h3>
             <div class="stat-value">R$ {{ orcamento_total|floatformat:2 }}</div>
@@ -249,11 +320,11 @@
         <!-- NOVOS CARDS -->
         <div class="stat-card">
             <h3>Pagamentos Pendentes</h3>
-            <div class="stat-value" style="color: #ffc107;">R$ {{ total_pendentes|floatformat:2 }}</div>
+            <div class="stat-value stat-value-pendente">R$ {{ total_pendentes|floatformat:2 }}</div>
         </div>
         <div class="stat-card">
             <h3>Pagamentos Pagos</h3>
-            <div class="stat-value" style="color: #28a745;">R$ {{ total_pagos|floatformat:2 }}</div>
+            <div class="stat-value stat-value-lucro">R$ {{ total_pagos|floatformat:2 }}</div>
         </div>
         <div class="stat-card">
             <h3>Lucro</h3>
@@ -277,18 +348,22 @@
             <h5 class="card-title mb-0">Tickets ({{ tickets.count }})</h5>
         </div>
         <div class="card-body">
-            <div class="table-responsive">
+            <div class="table-responsive report-table-container">
                 <table class="table table-striped table-hover" id="datatablesSimple">
                     <thead>
                         <tr>
                             <th>ID</th>
                             <th>Usuário</th>
                             <th>Cliente</th>
-                            <th>Colaborador</th>
+                            <th>Colabo<wbr>rador</th>
                             <th>Status</th>
                             <th>Data de Criação</th>
-                            <th>Orçamentos</th>
-                            <th>Pagamentos</th>
+                            <th class="text-end">Orça<wbr>mentos</th>
+                            <th class="text-end">Material</th>
+                            <th class="text-end">Mão de obra</th>
+                            <th class="text-end">Equipa<wbr>mentos</th>
+                            <th class="text-end">Taxas</th>
+                            <th class="text-end">Paga<wbr>mentos</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -334,22 +409,27 @@
                                 </span>
                             </td>
                             <td>{{ ticket.data_criacao|date:"d/m/Y" }}</td>
-                            <td>R$ {{ ticket.total_orcamentos|floatformat:2 }}</td>
-                            <td>R$ {{ ticket.total_pagamentos|floatformat:2 }}</td>
+                            <td class="text-end" data-order="{{ ticket.total_orcamentos|unlocalize }}">R$ <span class="report-amount">{{ ticket.total_orcamentos|floatformat:"2g" }}</span></td>
+                            <td class="text-end" data-order="{{ ticket.pagamentos_por_tipo.M|unlocalize }}">R$ <span class="report-amount">{{ ticket.pagamentos_por_tipo.M|floatformat:"2g" }}</span></td>
+                            <td class="text-end" data-order="{{ ticket.pagamentos_por_tipo.O|unlocalize }}">R$ <span class="report-amount">{{ ticket.pagamentos_por_tipo.O|floatformat:"2g" }}</span></td>
+                            <td class="text-end" data-order="{{ ticket.pagamentos_por_tipo.E|unlocalize }}">R$ <span class="report-amount">{{ ticket.pagamentos_por_tipo.E|floatformat:"2g" }}</span></td>
+                            <td class="text-end" data-order="{{ ticket.pagamentos_por_tipo.T|unlocalize }}">R$ <span class="report-amount">{{ ticket.pagamentos_por_tipo.T|floatformat:"2g" }}</span></td>
+                            <td class="text-end" data-order="{{ ticket.total_pagamentos|unlocalize }}">R$ <span class="report-amount">{{ ticket.total_pagamentos|floatformat:"2g" }}</span></td>
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="8" class="text-center py-4">
-                                <div class="text-muted">
-                                    <i class="bi bi-inbox display-4"></i>
-                                    <p class="mt-2">Nenhum ticket encontrado com os filtros aplicados</p>
-                                </div>
-                            </td>
+                            <td colspan="12" class="p-0 border-0"></td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% if not tickets %}
+            <div class="report-empty-state text-center text-muted py-4" role="status">
+                <i class="bi bi-inbox display-4"></i>
+                <p class="mt-2 mb-0">Nenhum ticket encontrado com os filtros aplicados</p>
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -442,6 +522,7 @@
                                         {% if "False" in filtro_status_pagamento_list %}checked{% endif %}>
                                     <label class="form-check-label" for="status_pendente_modal">Pendente</label>
                                 </div>
+                                <div class="form-text">Pendente considera apenas tickets Vistoriado, Executado, Em execução e Aprovado.</div>
                             </div>
                         </div>
                     </div>
@@ -573,14 +654,16 @@ function limparFiltrosModal() {
 
 // Inicialização
 $(document).ready(function() {
-    // Select2
-    $('#cliente').select2({ placeholder: "Selecione um cliente", allowClear: true, width: '100%' });
-    $('#colaborador').select2({ placeholder: "Selecione um colaborador", allowClear: true, width: '100%' });
+    // Os seletores nativos continuam funcionando quando Select2 não está disponível.
+    if ($.fn.select2) {
+        $('#cliente').select2({ placeholder: "Selecione um cliente", allowClear: true, width: '100%' });
+        $('#colaborador').select2({ placeholder: "Selecione um colaborador", allowClear: true, width: '100%' });
 
-    $('#customDateModal').on('shown.bs.modal', function () {
-        $('#cliente_modal').select2({ placeholder: "Selecione um cliente", allowClear: true, width: '100%', dropdownParent: $('#customDateModal') });
-        $('#colaborador_modal').select2({ placeholder: "Selecione um colaborador", allowClear: true, width: '100%', dropdownParent: $('#customDateModal') });
-    });
+        $('#customDateModal').on('shown.bs.modal', function () {
+            $('#cliente_modal').select2({ placeholder: "Selecione um cliente", allowClear: true, width: '100%', dropdownParent: $('#customDateModal') });
+            $('#colaborador_modal').select2({ placeholder: "Selecione um colaborador", allowClear: true, width: '100%', dropdownParent: $('#customDateModal') });
+        });
+    }
 
     // Lógica do checkbox "Todos" no modal
     $('#status_todos').change(function() {
@@ -603,6 +686,9 @@ $(document).ready(function() {
         }
     });
 
+    // A linha vazia usa colspan, incompatível com linhas de dados do DataTables.
+    if ($('#datatablesSimple tbody td[colspan]').length) return;
+
     // DataTable
     $('#datatablesSimple').DataTable({
         order: [[5, 'desc']],
@@ -618,15 +704,18 @@ $(document).ready(function() {
             loadingRecords: "Carregando...",
             processing: "Processando..."
         },
-        dom: '<"top"f>rt<"bottom"lip><"clear">',
+        dom: '<"report-table-tools"f><"table-responsive report-table-scroll"t><"report-table-footer"lip>',
         responsive: true,
+        autoWidth: false,
         pageLength: 25,
         lengthMenu: [[10, 25, 50, 100], [10, 25, 50, 100]],
         columnDefs: [
             { targets: [4], searchable: false },
-            { targets: [6], render: function(data) { return data; } }
+            { targets: [6, 7, 8, 9, 10, 11], type: 'num' }
         ]
     });
+    // Somente a tabela rola; busca e paginação permanecem visíveis.
+    $('.report-table-container').removeClass('table-responsive');
 });
 </script>
 {% endblock %}

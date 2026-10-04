@@ -1,0 +1,23 @@
+{% load static theme_assets %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Mediata | Acesse sua conta{% endblock %}</title>
+  <link rel="shortcut icon" href="{% static 'img/logo-mediata.ico' %}" type="image/x-icon">
+  <link href="{% static 'bootstrap/css/bootstrap.min.css' %}" rel="stylesheet">
+  <link href="{% theme_asset 'css/app.css' %}" rel="stylesheet">
+</head>
+<body class="app-auth">
+  <main class="auth-shell">
+    <a class="auth-brand" href="{% url 'index' %}" aria-label="Mediata">
+      <img src="{% static 'img/logo-mediata-5.1.png' %}" alt="Mediata">
+    </a>
+    {% include 'paginas/menssagens.html' %}
+    {% block conteudo %}{% endblock %}
+    <p class="auth-footer">Mediata · Gestão de serviços</p>
+  </main>
+  <script src="{% static 'bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+</body>
+</html>

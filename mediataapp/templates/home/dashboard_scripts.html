@@ -1,7 +1,6 @@
 <script>
 (() => {
   'use strict';
-  document.body.classList.add('has-operation-dashboard');
   const chartData = JSON.parse(document.getElementById('dashboard-chart-data').textContent);
   const money = value => new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL'}).format(value);
   const number = value => new Intl.NumberFormat('pt-BR').format(value);

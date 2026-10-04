@@ -47,12 +47,13 @@ python manage.py migrate --noinput
 echo "✅ Migrações aplicadas com sucesso!"
 
 # 🔹 Coletar estáticos
-if [ "$ENVIRONMENT" = "production" ] && [ -z "$(ls -A /data/web/static)" ]; then
+if [ "$ENVIRONMENT" = "production" ]; then
     echo "📦 Coletando arquivos estáticos..."
-    python manage.py collectstatic --noinput --clear
+    # Preserva Bootstrap, logos e outros arquivos já existentes no volume.
+    python manage.py collectstatic --noinput
     echo "✅ Arquivos estáticos coletados!"
 else
-    echo "📦 Pulando collectstatic (diretório não vazio ou modo desenvolvimento)"
+    echo "📦 Pulando collectstatic (modo desenvolvimento)"
 fi
 
 # 🔹 Comando de execução

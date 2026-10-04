@@ -1,16 +1,19 @@
 {% extends '_layout/base.html' %}
 
 {% block conteudo %}
-<div class="card shadow-lg border-0 mb-4">
-    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-        <h5 class="mb-0">
-            <i class="bi bi-people-fill me-2"></i>
-            {{ tiket.ticket }} — Adicionar Colaborador
-        </h5>
-        <a href="{% url 'index-tickets' %}" class="btn btn-sm btn-light">
-            <i class="bi bi-arrow-left me-1"></i> Voltar
-        </a>
-    </div>
+<div class="app-page ticket-assignment-page">
+    <header class="app-page-header">
+        <div>
+            <h1 class="app-page-title">Adicionar Colaborador</h1>
+            <p class="app-page-description">Ticket #{{ tiket.ticket }} · Selecione o colaborador responsável por executar o serviço.</p>
+        </div>
+        <div class="app-page-actions">
+            <a href="{% url 'index-tickets' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Voltar
+            </a>
+        </div>
+    </header>
+    <div class="card mb-4">
 
     <!-- Campo de pesquisa -->
     <div class="card-body border-bottom">
@@ -38,7 +41,7 @@
     <div class="card-body p-0">
         <div class="table-responsive">
             <table id="tabela-colaboradores" class="table table-hover align-middle mb-0">
-                <thead class="table-primary">
+                <thead class="table-light">
                     <tr>
                         <th class="ps-4">Colaborador</th>
                         <th>Função</th>
@@ -121,55 +124,41 @@
         </nav>
     </div>
     {% endif %}
+    </div>
 </div>
 
 <style>
-    .avatar {
+    .ticket-assignment-page .avatar {
         display: inline-flex;
         align-items: center;
         justify-content: center;
     }
-    .avatar-text {
+    .ticket-assignment-page .avatar-text {
         display: flex;
         align-items: center;
         justify-content: center;
         width: 100%;
         height: 100%;
     }
-    .avatar-sm {
+    .ticket-assignment-page .avatar-sm {
         width: 36px;
         height: 36px;
         font-size: 1rem;
     }
-    .btn-soft-success {
+    .ticket-assignment-page .btn-soft-success {
         color: #198754;
         background-color: rgba(25, 135, 84, 0.1);
         border-color: transparent;
     }
-    .btn-soft-success:hover {
+    .ticket-assignment-page .btn-soft-success:hover {
         color: #fff;
         background-color: #198754;
     }
-    .bg-soft-primary {
-        background-color: rgba(13, 110, 253, 0.1);
+    .ticket-assignment-page .bg-soft-primary {
+        background-color: #edf2ff;
     }
-    .bg-soft-info {
+    .ticket-assignment-page .bg-soft-info {
         background-color: rgba(13, 202, 240, 0.1);
-    }
-    .table-primary {
-        --bs-table-bg: #f8f9fa;
-        --bs-table-striped-bg: #f8f9fa;
-        --bs-table-striped-color: #000;
-        --bs-table-active-bg: #dfe0e1;
-        --bs-table-active-color: #000;
-        --bs-table-hover-bg: #e9ecef;
-        --bs-table-hover-color: #000;
-        color: #000;
-        border-color: #dfe0e1;
-    }
-    /* Estilo para linhas que não correspondem à pesquisa */
-    .d-none {
-        display: none !important;
     }
 </style>
 
