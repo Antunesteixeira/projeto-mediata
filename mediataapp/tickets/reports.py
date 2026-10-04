@@ -5,7 +5,7 @@ from decimal import Decimal
 from django.db import models
 from django.utils import formats, timezone
 
-from .models import Orcamento
+from .models import Orcamento, Pagamentos
 
 
 LABELS = {
@@ -26,7 +26,7 @@ def money(value):
     return 'R$ ' + formats.number_format(value or Decimal('0'), 2, use_l10n=True, force_grouping=True)
 
 
-def information(instance, exclude=(), include=None):
+def information(instance, exclude=(), include=None, overrides=None):
     if instance is None:
         return []
     rows = []
@@ -35,7 +35,7 @@ def information(instance, exclude=(), include=None):
             continue
         if include is not None and field.name not in include:
             continue
-        value = getattr(instance, field.name)
+        value = overrides[field.name] if overrides and field.name in overrides else getattr(instance, field.name)
         if value is None or value == '':
             value = 'Não informado'
         elif field.choices:
@@ -74,7 +74,7 @@ def ticket_report(ticket):
             })
         budgets.append({
             'name': budget.orcamento,
-            'fields': information(budget, exclude=('ticket_orcamento',)),
+            'fields': information(budget, exclude=('ticket_orcamento',), overrides={'valor_total': total}),
             'items': items, 'total': money(total),
             'materials': [information(obj, exclude=('orcamento_material',)) for obj in budget.material_set.all()],
             'services': [information(obj, exclude=('orcamento_servico',)) for obj in budget.servico_set.all()],
@@ -86,10 +86,22 @@ def ticket_report(ticket):
     pending = sum((p.valor_pagamento or Decimal('0') for p in payments if not p.status_pagamento), Decimal('0'))
     received = sum((r.valor_recebimento or Decimal('0') for r in receipts if r.status_recebimento), Decimal('0'))
     to_receive = sum((r.valor_recebimento or Decimal('0') for r in receipts if not r.status_recebimento), Decimal('0'))
+    costs_by_type = {kind: Decimal('0') for kind, _ in Pagamentos.TIPO_CHOICES}
+    for payment in payments:
+        costs_by_type[payment.tipo] = costs_by_type.get(payment.tipo, Decimal('0')) + (payment.valor_pagamento or Decimal('0'))
+    financial_values = {
+        'valor_material': costs_by_type['M'],
+        'valor_mao_obra': costs_by_type['O'],
+        'valor_custo': paid + pending,
+        'valor_faturamento': total_budget,
+        'valor_equipamento': costs_by_type['E'],
+    }
     return {
         'ticket': ticket,
         'issued_at': timezone.localtime(),
-        'ticket_fields': information(ticket),
+        'ticket_fields': information(ticket, overrides=financial_values),
+        'financial_basis': 'Os valores de material, mão de obra e equipamento incluem pagamentos realizados e pendentes. '
+                           'O custo total inclui todas as categorias de pagamento, e o faturamento corresponde ao total dos itens orçados.',
         'client_fields': information(ticket.cliente),
         'collaborator_fields': information(ticket.colaborador, include=(
             'tipo_pessoa', 'nome_completo', 'cpf', 'rg', 'razao_social', 'cnpj',

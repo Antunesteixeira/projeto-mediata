@@ -42,6 +42,7 @@
   <h2>Colaborador</h2>
   {% if collaborator_fields %}{% include 'tickets/ticket_pdf_fields.html' with fields=collaborator_fields %}{% else %}<p>Colaborador não atribuído.</p>{% endif %}
   <h2>Resumo financeiro</h2>
+  <p>{{ financial_basis }}</p>
   {% include 'tickets/ticket_pdf_fields.html' with fields=summary %}
   <h2>Orçamentos</h2>
   {% for budget in budgets %}
