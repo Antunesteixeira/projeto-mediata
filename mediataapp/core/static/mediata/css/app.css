@@ -115,6 +115,15 @@
 .sidebar .nav-link .bi-chevron-down { font-size: 10px; min-width: 10px; }
 .sidebar .nav-link:hover { background: #f5f8fe; color: #3268cf; }
 .sidebar .nav-link.active { background: #edf3ff; color: #3268cf; font-weight: 650; }
+.sidebar button.nav-link:disabled {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--app-muted);
+  text-align: left;
+  cursor: default;
+}
+.sidebar button.nav-link:disabled:hover { background: transparent; color: var(--app-muted); }
 .sidebar .collapse .nav-link { font-size: 11px; min-height: 37px; }
 .sidebar-footer { padding: 14px; border-top: 1px solid var(--app-border); flex-shrink: 0; }
 .sidebar-footer .nav-link { margin: 0; }
