@@ -66,4 +66,7 @@ Secrets do repositório:
 
 As credenciais da aplicação ficam em `dotenv_files/.env.prod` na VM. Arquivos `.env`, certificados, uploads e backups não devem ser adicionados ao Git ou à imagem Docker.
 
-A renovação TLS usa o workflow separado `renew-certificates.yml`.
+A renovação TLS e a recarga do Nginx são executadas pelo timer local da VM,
+independentemente do GitHub Actions. O workflow `renew-certificates.yml` monitora
+o certificado público e registra avisos de vencimento. Instalação, verificação e
+recuperação estão documentadas em [docs/tls.md](docs/tls.md).

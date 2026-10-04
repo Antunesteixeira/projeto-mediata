@@ -1,0 +1,12 @@
+[Unit]
+Description=Verificar TLS da Mediata a cada seis horas
+
+[Timer]
+OnBootSec=5min
+OnCalendar=*-*-* 00,06,12,18:17:00 UTC
+RandomizedDelaySec=15min
+Persistent=true
+Unit=mediata-tls-renewal.service
+
+[Install]
+WantedBy=timers.target

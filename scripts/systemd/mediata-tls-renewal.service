@@ -1,0 +1,17 @@
+[Unit]
+Description=Renovar e verificar os certificados TLS da Mediata
+Wants=network-online.target
+After=network-online.target docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=root
+EnvironmentFile=/etc/mediata/tls.env
+ExecStart=/usr/local/lib/mediata/renew-tls.sh
+TimeoutStartSec=20min
+UMask=0077
+PrivateTmp=true
+NoNewPrivileges=true
+StandardOutput=journal
+StandardError=journal

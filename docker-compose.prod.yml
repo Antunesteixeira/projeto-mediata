@@ -114,7 +114,8 @@ services:
     depends_on:
       nginx:
         condition: service_healthy
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew --quiet --non-interactive; sleep 12h & wait $${!}; done;'"
+    # O timer mediata-tls-renewal executa certbot e recarrega/verifica o Nginx.
+    entrypoint: ["/bin/sh", "-c", "trap 'exit 0' TERM INT; while :; do sleep 3600 & wait $${!}; done"]
     restart: unless-stopped
     networks:
       - mediata-network

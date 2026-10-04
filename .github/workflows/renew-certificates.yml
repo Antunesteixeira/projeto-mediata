@@ -1,4 +1,4 @@
-name: Renovar certificado TLS
+name: Monitorar certificado TLS
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
       - main
     paths:
       - .github/workflows/renew-certificates.yml
+      - scripts/check-tls.py
   schedule:
     - cron: "17 8 * * *"
   workflow_dispatch:
@@ -14,38 +15,46 @@ permissions:
   contents: read
 
 concurrency:
-  group: certificado-mediata
+  group: monitoramento-tls-mediata
   cancel-in-progress: false
 
 jobs:
-  renew:
-    name: Verificar certificado e recarregar Nginx
+  monitor:
+    name: Verificar o certificado público
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - name: Configurar acesso SSH
-        env:
-          VM_HOST: ${{ secrets.VM_HOST }}
-          VM_SSH_PRIVATE_KEY: ${{ secrets.VM_SSH_PRIVATE_KEY }}
+      - name: Baixar o código
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Verificar validade, domínio e cadeia de confiança
+        shell: bash
         run: |
-          install -m 700 -d ~/.ssh
-          printf '%s\n' "$VM_SSH_PRIVATE_KEY" > ~/.ssh/mediata_deploy
-          chmod 600 ~/.ssh/mediata_deploy
-          ssh-keyscan -H "$VM_HOST" >> ~/.ssh/known_hosts
+          status=0
+          report_file="$RUNNER_TEMP/tls-check.txt"
+          python3 scripts/check-tls.py \
+            --host mediatanordeste.com.br \
+            --host www.mediatanordeste.com.br \
+            --warning-days 30 \
+            --critical-days 7 > "$report_file" 2>&1 || status=$?
 
-      - name: Renovar e ativar certificado
-        env:
-          VM_HOST: ${{ secrets.VM_HOST }}
-          VM_USER: ${{ secrets.VM_USER }}
-        run: |
-          ssh -i ~/.ssh/mediata_deploy "$VM_USER@$VM_HOST" 'bash -se' <<'RENEW'
-          set -eu
+          cat "$report_file"
+          {
+            echo "## Verificação do certificado público"
+            echo
+            echo '```text'
+            cat "$report_file"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
 
-          docker exec certbot_prod certbot renew --quiet --non-interactive
-          docker exec nginx_prod nginx -t
-          docker exec nginx_prod nginx -s reload
-
-          echo | openssl s_client \
-            -connect 127.0.0.1:443 \
-            -servername mediatanordeste.com.br 2>/dev/null \
-            | openssl x509 -noout -subject -dates
-          RENEW
+          case "$status" in
+            0) ;;
+            1)
+              echo "::warning title=Certificado TLS próximo do vencimento::Um certificado vence em menos de 30 dias. Consulte o relatório e a rotina de renovação da VM."
+              exit 1
+              ;;
+            *)
+              echo "::error title=Falha na verificação TLS::Certificado com menos de 7 dias de validade ou erro de conexão, domínio ou cadeia de confiança. Consulte o relatório."
+              exit 1
+              ;;
+          esac
