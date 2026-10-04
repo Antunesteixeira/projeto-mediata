@@ -288,12 +288,12 @@
                       —
                     {% endif %}
                   </td>
-                  <td class="text-end">R$ {{ item.subtotal }}</td>
+                  <td class="text-end">R$ {{ item.subtotal|floatformat:2 }}</td>
                 </tr>
               {% endfor %}
               <tr class="fw-bold" style="background-color: rgba(248, 249, 250, 0.7)">
                 <td colspan="7">Total Itens</td>
-                <td class="text-end">R$ {{ total_itens }}</td>
+                <td class="text-end">R$ {{ total_itens|floatformat:2 }}</td>
               </tr>
             </tbody>
           </table>
