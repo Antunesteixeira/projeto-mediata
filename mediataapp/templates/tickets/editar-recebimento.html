@@ -1,0 +1,54 @@
+{% extends '_layout/base.html' %}
+
+{% block title %}Editar recebimento | Mediata{% endblock %}
+
+{% block conteudo %}
+<div class="app-page">
+  <div class="app-page-header">
+    <div>
+      <h1 class="app-page-title">Editar recebimento</h1>
+      <p class="app-page-description">Atualize os dados do recebimento do ticket #{{ ticket.ticket }}.</p>
+    </div>
+    <div class="app-page-actions">
+      <a href="{% url 'exibir-ticket' ticket.key %}#recebimentos" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Voltar ao ticket
+      </a>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <span class="fw-semibold">{{ ticket.cliente.nome_razao_social|default:'Cliente não informado' }}</span>
+    </div>
+    <form method="post">
+      {% csrf_token %}
+      <div class="card-body">
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger" role="alert">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <div class="row g-3">
+          {% for field in form %}
+            <div class="{% if field.name == 'descricao_recebimento' or field.name == 'recebimento_realizado' %}col-12{% else %}col-md-6{% endif %}">
+              {% if field.name == 'recebimento_realizado' %}
+                <div class="form-check">
+                  {{ field }}
+                  <label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                </div>
+              {% else %}
+                <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+                {{ field }}
+              {% endif %}
+              {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+              {% for error in field.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="card-footer d-flex flex-wrap justify-content-end gap-2">
+        <a href="{% url 'exibir-ticket' ticket.key %}#recebimentos" class="btn btn-outline-secondary">Cancelar</a>
+        <button type="submit" class="btn btn-primary">Salvar alterações</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

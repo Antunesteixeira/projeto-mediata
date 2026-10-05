@@ -233,3 +233,27 @@ class RecebimentosForm(forms.ModelForm):
             field.required = False
         # Exemplo: tornar valor_recebimento obrigatório
         # self.fields['valor_recebimento'].required = True
+
+
+class EditarRecebimentoForm(RecebimentosForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['status_recebimento'].required = True
+        for name in ('data_emissao', 'data_vencimento'):
+            self.fields[name].widget.format = '%Y-%m-%d'
+        self.fields['data_recebimento_realizado'].widget = forms.DateTimeInput(
+            format='%Y-%m-%dT%H:%M:%S',
+            attrs={'type': 'datetime-local', 'step': '1', 'class': 'form-control'},
+        )
+        self.fields['data_recebimento_realizado'].label = 'Data e hora do recebimento'
+        for field in self.fields.values():
+            if isinstance(field.widget, forms.Select):
+                field.widget.attrs['class'] = 'form-select'
+
+    def clean_data_recebimento_realizado(self):
+        value = self.cleaned_data.get('data_recebimento_realizado')
+        original = self.instance.data_recebimento_realizado
+        # O navegador exibe segundos; conserva a precisão do registro sem alteração.
+        if original is not None and value is not None and original.replace(microsecond=0) == value:
+            return original
+        return value

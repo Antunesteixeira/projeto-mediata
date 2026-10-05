@@ -129,8 +129,7 @@ handler404 = 'core.erro_404'
 # Configurações de sessão e auto-logout
 SESSION_SAVE_EVERY_REQUEST = True
 AUTO_LOGOUT = {
-    'IDLE_TIME': timedelta(minutes=20),
-    'SESSION_TIME': timedelta(minutes=60),
+    'IDLE_TIME': timedelta(minutes=120),
     'MESSAGE': 'A sessão expirou. Faça login novamente para continuar.',
     'REDIRECT_TO_LOGIN_IMMEDIATELY': True,
 }

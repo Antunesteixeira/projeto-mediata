@@ -2,13 +2,14 @@ from decimal import Decimal
 import json
 import uuid
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
 
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
 from django.db.models import F, ExpressionWrapper, DecimalField, Sum
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 
 from django.contrib.auth.models import User, Group
 from colaborador.models import Colaborador
@@ -18,7 +19,7 @@ from core.models import Empresa
 from django.http import HttpResponse, HttpResponseBadRequest
 
 from .models import Ticket, Orcamento, ItemOrcamento, Insumos, HistoricoTicket, Pagamentos, Anexo, Recebimentos  # ajuste se estiver em outro lugar
-from .forms import OrcamentoForm, ItemOrcamentoForm, TicketForm, HistorcoTicketForm, PagamentoForm, AnexoForm, RecebimentosForm  # importe só os forms que usa
+from .forms import OrcamentoForm, ItemOrcamentoForm, TicketForm, HistorcoTicketForm, PagamentoForm, AnexoForm, RecebimentosForm, EditarRecebimentoForm  # importe só os forms que usa
 
 from rolepermissions.checkers import has_role
 
@@ -286,6 +287,10 @@ def exibirticket(request, key):
         'anexos': anexos,
         'recebimentos': recebimentos,
         'recebimentos_form': recebimentos_form,      # ← agora sem prefixo
+        'can_edit_recebimentos': (
+            request.user.is_superuser or has_role(request.user, 'gerente')
+            or ticket.usuario_id == request.user.pk
+        ),
         'form_anexo': anexo_form,                    # pode conter erros se for inválido
         'margem': margem,
         'orcamento': orcamento,
@@ -699,6 +704,31 @@ def deletar_anexo(request, anexo_id, key):
     else:
         messages.error(request, 'Método inválido para deletar anexo.')
     return redirect('exibir-ticket', key=key)
+
+@login_required
+@require_http_methods(['GET', 'POST'])
+def editar_recebimento(request, recebimento_id, key):
+    tickets = Ticket.objects.select_related('cliente')
+    if not (request.user.is_superuser or has_role(request.user, 'gerente')):
+        tickets = tickets.filter(usuario=request.user)
+    ticket = get_object_or_404(tickets, key=key)
+    recebimento = get_object_or_404(
+        Recebimentos, pk=recebimento_id, ticket_recebimento=ticket,
+    )
+    form = EditarRecebimentoForm(
+        request.POST if request.method == 'POST' else None,
+        instance=recebimento,
+    )
+    if request.method == 'POST' and form.is_valid():
+        form.save()
+        messages.success(request, 'Recebimento atualizado com sucesso!')
+        return redirect(f"{reverse('exibir-ticket', kwargs={'key': ticket.key})}#recebimentos")
+    return render(request, 'tickets/editar-recebimento.html', {
+        'form': form,
+        'recebimento': recebimento,
+        'ticket': ticket,
+    })
+
 
 @login_required
 def deletar_recebimento(request, recebimento_id, key):
