@@ -74,10 +74,9 @@
                             </span>
                         </td>
                         <td class="text-end pe-4">
-                            <a href="{% url 'cadastrar-colaborador-ticket' id_ticket colaborador.pk %}" 
-                               class="btn btn-sm btn-soft-success" title="Adicionar ao ticket">
+                            <form action="{% url 'cadastrar-colaborador-ticket' id_ticket colaborador.pk %}" method="post" class="d-inline">{% csrf_token %}<button type="submit" class="btn btn-sm btn-soft-success" title="Adicionar ao ticket">
                                 <i class="bi bi-plus-circle me-1"></i> Adicionar
-                            </a>
+                            </button></form>
                         </td>
                     </tr>
                     {% empty %}

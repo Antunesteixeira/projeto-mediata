@@ -12,12 +12,16 @@
         <p class="app-page-description">Informações institucionais, serviços, equipe e contatos.</p>
     </div>
     <div class="app-page-actions">
-<a href="{% url 'empresa_editar' empresa.pk %}" class="btn btn-primary">
+            {% if pode_editar_empresa %}
+            <a href="{% url 'empresa_editar' empresa.pk %}" class="btn btn-primary">
                 <i class="fas fa-edit me-2"></i>Editar Perfil
             </a>
+            {% endif %}
+            {% if user.is_superuser %}
             <a href="{% url 'empresa_cadastrar' %}" class="btn btn-outline-primary">
                 <i class="fas fa-plus me-2"></i>Nova Empresa
             </a>
+            {% endif %}
             <button onclick="window.print()" class="btn btn-outline-secondary">
                 <i class="fas fa-print me-2"></i>Imprimir
             </button>
@@ -311,5 +315,44 @@
 
     </div>
 </div>
+<section class="card mt-4" aria-labelledby="company-users-title">
+  <div class="card-header"><h2 class="h5 mb-0" id="company-users-title">Usuários da empresa</h2></div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>Usuário</th><th>Grupo</th><th>Situação</th></tr></thead>
+        <tbody>
+          {% for membro in equipe_usuarios %}
+          <tr>
+            <td>{{ membro.get_full_name|default:membro.username }}</td>
+            <td>{% for grupo in membro.groups.all %}<span class="badge bg-primary me-1">{{ grupo.name }}</span>{% empty %}Sem grupo{% endfor %}</td>
+            <td>{{ membro.is_active|yesno:'Ativo,Inativo' }}</td>
+          </tr>
+          {% empty %}<tr><td colspan="3" class="text-muted">Nenhum usuário vinculado à empresa.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+<section class="card mt-4" aria-labelledby="company-tickets-title">
+  <div class="card-header"><h2 class="h5 mb-0" id="company-tickets-title">Tickets da empresa</h2></div>
+  <div class="card-body">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0">
+        <thead><tr><th>Ticket</th><th>Status</th><th>Criação</th><th>Autor</th></tr></thead>
+        <tbody>
+          {% for registro in tickets_empresa %}
+          <tr>
+            <td><a href="{% url 'exibir-ticket' registro.key %}">#{{ registro.ticket }}</a></td>
+            <td>{{ registro.get_status_display }}</td>
+            <td>{{ registro.data_criacao|date:'d/m/Y H:i' }}</td>
+            <td>{{ registro.usuario.get_full_name|default:registro.usuario.username|default:'Não informado' }}</td>
+          </tr>
+          {% empty %}<tr><td colspan="4" class="text-muted">Nenhum ticket vinculado à empresa.</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
 </div>
 {% endblock %}

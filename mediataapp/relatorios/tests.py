@@ -12,6 +12,8 @@ from rolepermissions.roles import assign_role
 from clientes.models import Cliente
 from colaborador.models import Colaborador
 from tickets.models import Orcamento, Pagamentos, Ticket
+from core.models import Empresa
+from usuarios.models import UsuarioEmpresa
 
 
 @override_settings(TIME_ZONE='America/Sao_Paulo')
@@ -20,6 +22,14 @@ class PaymentReportFilterTests(TestCase):
 
     @classmethod
     def setUpTestData(cls):
+        cls.company = Empresa.objects.create(
+            nome_fantasia='Empresa A do relatório', razao_social='Empresa A de teste',
+            cnpj='11.111.111/0001-11', email='empresa-a@example.com', telefone='(11) 1111-1111',
+        )
+        cls.foreign_company = Empresa.objects.create(
+            nome_fantasia='Empresa B do relatório', razao_social='Empresa B de teste',
+            cnpj='22.222.222/0001-22', email='empresa-b@example.com', telefone='(22) 2222-2222',
+        )
         cls.operator = User.objects.create_user(username='operador_relatorio')
         assign_role(cls.operator, 'operador')
         cls.other_operator = User.objects.create_user(username='outro_operador_relatorio')
@@ -29,14 +39,25 @@ class PaymentReportFilterTests(TestCase):
         cls.admin = User.objects.create_superuser(
             username='admin_relatorio', email='admin@example.com', password='test-password'
         )
+        cls.foreign_operator = User.objects.create_user(username='operador_empresa_b')
+        assign_role(cls.foreign_operator, 'operador')
+        for user in (cls.operator, cls.other_operator, cls.manager):
+            UsuarioEmpresa.objects.create(usuario=user, empresa=cls.company)
+        UsuarioEmpresa.objects.create(usuario=cls.foreign_operator, empresa=cls.foreign_company)
         cls.customer = Cliente.objects.create(
-            nome_razao_social='Cliente do relatório', cpf_cnpj='11111111111'
+            nome_razao_social='Cliente do relatório', cpf_cnpj='11111111111', empresa=cls.company,
         )
         cls.other_customer = Cliente.objects.create(
-            nome_razao_social='Outro cliente', cpf_cnpj='22222222222'
+            nome_razao_social='Outro cliente', cpf_cnpj='22222222222', empresa=cls.company,
         )
-        cls.collaborator = Colaborador.objects.create(nome_completo='Prestador do relatório')
-        cls.other_collaborator = Colaborador.objects.create(nome_completo='Outro prestador')
+        cls.foreign_customer = Cliente.objects.create(
+            nome_razao_social='Cliente da empresa B', cpf_cnpj='33333333333', empresa=cls.foreign_company,
+        )
+        cls.collaborator = Colaborador.objects.create(nome_completo='Prestador do relatório', empresa=cls.company)
+        cls.other_collaborator = Colaborador.objects.create(nome_completo='Outro prestador', empresa=cls.company)
+        cls.foreign_collaborator = Colaborador.objects.create(
+            nome_completo='Prestador da empresa B', empresa=cls.foreign_company,
+        )
 
     def setUp(self):
         self.sequence = 0
@@ -47,6 +68,7 @@ class PaymentReportFilterTests(TestCase):
         values = {
             'ticket': f'REL{self.sequence:06d}',
             'usuario': self.operator,
+            'empresa': self.company,
             'cliente': self.customer,
             'colaborador': self.collaborator,
             'status': 'A',
@@ -182,14 +204,14 @@ class PaymentReportFilterTests(TestCase):
                 self.assert_tickets(response, expected)
                 self.assertEqual(response.context['total_pendentes'], Decimal('10.00') * len(expected))
 
-    def test_pending_filter_preserves_operator_scope_and_manager_user_filter(self):
+    def test_pending_filter_uses_the_company_team_and_manager_user_filter(self):
         own = self.ticket(status='A')
         other = self.ticket(status='V', usuario=self.other_operator)
         for ticket, value in ((own, '10.00'), (other, '100.00')):
             self.payment(ticket, value)
         response = self.report({'status_pagamento': ['False'], 'usuario': str(self.other_operator.pk)})
-        self.assert_tickets(response, [own])
-        self.assertEqual(response.context['total_pendentes'], Decimal('10.00'))
+        self.assert_tickets(response, [own, other])
+        self.assertEqual(response.context['total_pendentes'], Decimal('110.00'))
         response = self.report({'status_pagamento': ['False']}, user=self.manager)
         self.assert_tickets(response, [own, other])
         self.assertEqual(response.context['total_pendentes'], Decimal('110.00'))
@@ -199,14 +221,19 @@ class PaymentReportFilterTests(TestCase):
         self.assert_tickets(response, [other])
         self.assertEqual(response.context['total_pendentes'], Decimal('100.00'))
 
-    def test_superuser_without_manager_group_keeps_existing_own_ticket_scope(self):
+    def test_superuser_without_manager_group_can_report_all_companies(self):
         own = self.ticket(status='A', usuario=self.admin)
         other = self.ticket(status='V')
+        foreign = self.ticket(
+            status='V', usuario=self.foreign_operator, empresa=self.foreign_company,
+            cliente=self.foreign_customer, colaborador=self.foreign_collaborator,
+        )
         self.payment(own, '10.00')
         self.payment(other, '100.00')
+        self.payment(foreign, '1000.00')
         response = self.report({'status_pagamento': ['False']}, user=self.admin)
-        self.assert_tickets(response, [own])
-        self.assertEqual(response.context['total_pendentes'], Decimal('10.00'))
+        self.assert_tickets(response, [own, other, foreign])
+        self.assertEqual(response.context['total_pendentes'], Decimal('1110.00'))
 
     def test_pending_intersects_customer_and_collaborator_filters(self):
         matching = self.ticket(status='E')
@@ -285,7 +312,10 @@ class PaymentReportFilterTests(TestCase):
             for index, value in enumerate(values):
                 self.payment(ticket, value, kind=kind, paid=bool(index % 2))
 
-        other_ticket = self.ticket(usuario=self.other_operator)
+        other_ticket = self.ticket(
+            usuario=self.foreign_operator, empresa=self.foreign_company,
+            cliente=self.foreign_customer, colaborador=self.foreign_collaborator,
+        )
         self.payment(other_ticket, '9999.99', kind='M')
         response = self.report()
         self.assert_tickets(response, [ticket])
@@ -386,3 +416,60 @@ class PaymentReportFilterTests(TestCase):
         response = self.report()
         self.assertContains(response, 'colspan="12"', count=1)
         self.assertContains(response, 'Nenhum ticket encontrado com os filtros aplicados')
+
+    def test_company_reports_exclude_foreign_metrics_and_filter_choices(self):
+        own = self.ticket()
+        foreign = self.ticket(
+            usuario=self.foreign_operator, empresa=self.foreign_company,
+            cliente=self.foreign_customer, colaborador=self.foreign_collaborator,
+        )
+        self.budget(own, '100.00')
+        self.payment(own, '10.00')
+        self.budget(foreign, '9999.00')
+        self.payment(foreign, '8888.00')
+        for user in (self.operator, self.manager):
+            with self.subTest(user=user.username):
+                response = self.report(user=user)
+                self.assert_tickets(response, [own])
+                self.assertEqual(response.context['orcamento_total'], Decimal('100.00'))
+                self.assertEqual(response.context['total_pagamentos'], Decimal('10.00'))
+                self.assertNotIn(self.foreign_operator.pk, response.context['usuarios'].values_list('pk', flat=True))
+                self.assertNotIn(self.foreign_customer.pk, response.context['clientes'].values_list('pk', flat=True))
+                self.assertNotIn(self.foreign_collaborator.pk, response.context['colaboradores'].values_list('pk', flat=True))
+                self.assertNotContains(response, self.foreign_customer.nome_razao_social)
+
+    def test_manager_operator_filter_uses_claiming_user_for_subscriber_ticket(self):
+        subscriber = User.objects.create_user(username='assinante_global_relatorio')
+        assign_role(subscriber, 'assinante')
+        ticket = self.ticket(usuario=subscriber, assumido_por=self.other_operator)
+        self.payment(ticket, '12.50')
+        response = self.report({'usuario': str(self.other_operator.pk)}, user=self.manager)
+        self.assert_tickets(response, [ticket])
+        self.assertEqual(response.context['total_pagamentos'], Decimal('12.50'))
+        self.assertNotIn(subscriber.pk, response.context['usuarios'].values_list('pk', flat=True))
+
+    def test_company_filters_reject_foreign_ids(self):
+        self.client.force_login(self.manager)
+        for name, value in (
+            ('usuario', self.foreign_operator.pk), ('cliente', self.foreign_customer.pk),
+            ('colaborador', self.foreign_collaborator.pk), ('cliente', 'not-an-id'),
+        ):
+            with self.subTest(name=name, value=value):
+                response = self.client.get(self.url, {'date_range': '365', name: str(value)})
+                self.assertEqual(response.status_code, 404)
+
+    def test_non_operational_roles_and_missing_or_inactive_company_cannot_report(self):
+        for role in ('cliente', 'colaborador'):
+            user = User.objects.create_user(username=f'{role}_relatorio')
+            assign_role(user, role)
+            UsuarioEmpresa.objects.create(usuario=user, empresa=self.company)
+            self.client.force_login(user)
+            self.assertEqual(self.client.get(self.url).status_code, 403)
+        unlinked = User.objects.create_user(username='operador_sem_empresa_relatorio')
+        assign_role(unlinked, 'operador')
+        self.client.force_login(unlinked)
+        self.assertEqual(self.client.get(self.url).status_code, 403)
+        self.foreign_company.ativo = False
+        self.foreign_company.save(update_fields=['ativo'])
+        self.client.force_login(self.foreign_operator)
+        self.assertEqual(self.client.get(self.url).status_code, 403)

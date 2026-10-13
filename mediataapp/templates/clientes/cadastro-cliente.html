@@ -15,6 +15,29 @@
                 <div class="card-body">
                     <form method="POST" novalidate>
                         {% csrf_token %}
+                        {% if form.errors %}
+                        <div class="alert alert-danger" role="alert">
+                            {{ form.non_field_errors }}
+                            <ul class="mb-0">
+                                {% for field in form %}
+                                    {% for error in field.errors %}
+                                    <li>{{ field.label }}: {{ error }}</li>
+                                    {% endfor %}
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                        {% if form.empresa %}
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                {{ form.empresa.label_tag }}
+                                {{ form.empresa }}
+                                {% if form.empresa.help_text %}<div class="form-text">{{ form.empresa.help_text }}</div>{% endif %}
+                                {% if form.empresa.errors %}<div class="invalid-feedback d-block">{{ form.empresa.errors }}</div>{% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+
                         
                         <!-- Seção de Tipo de Pessoa -->
                         <div class="mb-4">

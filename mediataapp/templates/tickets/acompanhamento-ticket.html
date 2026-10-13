@@ -1,0 +1,76 @@
+{% extends '_layout/base.html' %}
+
+{% block title %}Acompanhar ticket #{{ ticket.ticket }} | Mediata{% endblock %}
+
+{% block conteudo %}
+<div class="app-page">
+  <header class="app-page-header">
+    <div>
+      <h1 class="app-page-title">Ticket #{{ ticket.ticket }}</h1>
+      <p class="app-page-description">Acompanhe o andamento e as atualizações da sua solicitação.</p>
+    </div>
+    <div class="app-page-actions">
+      {% if is_assinante and ticket.status == 'L' %}
+      <a href="{% url 'editar-ticket' ticket.key %}" class="btn btn-primary">
+        <i class="bi bi-pencil me-1" aria-hidden="true"></i>Editar ticket
+      </a>
+      {% endif %}
+      <a href="{% url 'index-tickets' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Voltar aos tickets
+      </a>
+    </div>
+  </header>
+
+  <section class="card mb-4" aria-labelledby="ticket-details-title">
+    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <h2 id="ticket-details-title" class="mb-0">Informações do ticket</h2>
+      <span class="badge {% if ticket.status == 'L' or ticket.status == 'X' %}bg-warning{% elif ticket.status == 'C' %}bg-primary{% elif ticket.status == 'A' %}bg-secondary{% elif ticket.status == 'E' %}bg-info{% elif ticket.status == 'V' %}bg-success{% elif ticket.status == 'F' %}bg-danger{% else %}bg-light text-dark border{% endif %}">
+        {{ ticket.get_status_display }}
+      </span>
+    </div>
+    <div class="card-body">
+      <dl class="row g-3 mb-4">
+        <div class="col-sm-6 col-xl-3">
+          <dt class="text-muted small mb-1">Criado em</dt>
+          <dd class="mb-0">{{ ticket.data_criacao|date:'d/m/Y H:i' }}</dd>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+          <dt class="text-muted small mb-1">Última atualização</dt>
+          {% with ultima_atualizacao=historico|first %}
+          <dd class="mb-0">{% if ultima_atualizacao %}{{ ultima_atualizacao.data_historico|date:'d/m/Y H:i' }}{% else %}{{ ticket.ultimo_update|date:'d/m/Y' }}{% endif %}</dd>
+          {% endwith %}
+        </div>
+        <div class="col-sm-6 col-xl-3">
+          <dt class="text-muted small mb-1">Cliente</dt>
+          <dd class="mb-0">{{ ticket.cliente|default:'Não informado' }}</dd>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+          <dt class="text-muted small mb-1">Colaborador</dt>
+          <dd class="mb-0">{{ ticket.colaborador|default:'Não informado' }}</dd>
+        </div>
+      </dl>
+      <dl class="mb-4"><dt class="text-muted small mb-1">Empresa responsável</dt><dd>{{ ticket.empresa.nome_fantasia|default:'Aguardando uma empresa assumir o ticket' }}</dd></dl>
+      <h3 class="h6 mb-2">Descrição da solicitação</h3>
+      <div class="text-break">{{ ticket.descricao|default:'Descrição não informada.'|linebreaksbr }}</div>
+    </div>
+  </section>
+
+  <section class="card" aria-labelledby="ticket-history-title">
+    <div class="card-header">
+      <h2 id="ticket-history-title" class="mb-0">Histórico de acompanhamento</h2>
+    </div>
+    <div class="card-body">
+      {% for registro in historico %}
+      <article class="{% if not forloop.last %}border-bottom pb-3 mb-3{% endif %}">
+        <p class="text-muted small mb-2">
+          <i class="bi bi-clock-history me-1" aria-hidden="true"></i>{{ registro.data_historico|date:'d/m/Y H:i' }}
+        </p>
+        <div class="text-break">{{ registro.descricao_historico|default:'Atualização registrada.'|linebreaksbr }}</div>
+      </article>
+      {% empty %}
+      <p class="text-muted mb-0">Ainda não há atualizações registradas para este ticket.</p>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

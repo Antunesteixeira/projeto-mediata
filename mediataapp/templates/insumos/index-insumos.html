@@ -31,8 +31,31 @@
       </h5>
     </div>
     <div class="card-body">
-      <form method="post" novalidate class="needs-validation" novalidate>
+      <form method="post" novalidate class="needs-validation">
         {% csrf_token %}
+        {% if form.errors %}
+        <div class="alert alert-danger" role="alert">
+            {{ form.non_field_errors }}
+            <ul class="mb-0">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                    <li>{{ field.label }}: {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+        {% if form.empresa %}
+        <div class="row mb-4">
+            <div class="col-md-6">
+                {{ form.empresa.label_tag }}
+                {{ form.empresa }}
+                {% if form.empresa.help_text %}<div class="form-text">{{ form.empresa.help_text }}</div>{% endif %}
+                {% if form.empresa.errors %}<div class="invalid-feedback d-block">{{ form.empresa.errors }}</div>{% endif %}
+            </div>
+        </div>
+        {% endif %}
+
 
         <div class="row mb-4">
           <!-- Informações Básicas -->
@@ -209,10 +232,13 @@
                     <a href="{% url 'editar-insumos' insumo.id %}" class="btn btn-outline-primary btn-sm" title="Editar">
                       <i class="bi bi-pencil"></i>
                     </a>
-                    <a href="{% url 'deletar-insumos' insumo.id %}" class="btn btn-outline-danger btn-sm" title="Excluir"
-                       onclick="return confirm('Tem certeza que deseja excluir este insumo?')">
-                      <i class="bi bi-trash"></i>
-                    </a>
+                    <form method="post" action="{% url 'deletar-insumos' insumo.id %}" class="m-0 d-flex"
+                          onsubmit="return confirm('Tem certeza que deseja excluir este insumo?')">
+                      {% csrf_token %}
+                      <button type="submit" class="btn btn-outline-danger btn-sm" title="Excluir" aria-label="Excluir insumo">
+                        <i class="bi bi-trash" aria-hidden="true"></i>
+                      </button>
+                    </form>
                   </div>
                 </td>
               </tr>

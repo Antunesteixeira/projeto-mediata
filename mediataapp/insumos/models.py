@@ -5,6 +5,11 @@ import random
 from django.db import models
 
 class Insumos(models.Model):
+    empresa = models.ForeignKey(
+        'core.Empresa', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='insumos',
+    )
+
     TIPO_CHOISES = [
         ('S', 'Serviço'), 
         ('M', 'Material'),
@@ -79,7 +84,7 @@ class Insumos(models.Model):
 
 
     insumo = models.CharField(max_length=255)
-    codigo = models.CharField(max_length=9, unique=True, blank=True)
+    codigo = models.CharField(max_length=9, blank=True)
     tipo = models.CharField(max_length=1, choices=TIPO_CHOISES)
     unidade = models.CharField(max_length=6, choices=UNIDADE_MEDIDA_CHOICES, blank=True, null=True)
     valor_unit = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
@@ -87,6 +92,11 @@ class Insumos(models.Model):
 
     def __str__(self):
         return self.insumo
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=('empresa', 'codigo'), name='insumos_empresa_codigo_uniq'),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.codigo:
@@ -97,5 +107,5 @@ class Insumos(models.Model):
         while True:
             numero = f"{random.randint(0, 9999):04d}"  # número com 4 dígitos
             codigo = f"INS{numero}"  # adiciona prefixo INS
-            if not Insumos.objects.filter(codigo=codigo).exists():
+            if not Insumos.objects.filter(empresa_id=self.empresa_id, codigo=codigo).exists():
                 return codigo

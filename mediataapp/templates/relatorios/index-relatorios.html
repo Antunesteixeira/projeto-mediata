@@ -233,9 +233,9 @@
                         <option value="R" {% if filtro_status == "R" %}selected{% endif %}>Rejeitado</option>
                     </select>
                 </div>
-                {% if user|has_role:'gerente' %}
+                {% if is_gerente %}
                 <div class="col-md-2">
-                    <label for="usuario" class="form-label">Usuário</label>
+                    <label for="usuario" class="form-label">Operador</label>
                     <select class="form-select" name="usuario" id="usuario">
                         <option value="all" {% if filtro_usuario == "all" or not filtro_usuario %}selected{% endif %}>Todos</option>
                         {% for usuario in usuarios %}
@@ -353,7 +353,7 @@
                     <thead>
                         <tr>
                             <th>ID</th>
-                            <th>Usuário</th>
+                            <th>Operador</th>
                             <th>Cliente</th>
                             <th>Colabo<wbr>rador</th>
                             <th>Status</th>
@@ -370,7 +370,21 @@
                         {% for ticket in tickets %}
                         <tr>
                             <td><strong>#{{ ticket.ticket }}</strong></td>
-                            <td>{{ ticket.usuario.username }}</td>
+                            <td>
+                                {% if ticket.assumido_por %}
+                                    {{ ticket.assumido_por.username }}
+                                {% elif ticket.usuario.is_superuser %}
+                                    {{ ticket.usuario.username }}
+                                {% elif ticket.usuario and ticket.usuario.vinculo_empresa.empresa_id == ticket.empresa_id %}
+                                    {% if not ticket.usuario|has_role:'assinante' and ticket.usuario|has_role:'gerente' or not ticket.usuario|has_role:'assinante' and ticket.usuario|has_role:'operador' %}
+                                        {{ ticket.usuario.username }}
+                                    {% else %}
+                                        <span class="text-muted">Não atribuído</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="text-muted">Não atribuído</span>
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if ticket.cliente %}
                                     {{ ticket.cliente.nome_razao_social }}
@@ -598,7 +612,7 @@
                         </div>
                     </div>
 
-                    {% if user|has_role:'gerente' %}
+                    {% if is_gerente %}
                     <div class="mb-3">
                         <label for="usuario_modal" class="form-label">Usuário</label>
                         <select class="form-select" name="usuario" id="usuario_modal">

@@ -12,24 +12,32 @@ from django.http import JsonResponse
 from django.db.models import Q
 
 from rolepermissions.decorators import has_role_decorator
+from django.core.exceptions import PermissionDenied
+from django.views.decorators.http import require_POST
+from core.tenancy import dados_da_empresa, pode_assumir_ticket
+from clientes.forms import salvar_form_empresa
+
+
+def _exigir_operacao(user):
+    if not (user.is_superuser or pode_assumir_ticket(user)):
+        raise PermissionDenied('Seu acesso não permite gerenciar insumos da empresa.')
 
 #@has_role_decorator('gerente')
 @login_required
 def insumos(request):
-    insumos_obj = Insumos.objects.all()
+    _exigir_operacao(request.user)
+    insumos_obj = dados_da_empresa(request.user, Insumos.objects.all())
     if request.method == "POST":
-        form = InsumoForm(request.POST)
+        form = InsumoForm(request.POST, actor=request.user)
         if form.is_valid():
-            insumos = form.save(commit=False)
-            insumos.save()
-            messages.add_message(request, messages.SUCCESS, "Insumo cadastrado com sucesso!")
-            return redirect('index-insumos')
+            if salvar_form_empresa(form) is not None:
+                messages.add_message(request, messages.SUCCESS, "Insumo cadastrado com sucesso!")
+                return redirect('index-insumos')
         else:
             messages.add_message(request, messages.ERROR, "Não foi possível cadastrar o insumo, revise os dados!")
-            return redirect('index-insumos')
         
     else:
-        form = InsumoForm()
+        form = InsumoForm(actor=request.user)
     
     context = {
         'form': form,
@@ -40,21 +48,21 @@ def insumos(request):
 #@has_role_decorator('gerente')
 @login_required
 def editar_insumos(request, id):
-    insumo = Insumos.objects.get(id=id)
-    insumos = Insumos.objects.all()
-    form = InsumoForm(request.POST or None, instance=insumo)
+    _exigir_operacao(request.user)
+    insumos = dados_da_empresa(request.user, Insumos.objects.all())
+    insumo = get_object_or_404(insumos, id=id)
+    form = InsumoForm(request.POST if request.method == 'POST' else None, instance=insumo, actor=request.user)
 
     if form.is_valid():
         # Verifica se os dados do formulário foram alterados
         if form.has_changed(): 
-            insumo = form.save(commit=False)
-            insumo.save()
-            messages.success(request, f"Insumo {insumo.codigo.upper()} - {insumo.insumo.upper()} atualizado com sucesso!")
+            if salvar_form_empresa(form) is not None:
+                messages.success(request, f"Insumo {insumo.codigo.upper()} - {insumo.insumo.upper()} atualizado com sucesso!")
+                return redirect('index-insumos')
 
         else:
             messages.info(request, "Nenhuma alteração foi detectada.")
-            
-        return redirect('index-insumos')
+            return redirect('index-insumos')
 
     context = {
         'form': form,
@@ -66,8 +74,10 @@ def editar_insumos(request, id):
 
 #@has_role_decorator('gerente')
 @login_required
+@require_POST
 def deletar_insumo(request, id):
-    insumo = get_object_or_404(Insumos, id=id)
+    _exigir_operacao(request.user)
+    insumo = get_object_or_404(dados_da_empresa(request.user, Insumos.objects.all()), id=id)
 
     # opcional: checar permissão extra, ex:
     # if not request.user.has_perm('app.delete_ticket'):

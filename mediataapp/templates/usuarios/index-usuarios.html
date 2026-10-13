@@ -5,7 +5,7 @@
 <div class="app-page-header">
     <div>
         <h1 class="app-page-title">Usuários</h1>
-        <p class="app-page-description">Gerencie os acessos e os grupos de usuários do sistema.</p>
+        <p class="app-page-description">Gerencie os acessos, os grupos e a equipe da empresa.</p>
     </div>
     <div class="app-page-actions">
 <a href="{% url 'registrar-usuarios' %}" class="btn btn-primary">
@@ -43,6 +43,7 @@
                             <th scope="col" width="20%">Usuário</th>
                             <th scope="col" width="25%">Email</th>
                             <th scope="col" width="20%">Grupo</th>
+                            <th scope="col">Empresa</th>
                             <th scope="col" width="15%">Cadastro</th>
                             <th scope="col" width="20%">Ações</th>
                         </tr>
@@ -75,6 +76,7 @@
                                 </span>
                                 {% endif %}
                             </td>
+                            <td>{{ usuario.vinculo_empresa.empresa.nome_fantasia|default:"Sem vínculo" }}</td>
                             <td>
                                 <small class="text-muted">{{ usuario.date_joined|date:"d/m/Y H:i" }}</small>
                             </td>
@@ -138,7 +140,7 @@
 $(document).ready(function() {
     // Inicializa DataTable
     const tabela = $('#tabelaUsuarios').DataTable({
-        order: [[3, 'desc']], // ordena por data de cadastro
+        order: [[4, 'desc']], // ordena por data de cadastro
         language: {
             search: "Pesquisar:",
             lengthMenu: "Mostrar _MENU_ registros por página",
@@ -170,7 +172,8 @@ $(document).ready(function() {
     $('[data-bs-toggle="tooltip"]').tooltip();
     
     // Linhas clicáveis
-    $('.clickable-row').on('click', function() {
+    $('.clickable-row').on('click', function(event) {
+        if ($(event.target).closest('a, button, input, select').length) return;
         window.location = $(this).data('href');
     });
 });

@@ -6,7 +6,7 @@
   <header class="app-page-header">
     <div>
       <h1 class="app-page-title">Novo usuário</h1>
-      <p class="app-page-description">Cadastre uma conta e defina seu grupo de acesso.</p>
+      <p class="app-page-description">Cadastre uma conta e defina seu grupo de acesso e sua empresa.</p>
     </div>
     <div class="app-page-actions">
       <a href="{% url 'index-usuarios' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left" aria-hidden="true"></i> Voltar para usuários</a>
@@ -32,7 +32,7 @@
                         </div>
                         {% endif %}
 
-                        <form method="post" novalidate>
+                        <form method="post" novalidate data-user-form>
                             {% csrf_token %}
 
                             <div class="row">
@@ -45,15 +45,15 @@
 
                                 <div class="col-md-6 mb-3">
                                     <label for="id_group" class="form-label">Grupo *</label>
-                                    <select class="form-select" id="id_group" name="group" required>
-                                        <option value="">Selecione um grupo</option>
-                                        {% for group in form.group.field.queryset %}
-                                            <option value="{{ group.id }}" {% if form.group.value == group.id %}selected{% endif %}>
-                                                {{ group.name }}
-                                            </option>
-                                        {% endfor %}
-                                    </select>
+                                    {{ form.group }}
                                 </div>
+                            </div>
+
+                            <div class="mb-3" id="user-company-field">
+                                <label for="{{ form.empresa.id_for_label }}" class="form-label">{{ form.empresa.label }}</label>
+                                {{ form.empresa }}
+                                <div class="form-text">{{ form.empresa.help_text }}</div>
+                                {% for error in form.empresa.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
                             </div>
 
                             <div class="row">
@@ -115,11 +115,24 @@
 
         // Validação em tempo real
         document.addEventListener('DOMContentLoaded', function() {
-            const form = document.querySelector('form');
+            const form = document.querySelector('form[data-user-form]');
+
+            const groupInput = document.getElementById('id_group');
+            const companyInput = document.getElementById('id_empresa');
+            const companyField = document.getElementById('user-company-field');
+            const fixedCompany = companyInput.disabled;
+            function updateCompanyField() {
+                const independent = groupInput.selectedOptions[0]?.textContent.trim() === 'assinante';
+                companyField.hidden = independent;
+                companyInput.disabled = fixedCompany || independent;
+                companyInput.required = !fixedCompany && !independent;
+            }
+            groupInput.addEventListener('change', updateCompanyField);
+            updateCompanyField();
 
             form.addEventListener('submit', function(event) {
                 let isValid = true;
-                const inputs = form.querySelectorAll('input[required], select[required]');
+                const inputs = form.querySelectorAll('input[required]:not(:disabled), select[required]:not(:disabled)');
 
                 inputs.forEach(input => {
                     if (!input.value.trim()) {

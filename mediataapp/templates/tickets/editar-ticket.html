@@ -5,9 +5,16 @@
   <!-- Cabeçalho -->
   <header class="app-page-header">
     <div>
-      <h1 class="app-page-title">{% if form.instance.pk %}Editar{% else %}Adicionar{% endif %} Ticket</h1>
-      <p class="app-page-description">Atualize os detalhes do serviço, o status e o prazo de atendimento.</p>
+      <h1 class="app-page-title">{% if is_assinante %}Editar ticket #{{ ticket.ticket }}{% else %}{% if form.instance.pk %}Editar{% else %}Adicionar{% endif %} Ticket{% endif %}</h1>
+      <p class="app-page-description">{% if is_assinante %}Você pode ajustar o número e a descrição enquanto o ticket estiver em Levantamento.{% else %}Atualize os detalhes do serviço, o status e o prazo de atendimento.{% endif %}</p>
     </div>
+    {% if is_assinante %}
+    <div class="app-page-actions">
+      <a href="{% url 'exibir-ticket' ticket.key %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Voltar ao ticket
+      </a>
+    </div>
+    {% endif %}
   </header>
   
   <!-- Card do Formulário -->
@@ -23,12 +30,20 @@
           </div>
         {% endif %}
 
+        {% if form.empresa %}
+        <div class="mb-4">{{ form.empresa.label_tag }}{{ form.empresa }}<div class="text-danger small">{{ form.empresa.errors }}</div></div>
+        {% endif %}
+        {% if form.ticket or form.status or form.data_finalizar %}
         <!-- Primeira linha de campos -->
         <div class="row mb-4">
-          <div class="col-md-3">
+          {% if form.ticket %}
+          <div class="{% if is_assinante %}col-md-6{% else %}col-md-3{% endif %}">
             <div class="form-group">
               {{ form.ticket.label_tag }}
               {{ form.ticket }}
+              {% if form.ticket.help_text %}
+                <div class="form-text" id="{{ form.ticket.id_for_label }}_helptext">{{ form.ticket.help_text }}</div>
+              {% endif %}
               {% if form.ticket.errors %}
                 <div class="invalid-feedback d-block">
                   {{ form.ticket.errors }}
@@ -36,7 +51,9 @@
               {% endif %}
             </div>
           </div>
+          {% endif %}
 
+          {% if not is_assinante and form.status %}
           <div class="col-md-3">
             <div class="form-group">
               {{ form.status.label_tag }}
@@ -48,7 +65,9 @@
               {% endif %}
             </div>
           </div>
+          {% endif %}
 
+          {% if not is_assinante and form.data_finalizar %}
           <div class="col-md-3">
             <div class="form-group">
               {{ form.data_finalizar.label_tag }}
@@ -63,8 +82,11 @@
               {% endif %}
             </div>
           </div>
+          {% endif %}
         </div>
+        {% endif %}
 
+        {% if not is_assinante and form.emergencial %}
         <!-- Segunda linha de campos -->
         <div class="row mb-4">
           <div class="col-md-3">
@@ -85,6 +107,7 @@
         </div>
 
         <hr class="my-4">
+        {% endif %}
 
         <!-- Campo de descrição -->
         <div class="form-group mb-4">
@@ -102,7 +125,7 @@
           <button type="submit" class="btn btn-primary px-4">
             <i class="bi bi-save me-2"></i>Salvar
           </button>
-          <a href="{% url 'index-tickets' %}" class="btn btn-outline-secondary">Cancelar</a>
+          <a href="{% if is_assinante %}{% url 'exibir-ticket' ticket.key %}{% else %}{% url 'index-tickets' %}{% endif %}" class="btn btn-outline-secondary">Cancelar</a>
         </div>
       </form>
     </div>
@@ -124,6 +147,7 @@
   }
 </style>
 
+{% if not is_assinante and form.data_finalizar %}
 <!-- Adicione este script para melhorar o campo de data -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -145,4 +169,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+{% endif %}
 {% endblock %}

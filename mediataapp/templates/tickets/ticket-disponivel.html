@@ -1,0 +1,24 @@
+{% extends '_layout/base.html' %}
+{% block title %}Ticket disponível #{{ ticket.ticket }} | Mediata{% endblock %}
+{% block conteudo %}
+<div class="app-page">
+  <header class="app-page-header">
+    <div><h1 class="app-page-title">Ticket #{{ ticket.ticket }}</h1><p class="app-page-description">Solicitação disponível para atendimento.</p></div>
+    <div class="app-page-actions"><a class="btn btn-outline-secondary" href="{% url 'tickets-disponiveis' %}"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Voltar aos disponíveis</a></div>
+  </header>
+  <section class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center gap-2"><h2 class="mb-0">Informações da solicitação</h2><span class="badge bg-warning">Disponível</span></div>
+    <div class="card-body">
+      <dl class="row mb-4">
+        <div class="col-sm-6"><dt class="text-muted small mb-1">Solicitante</dt><dd>{{ ticket.usuario.get_full_name|default:ticket.usuario.username }}</dd></div>
+        <div class="col-sm-6"><dt class="text-muted small mb-1">Criado em</dt><dd>{{ ticket.data_criacao|date:'d/m/Y H:i' }}</dd></div>
+      </dl>
+      <h3 class="h6">Descrição</h3><div class="text-break">{{ ticket.descricao|default:'Descrição não informada.'|linebreaksbr }}</div>
+    </div>
+  </section>
+  <section class="card"><div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <p class="text-muted mb-0">{% if pode_assumir %}Ao assumir, sua empresa ficará responsável pelo atendimento.{% else %}Um gerente ou operador da sua empresa pode assumir esta solicitação.{% endif %}</p>
+    {% include 'tickets/assumir-form.html' %}
+  </div></section>
+</div>
+{% endblock %}

@@ -9,8 +9,13 @@
 <div class="app-page-header">
     <div>
         <h1 class="app-page-title">Empresas</h1>
-        <p class="app-page-description">Consulte os perfis e as informações das empresas do grupo.</p>
+        <p class="app-page-description">Consulte o perfil, a equipe e os tickets de cada empresa.</p>
     </div>
+    {% if user.is_superuser %}
+    <div class="app-page-actions">
+      <a href="{% url 'empresa_cadastrar' %}" class="btn btn-primary"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Nova empresa</a>
+    </div>
+    {% endif %}
 </div>
 <div class="row">
     <div class="col-12">
@@ -44,9 +49,11 @@
                             <i class="fas fa-info-circle me-2"></i>
                             Nenhuma empresa cadastrada.
                         </div>
+{% if user.is_superuser %}
                         <a href="{% url 'empresa_cadastrar' %}" class="btn btn-primary btn-lg">
                             <i class="fas fa-plus me-2"></i>Cadastrar Primeira Empresa
                         </a>
+                        {% endif %}
                     </div>
                     {% endfor %}
                 </div>

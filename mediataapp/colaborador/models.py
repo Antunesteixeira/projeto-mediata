@@ -2,6 +2,11 @@ from django.db import models
 from django.contrib.auth.models import User
 
 class Colaborador(models.Model):
+    empresa = models.ForeignKey(
+        'core.Empresa', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='colaboradores',
+    )
+
     # Tipo de pessoa
     TIPO_PESSOA_CHOICES = [
         ('PF', 'Pessoa Física'),
@@ -23,13 +28,13 @@ class Colaborador(models.Model):
 
     # Pessoa Física
     nome_completo = models.CharField(max_length=150, blank=True, null=True)
-    cpf = models.CharField(max_length=14, blank=True, null=True, unique=True)
+    cpf = models.CharField(max_length=14, blank=True, null=True)
     data_nascimento = models.DateField(blank=True, null=True, default=None)
     funcao = models.CharField(max_length=25, blank=True, null=True)
     
     # Pessoa Jurídica
     razao_social = models.CharField(max_length=150, blank=True, null=True)
-    cnpj = models.CharField(max_length=18, blank=True, null=True, unique=True)
+    cnpj = models.CharField(max_length=18, blank=True, null=True)
     nome_fantasia = models.CharField(max_length=150, blank=True, null=True)
 
     # Contato
@@ -71,6 +76,12 @@ class Colaborador(models.Model):
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     ativo = models.BooleanField(default=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=('empresa', 'cpf'), name='colaborador_empresa_cpf_uniq'),
+            models.UniqueConstraint(fields=('empresa', 'cnpj'), name='colaborador_empresa_cnpj_uniq'),
+        ]
 
     def __str__(self):
         if self.tipo_pessoa == 'PF':

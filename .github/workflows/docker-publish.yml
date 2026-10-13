@@ -75,6 +75,18 @@ jobs:
           CONTAINER="mediataapp_prod"
           NETWORK="projeto-mediata_mediata-network"
           BACKUP_DIR="$HOME/mediata-vm-backup/automaticos"
+          NGINX_CONFIG_CHANGED=0
+          NGINX_CONFIG_DIR=""
+          NGINX_CONFIG_FILE=""
+          NGINX_BACKUP_FILE=""
+          NGINX_TEMP_FILE=""
+
+          cleanup_nginx_temp() {
+            if [ -n "$NGINX_TEMP_FILE" ]; then
+              rm -f -- "$NGINX_TEMP_FILE" || true
+            fi
+          }
+          trap cleanup_nginx_temp EXIT
 
           cd "$APP_DIR"
           mkdir -p "$BACKUP_DIR"
@@ -102,13 +114,53 @@ jobs:
               "$target_image"
           }
 
+          install_nginx_config() {
+            NGINX_CONFIG_DIR="$(docker inspect nginx_prod --format \
+              '{{range .Mounts}}{{if eq .Destination "/etc/nginx/conf.d"}}{{.Source}}{{end}}{{end}}')" || return 1
+            case "$NGINX_CONFIG_DIR" in
+              /*) ;;
+              *) echo "O diretório montado da configuração Nginx não foi encontrado."; return 1 ;;
+            esac
+            NGINX_CONFIG_FILE="$NGINX_CONFIG_DIR/mediataapp.conf"
+            test -f "$NGINX_CONFIG_FILE" || return 1
+            NGINX_BACKUP_FILE="$(mktemp "$BACKUP_DIR/nginx-$(date +%Y%m%d-%H%M%S)-XXXXXX.conf")" || return 1
+            cp --preserve=mode,timestamps -- "$NGINX_CONFIG_FILE" "$NGINX_BACKUP_FILE" || return 1
+            NGINX_TEMP_FILE="$(mktemp "$NGINX_CONFIG_DIR/.mediataapp.deploy.XXXXXX")" || return 1
+            docker cp "$CONTAINER:/opt/mediata/nginx/mediataapp.conf" "$NGINX_TEMP_FILE" || return 1
+            test -s "$NGINX_TEMP_FILE" || return 1
+            chmod 644 "$NGINX_TEMP_FILE" || return 1
+            mv -f -- "$NGINX_TEMP_FILE" "$NGINX_CONFIG_FILE" || return 1
+            NGINX_TEMP_FILE=""
+            NGINX_CONFIG_CHANGED=1
+            docker exec nginx_prod nginx -t
+          }
+
+          restore_nginx_config() {
+            cleanup_nginx_temp
+            NGINX_TEMP_FILE="$(mktemp "$NGINX_CONFIG_DIR/.mediataapp.rollback.XXXXXX")" || return 1
+            cp --preserve=mode,timestamps -- "$NGINX_BACKUP_FILE" "$NGINX_TEMP_FILE" || return 1
+            mv -f -- "$NGINX_TEMP_FILE" "$NGINX_CONFIG_FILE" || return 1
+            NGINX_TEMP_FILE=""
+            NGINX_CONFIG_CHANGED=0
+          }
+
           rollback() {
+            if [ "$NGINX_CONFIG_CHANGED" -eq 1 ]; then
+              if ! restore_nginx_config; then
+                echo "Falha ao restaurar a configuração anterior do Nginx."
+                return 1
+              fi
+            fi
             if [ -z "$PREVIOUS_IMAGE_ID" ]; then
               echo "Nenhuma imagem anterior disponível para rollback."
               return 1
             fi
             if ! start_app "$PREVIOUS_IMAGE_ID"; then
               echo "Falha ao reiniciar a imagem anterior."
+              return 1
+            fi
+            if ! docker exec nginx_prod nginx -t; then
+              echo "A configuração anterior do Nginx não passou na validação."
               return 1
             fi
             if ! docker restart nginx_prod; then
@@ -144,12 +196,18 @@ jobs:
             exit 1
           fi
 
+          if ! install_nginx_config; then
+            echo "Falha ao publicar ou validar a configuração Nginx da nova imagem."
+            rollback || true
+            exit 1
+          fi
+
           if ! docker restart nginx_prod; then
             echo "Falha ao reiniciar o Nginx após o deploy."
             rollback || true
             exit 1
           fi
-          find "$BACKUP_DIR" -type f -name 'banco-*.sql' -mtime +7 -delete
+          find "$BACKUP_DIR" -type f \( -name 'banco-*.sql' -o -name 'nginx-*.conf' \) -mtime +7 -delete
 
           docker inspect "$CONTAINER" \
             --format 'Imagem={{.Config.Image}} Status={{.State.Status}}'

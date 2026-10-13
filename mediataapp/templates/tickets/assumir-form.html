@@ -1,0 +1,13 @@
+{% if pode_assumir %}
+<form method="post" action="{% url 'assumir-ticket' ticket.key %}" class="d-flex flex-wrap align-items-center gap-2" onsubmit="return confirm('Assumir este ticket para {% if user.is_superuser %}a empresa selecionada{% else %}sua empresa{% endif %}?');">
+  {% csrf_token %}
+  {% if user.is_superuser %}
+  <label class="visually-hidden" for="empresa-{{ ticket.key }}">Empresa responsável</label>
+  <select name="empresa" id="empresa-{{ ticket.key }}" class="form-select form-select-sm w-auto" required>
+    <option value="">Selecione a empresa</option>
+    {% for empresa in empresas %}<option value="{{ empresa.pk }}">{{ empresa.nome_fantasia }}</option>{% endfor %}
+  </select>
+  {% endif %}
+  <button type="submit" class="btn btn-primary btn-sm text-nowrap"><i class="bi bi-check2-circle me-1" aria-hidden="true"></i>Assumir ticket</button>
+</form>
+{% endif %}

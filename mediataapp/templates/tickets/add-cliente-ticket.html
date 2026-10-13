@@ -70,11 +70,9 @@
                         </td>
                         <td class="pe-4 text-end">
                             {% if id_ticket %}
-                                <a href="{% url 'cadastrar-cliente-ticket' cliente.id id_ticket %}"
-                                   class="btn btn-sm btn-soft-success"
-                                   title="Adicionar cliente ao ticket">
+                                <form action="{% url 'cadastrar-cliente-ticket' cliente.id id_ticket %}" method="post" class="d-inline">{% csrf_token %}<button type="submit" class="btn btn-sm btn-soft-success" title="Adicionar cliente ao ticket">
                                     <i class="bi bi-plus-circle me-1"></i> Adicionar
-                                </a>
+                                </button></form>
                             {% else %}
                                 <span class="badge bg-soft-danger text-danger">ID inválido</span>
                             {% endif %}

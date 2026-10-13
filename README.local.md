@@ -55,6 +55,65 @@ copiados automaticamente para o novo volume.
 `./local.sh down` mantém os dados; `./local.sh down -v` apaga os volumes locais.
 O banco novo começa vazio e o dashboard pode solicitar o cadastro da empresa.
 
+## Grupo assinante
+
+As migrações garantem os grupos `gerente`, `operador`, `cliente`, `colaborador` e
+`assinante`, preservando grupos e vínculos existentes. No cadastro ou na edição
+de um usuário, o administrador da plataforma seleciona `assinante` para liberar apenas a abertura de tickets e
+o acompanhamento dos chamados da própria conta. O status inicial é Levantamento.
+
+O assinante consulta o status e o histórico e pode editar o número e a descrição
+dos próprios tickets somente enquanto estiverem em Levantamento. Ao avançar para
+outro status, a edição fica bloqueada. Não pode excluir tickets nem acessar
+orçamentos, pagamentos, recebimentos ou cadastros administrativos. No perfil,
+pode consultar seus dados e alterar a própria senha.
+
+## Empresas e fila de atendimento
+
+Em **Configurações → Empresas**, o administrador cadastra as empresas. Em
+**Usuários**, associa cada gerente, operador, cliente ou colaborador à empresa
+correspondente. O gerente administra apenas a equipe da própria empresa; o
+administrador da plataforma acessa todas. Assinantes permanecem sem empresa.
+Uma conta interna sem empresa ativa não tem acesso aos módulos de operação.
+
+Os tickets novos de assinantes entram em **Tickets disponíveis**. Empresas ativas
+podem consultar a solicitação; um gerente ou operador usa **Assumir ticket** para
+reservá-la. O administrador também pode assumir, selecionando uma empresa.
+Quando duas empresas tentam assumir simultaneamente, apenas uma consegue; a
+outra recebe uma mensagem de indisponibilidade. Repetir a operação na mesma
+empresa mantém a primeira reserva e não duplica o histórico.
+
+Após a reserva, o ticket sai da fila compartilhada e passa a aparecer na lista,
+no dashboard e nos relatórios da empresa responsável. As demais empresas não
+acessam o ticket ou seus dados financeiros, mesmo usando URLs conhecidas. O
+assinante continua acompanhando o chamado e pode editar número e descrição
+somente em Levantamento. A reserva conserva o autor, o código e o status, e
+registra separadamente a empresa, o responsável e a data de assunção.
+
+As migrações associam os dados anteriores à empresa de menor ID, mantendo os
+IDs, códigos, status e vínculos existentes. O responsável antigo é preservado
+sem inventar uma data de assunção. Clientes, colaboradores e insumos são
+separados por empresa; CPF, CNPJ e código de insumo podem se repetir entre
+empresas, enquanto o código do ticket permanece único no sistema.
+
+Notas fiscais, comprovantes e anexos usam download autenticado em
+`/media/nfe/`, `/media/comprovantes/`, `/media/anexos/` e `/media/recebimentos/`.
+O Nginx encaminha esses diretórios ao Django para verificar a empresa; o
+servidor local aplica a mesma autorização. A imagem inclui a configuração do
+Nginx para o fluxo de deploy instalá-la e validá-la junto com a aplicação.
+
+## Numeração dos tickets
+
+O código é opcional no cadastro. Quando ficar em branco, o sistema usa ano e mês
+com dois dígitos cada, seguidos de uma sequência mensal de três dígitos:
+`2610001`, `2610002`, etc. Códigos informados manualmente e números existentes
+são preservados. Se já houver `2610111`, o próximo automático será `2610112`.
+
+A sequência é compartilhada por todos os usuários, protegida contra cadastros
+simultâneos e não reutiliza números de tickets excluídos. Cada mês inicia em
+`001`, com limite de `999`; ao atingir o limite, o cadastro pede um código único
+informado manualmente. Na edição, deixar o campo em branco mantém o número atual.
+
 ## Dependências e produção
 
 As dependências têm versões exatas em `mediataapp/requirements.txt`. Ao atualizar

@@ -32,6 +32,7 @@ RUN python -m venv /venv && \
 # Agora copiar o restante da aplicação
 COPY mediataapp /mediataapp
 COPY scripts /scripts
+COPY nginx/conf.d/mediataapp.conf /opt/mediata/nginx/mediataapp.conf
 
 WORKDIR /mediataapp
 

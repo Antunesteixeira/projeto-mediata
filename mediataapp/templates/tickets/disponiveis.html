@@ -1,0 +1,43 @@
+{% extends '_layout/base.html' %}
+{% block title %}Tickets disponíveis | Mediata{% endblock %}
+{% block conteudo %}
+<div class="app-page">
+  <header class="app-page-header">
+    <div>
+      <h1 class="app-page-title">Tickets disponíveis</h1>
+      <p class="app-page-description">Solicitações dos assinantes aguardando uma empresa responsável.</p>
+    </div>
+    <div class="app-page-actions"><a class="btn btn-outline-secondary" href="{% url 'index-tickets' %}"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Tickets da empresa</a></div>
+  </header>
+  <div class="alert alert-info d-flex align-items-start gap-2">
+    <i class="bi bi-info-circle mt-1" aria-hidden="true"></i>
+    <div>{% if pode_assumir %}Ao assumir, o ticket será reservado para sua empresa e deixará de aparecer para as demais.{% else %}Gerentes e operadores da sua empresa podem assumir os tickets desta lista.{% endif %}</div>
+  </div>
+  <section class="card">
+    <div class="card-body">
+      <form method="get" class="row g-2 mb-4" role="search">
+        <div class="col-sm-9 col-lg-6"><label for="busca-disponiveis" class="visually-hidden">Buscar tickets disponíveis</label><input id="busca-disponiveis" type="search" name="q" value="{{ termo }}" placeholder="Buscar por número ou descrição..." class="form-control"></div>
+        <div class="col-auto"><button class="btn btn-outline-primary" type="submit"><i class="bi bi-search me-1" aria-hidden="true"></i>Buscar</button></div>
+      </form>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light"><tr><th>Ticket</th><th>Solicitação</th><th>Solicitante</th><th>Criado em</th><th>Ações</th></tr></thead>
+          <tbody>
+          {% for ticket in tickets %}
+            <tr>
+              <td class="text-nowrap"><a href="{% url 'ticket-disponivel' ticket.key %}" class="fw-semibold">#{{ ticket.ticket }}</a></td>
+              <td class="text-break">{{ ticket.descricao|default:'Descrição não informada.'|truncatechars:140 }}</td>
+              <td>{{ ticket.usuario.get_full_name|default:ticket.usuario.username }}</td>
+              <td class="text-nowrap text-muted small">{{ ticket.data_criacao|date:'d/m/Y H:i' }}</td>
+              <td><div class="d-flex flex-wrap align-items-center gap-2"><a href="{% url 'ticket-disponivel' ticket.key %}" class="btn btn-outline-primary btn-sm text-nowrap"><i class="bi bi-eye me-1" aria-hidden="true"></i>Ver detalhes</a>{% include 'tickets/assumir-form.html' %}</div></td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="5" class="text-center text-muted py-5"><i class="bi bi-inbox fs-2 d-block mb-2" aria-hidden="true"></i>Nenhum ticket disponível{% if termo %} para esta busca{% endif %}.</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

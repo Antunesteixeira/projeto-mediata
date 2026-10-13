@@ -4,12 +4,17 @@ from django.contrib.auth.models import User
 from django.contrib.sessions.models import Session
 from django.test import Client, TestCase
 from django.urls import reverse
+from rolepermissions.roles import assign_role
+from usuarios.test_helpers import criar_empresa, vincular_usuario
 
 
 class LogoutTests(TestCase):
     @classmethod
     def setUpTestData(cls):
+        cls.company = criar_empresa()
         cls.user = User.objects.create_user(username='logout_test')
+        assign_role(cls.user, 'operador')
+        vincular_usuario(cls.user, cls.company)
 
     def authenticated_client(self):
         client = Client(enforce_csrf_checks=True)
@@ -18,7 +23,7 @@ class LogoutTests(TestCase):
 
     def test_sidebar_submits_logout_with_csrf_and_accessible_button(self):
         client = self.authenticated_client()
-        response = client.get(reverse('empresa_success'))
+        response = client.get(reverse('index-tickets'))
 
         self.assertContains(response, '<form method="post" action="/logout/">')
         self.assertContains(response, 'name="csrfmiddlewaretoken"')
@@ -33,7 +38,7 @@ class LogoutTests(TestCase):
                 session['draft'] = 'temporary-session-data'
                 session.save()
                 previous_session_key = session.session_key
-                client.get(reverse('empresa_success'))
+                client.get(reverse('index-tickets'))
 
                 response = client.post(
                     url,

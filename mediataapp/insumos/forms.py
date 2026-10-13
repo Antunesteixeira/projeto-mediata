@@ -1,7 +1,8 @@
 from django import forms
 from .models import Insumos
+from clientes.forms import EmpresaCadastroForm
 
-class InsumoForm(forms.ModelForm):
+class InsumoForm(EmpresaCadastroForm):
     class Meta:
         model = Insumos
         fields = [

@@ -7,6 +7,7 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rolepermissions.roles import assign_role
+from usuarios.test_helpers import criar_empresa, vincular_usuario
 
 from .models import Recebimentos, Ticket
 
@@ -15,6 +16,8 @@ from .models import Recebimentos, Ticket
 class EditarRecebimentoTests(TestCase):
     @classmethod
     def setUpTestData(cls):
+        cls.company = criar_empresa()
+        cls.other_company = criar_empresa('Empresa fictícia B', '00.000.000/0000-02')
         cls.owner = User.objects.create_user(username='operador_recebimento')
         assign_role(cls.owner, 'operador')
         cls.other_user = User.objects.create_user(username='outro_recebimento')
@@ -22,18 +25,24 @@ class EditarRecebimentoTests(TestCase):
         cls.staff_user = User.objects.create_user(
             username='staff_recebimento', is_staff=True,
         )
+        assign_role(cls.staff_user, 'operador')
         cls.manager = User.objects.create_user(username='gerente_recebimento')
         assign_role(cls.manager, 'gerente')
         cls.administrator = User.objects.create_superuser(
             username='admin_recebimento', email='admin@example.invalid',
             password='test-only-password',
         )
+        for user, company in (
+            (cls.owner, cls.company), (cls.manager, cls.company),
+            (cls.other_user, cls.other_company), (cls.staff_user, cls.other_company),
+        ):
+            vincular_usuario(user, company)
         cls.ticket = Ticket.objects.create(
-            ticket='RECEDIT001', usuario=cls.owner,
+            ticket='RECEDIT001', usuario=cls.owner, empresa=cls.company,
             descricao='Ticket fictício para edição de recebimento',
         )
         cls.other_ticket = Ticket.objects.create(
-            ticket='RECEDIT002', usuario=cls.other_user,
+            ticket='RECEDIT002', usuario=cls.other_user, empresa=cls.other_company,
             descricao='Outro ticket fictício',
         )
         cls.original_timestamp = datetime(
@@ -195,8 +204,8 @@ class EditarRecebimentoTests(TestCase):
                         )
                         self.assertEqual(response.status_code, 404)
                 detail = self.client.get(self.detail_url)
-                self.assertNotContains(detail, self.url)
-                self.assertFalse(detail.context['can_edit_recebimentos'])
+                self.assertEqual(detail.status_code, 404)
+                self.assertNotIn(self.url, detail.content.decode())
                 self.assertEqual(self.receipt_snapshot(), before)
 
     def test_manager_and_superuser_can_edit_another_users_receipt(self):

@@ -1,56 +1,69 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from .models import Cliente
 from django.contrib.auth.decorators import login_required
-from .forms import ClienteForm
+from .forms import ClienteForm, salvar_form_empresa
 from django.contrib import messages
+from django.core.exceptions import PermissionDenied
+from django.views.decorators.http import require_POST
+from core.tenancy import dados_da_empresa, pode_assumir_ticket
+
+
+def _exigir_operacao(user):
+    if not (user.is_superuser or pode_assumir_ticket(user)):
+        raise PermissionDenied('Seu acesso não permite gerenciar clientes da empresa.')
 
 @login_required
 def cadastrar_cliente(request):
+    _exigir_operacao(request.user)
     if request.method == 'POST':
-        form = ClienteForm(request.POST)
+        form = ClienteForm(request.POST, actor=request.user)
         if form.is_valid():
-            form.save()
-            messages.success(request, f"Cliente cadastrado com sucesso.")
-            return redirect('listar-clientes')  # Substitua pela sua URL de listagem
+            if salvar_form_empresa(form) is not None:
+                messages.success(request, "Cliente cadastrado com sucesso.")
+                return redirect('listar-clientes')
     else:
-        form = ClienteForm()
+        form = ClienteForm(actor=request.user)
 
     return render(request, 'clientes/cadastro-cliente.html', {'form': form})
 
 @login_required
 def listar_clientes(request):
-    clientes = Cliente.objects.all().order_by('-data_cadastro')  # Mais recentes primeiro
+    _exigir_operacao(request.user)
+    clientes = dados_da_empresa(request.user, Cliente.objects.all()).order_by('-data_cadastro')
     return render(request, 'clientes/listar-clientes.html', {'clientes': clientes})
 
 @login_required
 def editar_cliente(request, cliente_id):
-    cliente = get_object_or_404(Cliente, id=cliente_id)
+    _exigir_operacao(request.user)
+    cliente = get_object_or_404(dados_da_empresa(request.user, Cliente.objects.all()), id=cliente_id)
 
     if request.method == 'POST':
-        form = ClienteForm(request.POST, instance=cliente)
+        form = ClienteForm(request.POST, instance=cliente, actor=request.user)
         if form.is_valid():
-            form.save()
-            messages.success(request, f"Cliente editado com sucesso.")
-            return redirect('listar-clientes')  # Redireciona para a listagem após salvar
+            if salvar_form_empresa(form) is not None:
+                messages.success(request, "Cliente editado com sucesso.")
+                return redirect('listar-clientes')
     else:
-        form = ClienteForm(instance=cliente)
+        form = ClienteForm(instance=cliente, actor=request.user)
 
     return render(request, 'clientes/editar-cliente.html', {'form': form, 'cliente': cliente})
 
 @login_required
+@require_POST
 def deletar_cliente(request, cliente_id):
-    cliente = get_object_or_404(Cliente, pk=cliente_id)
+    _exigir_operacao(request.user)
+    cliente = get_object_or_404(dados_da_empresa(request.user, Cliente.objects.all()), pk=cliente_id)
     if request.method == "POST":
         nome = str(cliente)  # ou cliente.nome, conforme seu modelo
         cliente.delete()
         messages.success(request, f"Cliente '{nome}' deletado com sucesso.")
         return redirect('listar-clientes')  # ajuste para a rota da lista de clientes
-    # GET -> mostrar página de confirmação
-    return render(request, 'clientes/listar_cleintes.html', {'cliente': cliente})
 
 # views.py
+@login_required
 def perfil_cliente(request, id):
-    cliente = get_object_or_404(Cliente, id=id)
+    _exigir_operacao(request.user)
+    cliente = get_object_or_404(dados_da_empresa(request.user, Cliente.objects.all()), id=id)
     context = {
         'cliente': cliente,
     }

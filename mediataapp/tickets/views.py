@@ -7,21 +7,22 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db import transaction
-from django.db.models import F, ExpressionWrapper, DecimalField, Sum
+from django.db.models import F, ExpressionWrapper, DecimalField, Sum, Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
-from django.contrib.auth.models import User, Group
 from colaborador.models import Colaborador
 from clientes.models import Cliente
 from core.models import Empresa
+from usuarios.access import is_assinante
+from core.tenancy import tickets_da_empresa, pode_assumir_ticket
+from .access import exigir_empresa, pode_operar_tickets, ticket_de_operacao
+from django.core.exceptions import PermissionDenied, ValidationError
 
-from django.http import HttpResponse, HttpResponseBadRequest
+from django.http import HttpResponse, HttpResponseBadRequest, Http404
 
-from .models import Ticket, Orcamento, ItemOrcamento, Insumos, HistoricoTicket, Pagamentos, Anexo, Recebimentos  # ajuste se estiver em outro lugar
-from .forms import OrcamentoForm, ItemOrcamentoForm, TicketForm, HistorcoTicketForm, PagamentoForm, AnexoForm, RecebimentosForm, EditarRecebimentoForm  # importe só os forms que usa
-
-from rolepermissions.checkers import has_role
+from .models import Ticket, Orcamento, ItemOrcamento, Insumos, HistoricoTicket, Pagamentos, Anexo, Recebimentos
+from .forms import OrcamentoForm, ItemOrcamentoForm, TicketForm, PagamentoForm, AnexoForm, RecebimentosForm, EditarRecebimentoForm, AssinanteTicketForm
 
 from django.db.models import ProtectedError
 
@@ -36,33 +37,117 @@ from datetime import datetime
 from weasyprint import HTML
 from num2words import num2words
 
-@login_required
-def tickets(request):
-    usuario = request.user
-    
-    if has_role(usuario, [User, 'gerente']):
-        tickets = Ticket.objects.all().order_by('-data_criacao')
-    else:
-        tickets = Ticket.objects.filter(usuario=usuario.pk).order_by('-data_criacao')
-    context = {
-        'tickets': tickets,
+def _tickets_disponiveis():
+    return Ticket.objects.filter(
+        empresa__isnull=True, status='L', usuario__groups__name='assinante', usuario__is_superuser=False,
+    ).distinct()
+
+
+def _contexto_fila(request):
+    return {
+        'pode_assumir': request.user.is_superuser or pode_assumir_ticket(request.user),
+        'empresas': Empresa.objects.filter(ativo=True).order_by('nome_fantasia')
+        if request.user.is_superuser else Empresa.objects.none(),
     }
 
-    return render(request, 'tickets/index-tickets.html', context)
+
+@login_required
+@require_http_methods(['GET', 'HEAD'])
+def tickets_disponiveis(request):
+    if is_assinante(request.user):
+        raise PermissionDenied('O assinante acompanha seus próprios tickets.')
+    exigir_empresa(request.user)
+    tickets = _tickets_disponiveis().select_related('usuario').order_by('-data_criacao')
+    termo = request.GET.get('q', '').strip()
+    if termo:
+        tickets = tickets.filter(Q(ticket__icontains=termo) | Q(descricao__icontains=termo))
+    contexto = _contexto_fila(request)
+    contexto.update(tickets=tickets, termo=termo)
+    return render(request, 'tickets/disponiveis.html', contexto)
+
+
+@login_required
+@require_http_methods(['GET', 'HEAD'])
+def ticket_disponivel(request, key):
+    if is_assinante(request.user):
+        raise PermissionDenied('O assinante acompanha seus próprios tickets.')
+    exigir_empresa(request.user)
+    ticket = get_object_or_404(_tickets_disponiveis().select_related('usuario'), key=key)
+    contexto = _contexto_fila(request)
+    contexto['ticket'] = ticket
+    return render(request, 'tickets/ticket-disponivel.html', contexto)
+
+
+@login_required
+@require_POST
+def assumir_ticket(request, key):
+    if not pode_operar_tickets(request.user):
+        raise PermissionDenied('Somente gerentes e operadores podem assumir tickets.')
+    if request.user.is_superuser:
+        empresa_id = request.POST.get('empresa', '')
+        if not empresa_id.isdigit():
+            return HttpResponseBadRequest('Selecione a empresa responsável pelo ticket.')
+        empresa = get_object_or_404(Empresa, pk=empresa_id, ativo=True)
+    else:
+        empresa = exigir_empresa(request.user)
+    with transaction.atomic():
+        # A trava serializa a disputa pelo mesmo ticket entre empresas.
+        ticket = get_object_or_404(Ticket.objects.select_for_update(), key=key)
+        if ticket.empresa_id is not None:
+            if ticket.empresa_id == empresa.pk:
+                return redirect('exibir-ticket', key=ticket.key)
+            return render(request, 'tickets/ticket-indisponivel.html', status=409)
+        if ticket.status != 'L' or ticket.usuario_id is None or not is_assinante(ticket.usuario):
+            raise Http404('Ticket indisponível.')
+        ticket.empresa = empresa
+        ticket.assumido_por = request.user
+        ticket.assumido_em = timezone.now()
+        ticket.save(update_fields=['empresa', 'assumido_por', 'assumido_em'])
+        HistoricoTicket.objects.create(
+            ticket_historico=ticket,
+            descricao_historico=f'Ticket assumido pela empresa {empresa.nome_fantasia}.',
+        )
+    messages.success(request, 'Ticket assumido com sucesso. Ele agora pertence à sua empresa.')
+    return redirect('exibir-ticket', key=ticket.key)
+
+
+@login_required
+def tickets(request):
+    if not is_assinante(request.user):
+        exigir_empresa(request.user)
+    tickets = tickets_da_empresa(request.user).select_related(
+        'usuario', 'cliente', 'colaborador', 'empresa', 'assumido_por',
+    ).order_by('-data_criacao')
+    return render(request, 'tickets/index-tickets.html', {'tickets': tickets})
 
 
 @login_required
 def cadastro_ticket(request):
+    subscriber = is_assinante(request.user)
+    if not subscriber and not pode_operar_tickets(request.user):
+        raise PermissionDenied('Seu perfil permite apenas acompanhar tickets.')
+    form_class = AssinanteTicketForm if subscriber else TicketForm
+    form_kwargs = {} if subscriber else {'user': request.user}
     if request.method == 'POST':
-        form = TicketForm(request.POST)
+        form = form_class(request.POST, **form_kwargs)
         if form.is_valid():
             try:
                 ticket = form.save(commit=False)
                 ticket.usuario = request.user
-                ticket = form.save()  # se precisar manipular data_finalizar, faça antes do save com commit=False
+                if subscriber:
+                    ticket.status = 'L'
+                    ticket.empresa = None
+                elif not request.user.is_superuser:
+                    ticket.empresa = exigir_empresa(request.user)
+                if not subscriber:
+                    ticket.assumido_por = request.user
+                    ticket.assumido_em = timezone.now()
+                ticket.save()
                 
                 messages.success(request, "Ticket cadastrado com sucesso!")
                 return redirect('index-tickets')
+            except ValidationError as error:
+                form.add_error('ticket', error)
             except IntegrityError as e:
                 # tenta detectar duplicidade, mas você pode afinar com base no constraint name
                 if 'unique' in str(e).lower():
@@ -73,31 +158,28 @@ def cadastro_ticket(request):
             # o form inválido cai aqui e será renderizado com os erros
             messages.error(request, "Verifique os campos preenchidos.")
     else:
-        form = TicketForm()
+        form = form_class(**form_kwargs)
 
-    return render(request, 'tickets/editar-ticket.html', {'form': form})
+    template = 'tickets/cadastro-ticket.html' if subscriber else 'tickets/editar-ticket.html'
+    return render(request, template, {'form': form})
 
-
-import json
-from decimal import Decimal
-from django.contrib.auth.decorators import login_required
-from django.db import transaction
-from django.db.models import F, Sum, ExpressionWrapper, DecimalField
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib import messages
-from django.conf import settings
-from .models import (
-    Ticket, Anexo, Orcamento, ItemOrcamento, Insumos,
-    Pagamentos, Recebimentos, HistoricoTicket
-)
-from .forms import (
-    OrcamentoForm, ItemOrcamentoForm, TicketForm,
-    PagamentoForm, AnexoForm, RecebimentosForm
-)
 
 @login_required
 def exibirticket(request, key):
-    ticket = get_object_or_404(Ticket, key=key)
+    if is_assinante(request.user) or not pode_operar_tickets(request.user):
+        if request.method not in ('GET', 'HEAD'):
+            raise PermissionDenied('O acompanhamento do ticket permite apenas consulta.')
+        if not is_assinante(request.user):
+            exigir_empresa(request.user)
+        ticket = get_object_or_404(tickets_da_empresa(request.user).select_related(
+            'cliente', 'colaborador', 'empresa', 'assumido_por',
+        ), key=key)
+        historico = HistoricoTicket.objects.filter(ticket_historico=ticket).order_by('-data_historico', '-pk')
+        return render(request, 'tickets/acompanhamento-ticket.html', {
+            'ticket': ticket,
+            'historico': historico,
+        })
+    ticket = ticket_de_operacao(request, key=key)
 
     anexos = Anexo.objects.filter(ticket_anexo=ticket)
     
@@ -110,13 +192,14 @@ def exibirticket(request, key):
     # Inicializar forms com valores padrão
     form = OrcamentoForm(prefix='orcamento')
     itemorcamento = ItemOrcamentoForm(prefix='itemorcamento')
-    ticketformstatus = TicketForm()
+    itemorcamento.fields['item'].queryset = Insumos.objects.filter(empresa=ticket.empresa)
+    ticketformstatus = TicketForm(instance=ticket, user=request.user)
     pagamento_form = PagamentoForm(prefix='form-pagamento')
     anexo_form = AnexoForm()
     recebimentos_form = RecebimentosForm()  # ← sem prefixo
 
     # Preparar dados dos insumos para JSON (usado em algum lugar do template)
-    insumos = list(Insumos.objects.values('id', 'insumo', 'valor_unit'))
+    insumos = list(Insumos.objects.filter(empresa=ticket.empresa).values('id', 'insumo', 'valor_unit'))
     for insumo in insumos:
         insumo['valor_unit'] = str(insumo['valor_unit'])
     
@@ -146,11 +229,12 @@ def exibirticket(request, key):
                         if not item_id or not quantidade:
                             messages.error(request, "Dados incompletos para o item de orçamento.")
                         else:
+                            insumo = get_object_or_404(Insumos, pk=item_id, empresa=ticket.empresa)
                             try:
                                 quantidade = quantidade.replace(',', '.')
                                 item_orcamento = ItemOrcamento(
                                     orcamento=orcamento,
-                                    item_id=item_id,
+                                    item=insumo,
                                     quant=Decimal(quantidade)
                                 )
                                 item_orcamento.save()
@@ -205,6 +289,8 @@ def exibirticket(request, key):
                         messages.error(request, "Erro ao adicionar recebimento. Verifique os campos.")
                         # Não redireciona, continua para mostrar o form com erros
                 
+        except (Http404, PermissionDenied):
+            raise
         except Exception as e:
             messages.error(request, f"Ocorreu um erro ao processar a requisição: {str(e)}")
     
@@ -287,10 +373,7 @@ def exibirticket(request, key):
         'anexos': anexos,
         'recebimentos': recebimentos,
         'recebimentos_form': recebimentos_form,      # ← agora sem prefixo
-        'can_edit_recebimentos': (
-            request.user.is_superuser or has_role(request.user, 'gerente')
-            or ticket.usuario_id == request.user.pk
-        ),
+        'can_edit_recebimentos': pode_operar_tickets(request.user),
         'form_anexo': anexo_form,                    # pode conter erros se for inválido
         'margem': margem,
         'orcamento': orcamento,
@@ -311,20 +394,67 @@ def exibirticket(request, key):
 
 @login_required
 def editar_ticket(request, key):
-    ticket = get_object_or_404(Ticket, key=key)
+    if is_assinante(request.user):
+        if request.method not in ('GET', 'HEAD', 'POST'):
+            raise PermissionDenied('Método não permitido para editar o ticket.')
+        with transaction.atomic():
+            tickets = Ticket.objects.filter(usuario=request.user)
+            if request.method == 'POST':
+                tickets = tickets.select_for_update()
+            ticket = get_object_or_404(tickets, key=key)
+            if ticket.status != 'L':
+                raise PermissionDenied('O ticket só pode ser editado enquanto estiver em Levantamento.')
+            original = {'ticket': ticket.ticket, 'descricao': ticket.descricao}
+            form = AssinanteTicketForm(
+                request.POST if request.method == 'POST' else None,
+                instance=ticket,
+            )
+            if request.method == 'POST' and form.is_valid():
+                changed_fields = [
+                    name for name, value in original.items()
+                    if form.cleaned_data[name] != value
+                ]
+                try:
+                    if changed_fields:
+                        # Salva apenas o que o assinante pode alterar, mantendo o status.
+                        with transaction.atomic():
+                            ticket.save(update_fields=changed_fields)
+                            HistoricoTicket.objects.create(
+                                ticket_historico=ticket,
+                                descricao_historico='Dados da solicitação atualizados pelo assinante.',
+                            )
+                        messages.success(request, 'Ticket atualizado com sucesso!')
+                    else:
+                        messages.info(request, 'Nenhuma alteração foi detectada.')
+                except ValidationError as error:
+                    form.add_error('ticket', error)
+                except IntegrityError:
+                    form.add_error('ticket', 'Não foi possível salvar este código. Informe um número único.')
+                else:
+                    return redirect('exibir-ticket', key=ticket.key)
+            return render(request, 'tickets/editar-ticket.html', {
+                'form': form,
+                'ticket': ticket,
+            })
+    ticket = ticket_de_operacao(request, key=key)
 
-    form = TicketForm(request.POST or None, instance=ticket)
+    form = TicketForm(request.POST or None, instance=ticket, user=request.user)
 
     if form.is_valid():
-        # Verifica se os dados do formulário foram alterados
-        if form.has_changed(): 
-            ticket = form.save(commit=False)
-            ticket.save()
-            messages.success(request, "O Ticket atualizado com sucesso!")
+        try:
+            # Verifica se os dados do formulário foram alterados
+            if form.has_changed():
+                ticket = form.save(commit=False)
+                ticket.save()
+                messages.success(request, "O Ticket atualizado com sucesso!")
+            else:
+                messages.info(request, "Nenhuma alteração foi detectada.")
+        except ValidationError as error:
+            form.add_error('ticket', error)
+        except IntegrityError:
+            form.add_error('ticket', 'Não foi possível salvar este código. Informe um número único.')
         else:
-            messages.info(request, "Nenhuma alteração foi detectada.")
-            
-        return redirect('index-tickets')
+            return redirect('index-tickets')
 
     context = {
         'form': form,
@@ -335,19 +465,27 @@ def editar_ticket(request, key):
 
 @login_required
 def selecionar_ticket(request):
-    tickets = Ticket.objects.all()
+    tickets = tickets_da_empresa(request.user)
     return render(request, 'index.html', {'tickets': tickets})
 
 @login_required
 def buscar_tickets(request):
-    tickets = list(Ticket.objects.values('id', 'ticket'))
+    if is_assinante(request.user):
+        tickets = Ticket.objects.filter(usuario=request.user).order_by('-data_criacao')
+        term = request.GET.get('q', request.GET.get('term', '')).strip()
+        if term:
+            tickets = tickets.filter(ticket__icontains=term)
+        return render(request, 'tickets/index-tickets.html', {'tickets': tickets})
+    exigir_empresa(request.user)
+    tickets = list(tickets_da_empresa(request.user).values('id', 'ticket'))
     return render(request, 'index.html', {
         'tickets_json': json.dumps(tickets)  # <- agora é JSON válido
     })
 
 @login_required
+@require_POST
 def deletar_ticket(request, key):
-    ticket = get_object_or_404(Ticket, key=key)
+    ticket = ticket_de_operacao(request, key=key)
 
     # opcional: checar permissão extra, ex:
     # if not request.user.has_perm('app.delete_ticket'):
@@ -362,8 +500,10 @@ def deletar_ticket(request, key):
     return redirect('index-tickets') 
 
 @login_required
+@require_POST
 def deletar_itemorcamento(request, id, key):
-    itemorcamento =  get_object_or_404(ItemOrcamento, id=id)
+    ticket = ticket_de_operacao(request, key=key)
+    itemorcamento = get_object_or_404(ItemOrcamento, id=id, orcamento__ticket_orcamento=ticket)
 
     try:
         itemorcamento.delete()
@@ -375,15 +515,16 @@ def deletar_itemorcamento(request, id, key):
 @login_required
 def update_historico(request, key):
     STATUS_DICT = dict(Ticket.STATUS_CHOICES)
-    ticket = get_object_or_404(Ticket, key=key)
+    ticket = ticket_de_operacao(request, key=key)
 
     if request.method == 'POST':
         new_status = request.POST.get('status')
-        if new_status is None:
+        if new_status not in STATUS_DICT:
             # lidar com erro (ex.: reexibir com mensagem)
             return redirect('exibir-ticket', key)
 
         with transaction.atomic():
+            ticket = get_object_or_404(tickets_da_empresa(request.user).select_for_update(), key=key)
             old_status = ticket.status
             ticket.status = new_status
             messages.success(request, "Status alterado com sucesso.")
@@ -407,8 +548,10 @@ def update_historico(request, key):
     return redirect('exibir-ticket', key)
 
 @login_required
+@require_POST
 def deletar_pagamento(request, id, key):
-    pagamento =  get_object_or_404(Pagamentos, id=id)
+    ticket = ticket_de_operacao(request, key=key)
+    pagamento = get_object_or_404(Pagamentos, id=id, ticket_pagamento=ticket)
 
     try:
         pagamento.delete()
@@ -419,67 +562,47 @@ def deletar_pagamento(request, id, key):
 
 @login_required
 def addTicketColaborador(request, id_ticket):
-    usuario = request.user
-    if request.method == 'GET':
-        colaboradores = Colaborador.objects.all()
+    ticket = ticket_de_operacao(request, pk=id_ticket)
+    colaboradores = Colaborador.objects.filter(empresa=ticket.empresa)
+    return render(request, 'tickets/add-colaborador-ticket.html', {
+        'colaboradores': colaboradores, 'id_ticket': ticket.pk,
+        'title': 'Adicionar Colaborador ao Ticket', 'origem': request.GET.get('origem'),
+    })
 
-    origem = request.GET.get('origem', None)
-
-    context = {
-        'colaboradores':colaboradores, 
-        'id_ticket':id_ticket,
-        'title': 'Adicionar Colaborador ao Ticket',
-        'origem': origem,
-    }
-    return render(request, 'tickets/add-colaborador-ticket.html', context)
 
 @login_required
+@require_POST
 def cadastrarColaboradorTicket(request, id_ticket, id_colaborador):
-    if request.method == 'GET':
-        # Obtém o ticket ou retorna 404 se não existir
-        ticket = get_object_or_404(Ticket, id=id_ticket)
-        
-        # Obtém o colaborador ou retorna 404 se não existir
-        col = get_object_or_404(Colaborador, id=id_colaborador)
+    ticket = ticket_de_operacao(request, pk=id_ticket)
+    ticket.colaborador = get_object_or_404(Colaborador, pk=id_colaborador, empresa=ticket.empresa)
+    ticket.save(update_fields=['colaborador'])
+    messages.success(request, 'Colaborador adicionado ao ticket com sucesso!')
+    return redirect('exibir-ticket', key=ticket.key)
 
-        # Associa o colaborador ao ticket
-        ticket.colaborador = col
-        ticket.save()
-    
-        messages.add_message(request, messages.INFO, f"O Colaborador: {ticket.colaborador} foi adicionado ao Ticket: {ticket.ticket} com sucesso!")
-        #return HttpResponse(request.POST['editar-colaborador'] == 'editar-colaborador')
-        
-        return redirect('index-tickets')
-    
-@login_required    
-def addTicketCliente(request, id_ticket):
-    usuario = request.user
-    if request.method == 'GET':
-        clientes = Cliente.objects.all()    
-    
-    return render(request, 'tickets/add-cliente-ticket.html', {'clientes':clientes, 'id_ticket':id_ticket})
 
 @login_required
+def addTicketCliente(request, id_ticket):
+    ticket = ticket_de_operacao(request, pk=id_ticket)
+    clientes = Cliente.objects.filter(empresa=ticket.empresa)
+    return render(request, 'tickets/add-cliente-ticket.html', {
+        'clientes': clientes, 'id_ticket': ticket.pk,
+    })
+
+
+@login_required
+@require_POST
 def cadastrarTicketCliente(request, id_cliente, id_ticket):
-    if request.method == 'GET':
-        # Obtém o ticket ou retorna 404 se não existir
-        ticket = get_object_or_404(Ticket, id=id_ticket)
-        
-        # Obtém o cliente ou retorna 404 se não existir
-        cli = get_object_or_404(Cliente, id=id_cliente)
+    ticket = ticket_de_operacao(request, pk=id_ticket)
+    ticket.cliente = get_object_or_404(Cliente, pk=id_cliente, empresa=ticket.empresa)
+    ticket.save(update_fields=['cliente'])
+    messages.success(request, 'Cliente adicionado ao ticket com sucesso!')
+    return redirect('exibir-ticket', key=ticket.key)
 
-        # Associa o clinete ao ticket
-        ticket.cliente = cli
-        ticket.save()
-    
-        messages.add_message(request, messages.INFO, f"O Clinete: {ticket.cliente} foi adicionado ao Ticket: {ticket.ticket} com sucesso!")
-
-        return redirect('index-tickets')
 
 @login_required
 def editar_pagamento(request, pagamento_id, key):
-    pagamento = get_object_or_404(Pagamentos, id=pagamento_id)
-    ticket = get_object_or_404(Ticket, key=key)
+    ticket = ticket_de_operacao(request, key=key)
+    pagamento = get_object_or_404(Pagamentos, id=pagamento_id, ticket_pagamento=ticket)
 
     if request.method == 'POST':
         form = PagamentoForm(request.POST, instance=pagamento)
@@ -492,7 +615,7 @@ def editar_pagamento(request, pagamento_id, key):
     else:
         form = PagamentoForm(instance=pagamento)
 
-    return render(request, 'seu_template.html', {
+    return render(request, 'tickets/editar-pagamento.html', {
         'form': form,
         'pagamento': pagamento,
         'ticket': ticket
@@ -500,7 +623,7 @@ def editar_pagamento(request, pagamento_id, key):
 
 @login_required
 def add_pagamento(request, key):
-    ticket = get_object_or_404(Ticket, key=key)
+    ticket = ticket_de_operacao(request, key=key)
     if request.method == 'POST':
         form = PagamentoForm(request.POST)
         if form.is_valid():
@@ -521,7 +644,7 @@ def add_pagamento(request, key):
 @login_required
 @require_POST
 def upload_nfe(request, key):
-    ticket = get_object_or_404(Ticket, key=key)
+    ticket = ticket_de_operacao(request, key=key)
     if request.method == 'POST' and request.FILES.get('arquivo'):
         arquivo = request.FILES['arquivo']
         extensao = os.path.splitext(arquivo.name)[1].lower()  # pega a extensão do arquivo e deixa minúscula
@@ -548,8 +671,9 @@ def upload_nfe(request, key):
     return redirect('exibir-ticket', key=key)
 
 @login_required
+@require_POST
 def delete_nfe(request, key):
-    ticket = get_object_or_404(Ticket, key=key)
+    ticket = ticket_de_operacao(request, key=key)
     
     if ticket.nfe_path:
         # Remove o arquivo físico
@@ -573,7 +697,8 @@ def delete_nfe(request, key):
 @login_required
 @require_POST
 def upload_comprovante(request, id, key):
-    pagamento = get_object_or_404(Pagamentos, id=id)
+    ticket = ticket_de_operacao(request, key=key)
+    pagamento = get_object_or_404(Pagamentos, id=id, ticket_pagamento=ticket)
     if request.method == 'POST' and request.FILES.get('comprovante'):
         arquivo = request.FILES['comprovante']
         extensao = os.path.splitext(arquivo.name)[1].lower()
@@ -600,8 +725,10 @@ def upload_comprovante(request, id, key):
     return redirect('exibir-ticket', key=key)
 
 @login_required
+@require_POST
 def delete_comprovante(request, id, key):
-    pagamento = get_object_or_404(Pagamentos, id=id)
+    ticket = ticket_de_operacao(request, key=key)
+    pagamento = get_object_or_404(Pagamentos, id=id, ticket_pagamento=ticket)
 
     if pagamento.comprovante:
         # Remove o arquivo físico
@@ -624,9 +751,10 @@ def delete_comprovante(request, id, key):
 
 @login_required
 def gerar_pdf_orcamento(request, ticket_id):
+    ticket = ticket_de_operacao(request, pk=ticket_id)
     try:
         # Pega a primeira empresa cadastrada
-        empresa = Empresa.objects.first()
+        empresa = ticket.empresa
         if not empresa:
             empresa_dict = {
                 'nome': 'Sua Empresa',
@@ -644,8 +772,7 @@ def gerar_pdf_orcamento(request, ticket_id):
                 'cnpj': getattr(empresa, 'cnpj', '')
             }
 
-        ticket = Ticket.objects.get(id=ticket_id)
-        orcamento = Orcamento.objects.get(ticket_orcamento=ticket)
+        orcamento = get_object_or_404(Orcamento.objects.filter(ticket_orcamento=ticket).order_by("pk"))
         itens_orcamento = ItemOrcamento.objects.filter(orcamento=orcamento)
 
         # Calcular subtotal para cada item e total geral
@@ -696,8 +823,10 @@ def gerar_pdf_orcamento(request, ticket_id):
         return HttpResponse('Orçamento não encontrado para este ticket')
 
 @login_required
+@require_POST
 def deletar_anexo(request, anexo_id, key):
-    anexo = get_object_or_404(Anexo, id=anexo_id, ticket_anexo__key=key)
+    ticket = ticket_de_operacao(request, key=key)
+    anexo = get_object_or_404(Anexo, id=anexo_id, ticket_anexo=ticket)
     if request.method == 'POST':
         anexo.delete()
         messages.success(request, 'Anexo removido com sucesso.')
@@ -708,10 +837,7 @@ def deletar_anexo(request, anexo_id, key):
 @login_required
 @require_http_methods(['GET', 'POST'])
 def editar_recebimento(request, recebimento_id, key):
-    tickets = Ticket.objects.select_related('cliente')
-    if not (request.user.is_superuser or has_role(request.user, 'gerente')):
-        tickets = tickets.filter(usuario=request.user)
-    ticket = get_object_or_404(tickets, key=key)
+    ticket = ticket_de_operacao(request, key=key)
     recebimento = get_object_or_404(
         Recebimentos, pk=recebimento_id, ticket_recebimento=ticket,
     )
@@ -731,8 +857,9 @@ def editar_recebimento(request, recebimento_id, key):
 
 
 @login_required
+@require_POST
 def deletar_recebimento(request, recebimento_id, key):
-    ticket = get_object_or_404(Ticket, key=key)
+    ticket = ticket_de_operacao(request, key=key)
     recebimento = get_object_or_404(Recebimentos, id=recebimento_id, ticket_recebimento=ticket)
     if request.method == 'POST':
         recebimento.delete()
@@ -747,19 +874,18 @@ def gerar_pdf_ticket(request, key):
     from pathlib import Path
     import base64
 
-    tickets = Ticket.objects.select_related('usuario', 'cliente', 'colaborador')
-    if not (request.user.is_superuser or has_role(request.user, 'gerente')):
-        tickets = tickets.filter(usuario=request.user)
-    ticket = get_object_or_404(tickets, key=key)
+    ticket = ticket_de_operacao(request, key=key)
     context = ticket_report(ticket)
-    context['company'] = Empresa.objects.first()
+    context['company'] = ticket.empresa
     context['generated_by'] = request.user.get_full_name() or request.user.username
     logo_path = Path(settings.BASE_DIR) / 'tickets' / 'assets' / 'logo-mediata.png'
     context['logo_data_uri'] = (
         'data:image/png;base64,' + base64.b64encode(Path(logo_path).read_bytes()).decode('ascii')
         if logo_path.is_file() else None
     )
-    responsible = ticket.usuario
+    responsible = ticket.assumido_por
+    if responsible is None and ticket.usuario and not is_assinante(ticket.usuario):
+        responsible = ticket.usuario
     context['operation_responsible'] = (
         responsible.get_full_name() or responsible.username if responsible else ''
     )

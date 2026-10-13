@@ -1,4 +1,4 @@
-from django.db import models
+from django.db import models, router, transaction
 import uuid
 from decimal import Decimal
 
@@ -7,6 +7,19 @@ from insumos.models import Insumos
 
 from clientes.models import Cliente
 from colaborador.models import Colaborador
+
+class SequenciaTicket(models.Model):
+    prefixo = models.CharField(max_length=4, primary_key=True)
+    ultimo_numero = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(ultimo_numero__lte=999),
+                name='sequencia_ticket_limite_999',
+            ),
+        ]
+
 
 class Ticket(models.Model):
     
@@ -23,6 +36,15 @@ class Ticket(models.Model):
 
     ticket = models.CharField(max_length=10, unique=True, blank=True)
     usuario = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    empresa = models.ForeignKey(
+        'core.Empresa', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='tickets',
+    )
+    assumido_por = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='tickets_assumidos',
+    )
+    assumido_em = models.DateTimeField(null=True, blank=True)
     colaborador = models.ForeignKey(Colaborador, on_delete=models.SET_NULL, null=True)
     cliente = models.ForeignKey(Cliente, on_delete=models.SET_NULL, null=True)
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='L')
@@ -42,6 +64,41 @@ class Ticket(models.Model):
 
     class Meta:
         ordering = ['-data_criacao']
+
+    def validate_unique(self, exclude=None):
+        if not str(self.ticket or '').strip():
+            exclude = set(exclude or ()) | {'ticket'}
+        return super().validate_unique(exclude=exclude)
+
+    def save(self, force_insert=False, force_update=False, using=None, update_fields=None):
+        using = using or router.db_for_write(type(self), instance=self)
+        if self._state.adding and self.empresa_id is None and self.usuario_id:
+            from core.tenancy import empresa_do_usuario
+
+            empresa = empresa_do_usuario(self.usuario)
+            if empresa is not None:
+                self.empresa = empresa
+        if update_fields is not None:
+            update_fields = frozenset(update_fields)
+        save_options = {
+            'force_insert': force_insert, 'force_update': force_update,
+            'using': using, 'update_fields': update_fields,
+        }
+        if update_fields is not None and 'ticket' not in update_fields:
+            return super().save(**save_options)
+
+        from .numeracao import definir_codigo_ticket
+
+        with transaction.atomic(using=using):
+            if self.pk is not None:
+                # A ordem ticket -> sequência evita ciclos entre edições concorrentes.
+                atual = type(self).objects.using(using).select_for_update().filter(
+                    pk=self.pk,
+                ).values_list('ticket', flat=True).first()
+                if not str(self.ticket or '').strip() and atual:
+                    self.ticket = atual
+            self.ticket = definir_codigo_ticket(self.ticket, using)
+            return super().save(**save_options)
     
     def func_valor_custo_total(self):
         if self.valor_faturamento == 0 and self.valor_custo == 0:

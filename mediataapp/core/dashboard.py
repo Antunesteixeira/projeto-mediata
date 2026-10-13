@@ -5,6 +5,7 @@ from decimal import Decimal
 
 from django.db.models import Prefetch
 from django.utils import timezone
+from django.core.exceptions import ObjectDoesNotExist
 
 from tickets.models import Orcamento, Pagamentos, Recebimentos, Ticket
 
@@ -49,7 +50,25 @@ def _ranking(counts, labels):
     return [{"label": labels[key], "value": counts[key]} for key in ordered[:5]]
 
 
-def build_dashboard_context(tickets, company, can_view_all, now=None):
+def _responsavel_operacional(ticket):
+    if ticket.assumido_por_id is not None:
+        return ticket.assumido_por
+    autor = ticket.usuario
+    if autor is None or ticket.empresa_id is None:
+        return None
+    if autor.is_superuser:
+        return autor
+    grupos = {group.name for group in autor.groups.all()}
+    if 'assinante' in grupos or not grupos.intersection({'gerente', 'operador'}):
+        return None
+    try:
+        vinculo = autor.vinculo_empresa
+    except ObjectDoesNotExist:
+        return None
+    return autor if vinculo.empresa_id == ticket.empresa_id else None
+
+
+def build_dashboard_context(tickets, company, can_view_all, now=None, *, is_platform_admin=False):
     """Monta indicadores, gráficos e tabela sem consultas por ticket.
 
     O chamador deve fornecer um queryset já limitado ao escopo do usuário.
@@ -57,7 +76,10 @@ def build_dashboard_context(tickets, company, can_view_all, now=None):
     evitar multiplicação de valores quando um ticket tem várias relações.
     """
     now = timezone.localtime(now or timezone.now())
-    tickets = list(tickets.select_related("usuario", "cliente", "colaborador").prefetch_related(
+    tickets = list(tickets.select_related(
+        "usuario", "usuario__vinculo_empresa", "assumido_por", "cliente", "colaborador",
+    ).prefetch_related(
+        'usuario__groups',
         Prefetch("orcamento_set", queryset=Orcamento.objects.all(), to_attr="orcamentos_prefetch"),
         Prefetch("pagamentos", queryset=Pagamentos.objects.all(), to_attr="pagamentos_prefetch"),
         Prefetch("recebimentos", queryset=Recebimentos.objects.all(), to_attr="recebimentos_prefetch"),
@@ -130,10 +152,12 @@ def build_dashboard_context(tickets, company, can_view_all, now=None):
                     histogram[index]["value"] += 1
                     break
 
-        if ticket.usuario_id is not None:
-            counts["operators"][ticket.usuario_id] += 1
-            labels["operators"][ticket.usuario_id] = (
-                ticket.usuario.get_full_name().strip() or ticket.usuario.username
+        responsavel = _responsavel_operacional(ticket)
+        ticket.operador_responsavel = responsavel
+        if responsavel is not None:
+            counts["operators"][responsavel.pk] += 1
+            labels["operators"][responsavel.pk] = (
+                responsavel.get_full_name().strip() or responsavel.username
             )
         if ticket.cliente_id is not None:
             counts["clients"][ticket.cliente_id] += 1
@@ -166,7 +190,7 @@ def build_dashboard_context(tickets, company, can_view_all, now=None):
         "dashboard_metrics": metrics,
         "dashboard_charts": charts,
         "dashboard_company": company,
-        "dashboard_scope": "Visão da empresa" if can_view_all else "Seus tickets",
+        "dashboard_scope": "Visão geral" if is_platform_admin else "Visão da empresa",
         "dashboard_updated_at": now,
         "dashboard_can_view_all": can_view_all,
     }

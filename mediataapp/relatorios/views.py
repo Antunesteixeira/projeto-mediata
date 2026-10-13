@@ -1,4 +1,5 @@
-from django.shortcuts import render, HttpResponse
+from django.shortcuts import render, HttpResponse, get_object_or_404
+from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from django.utils.timezone import now
 from datetime import timedelta
@@ -8,9 +9,12 @@ from tickets.models import Ticket, Orcamento, Pagamentos, Recebimentos
 from clientes.models import Cliente
 from colaborador.models import Colaborador  
 from django.contrib.auth.models import User
-from django.core.exceptions import FieldError
+from django.core.exceptions import FieldError, PermissionDenied
 from django.db.models import Exists, OuterRef
 from django.core.paginator import Paginator
+from core.tenancy import (
+    dados_da_empresa, pode_assumir_ticket, tickets_da_empresa, usuarios_da_empresa,
+)
 
 
 PENDING_TICKET_STATUSES = ('V', 'X', 'E', 'A')
@@ -18,6 +22,8 @@ PENDING_TICKET_STATUSES = ('V', 'X', 'E', 'A')
 
 @login_required
 def relatorio_view(request):
+    if not (request.user.is_superuser or pode_assumir_ticket(request.user)):
+        raise PermissionDenied('Seu acesso não permite consultar relatórios financeiros.')
     # Valores padrão para filtros
     filtros = {
         'date_range': '30',
@@ -61,37 +67,24 @@ def relatorio_view(request):
         except (ValueError, TypeError):
             data_limite = now() - timedelta(days=30)
     
-    # Define escopo base baseado na permissão do usuário
-    is_gerente = request.user.groups.filter(name='gerente').exists()
-    
-    # Query base para Tickets com prefetch de orçamentos e pagamentos
-    if is_gerente:
-        tickets = Ticket.objects.all()
-    else:
-        tickets = Ticket.objects.filter(usuario=request.user)
-    
-    tickets = tickets.prefetch_related(
-        Prefetch("orcamento_set", queryset=Orcamento.objects.all(), to_attr="orcamentos_prefetch"),
-        Prefetch("recebimentos", queryset=Recebimentos.objects.all(), to_attr="recebimentos_prefetch"),  # <-- adicione esta linha
-    )
+    # A equipe operacional consulta a empresa; a autoria permanece com o assinante.
+    is_gerente = request.user.is_superuser or request.user.groups.filter(name='gerente').exists()
+    tickets_base = tickets_da_empresa(request.user)
+    tickets = tickets_base
+    orcamentos = Orcamento.objects.filter(ticket_orcamento__in=tickets_base)
+    pagamentos = Pagamentos.objects.filter(ticket_pagamento__in=tickets_base)
+    recebimentos = Recebimentos.objects.filter(ticket_recebimento__in=tickets_base)
+    clientes_base = dados_da_empresa(request.user, Cliente.objects.all())
+    clientes = clientes_base
+    colaboradores_base = dados_da_empresa(request.user, Colaborador.objects.all())
+    usuarios = usuarios_da_empresa(request.user).filter(
+        groups__name__in=('gerente', 'operador'),
+    ).distinct()
 
-    # Query base para Orçamentos (para métricas gerais)
-    if is_gerente:
-        orcamentos = Orcamento.objects.all()
-    else:
-        orcamentos = Orcamento.objects.filter(ticket_orcamento__usuario=request.user)
-    
-    # Query base para Pagamentos (para métricas gerais)
-    if is_gerente:
-        pagamentos = Pagamentos.objects.all()
-    else:
-        pagamentos = Pagamentos.objects.filter(ticket_pagamento__usuario=request.user)
-    
-    # Query base para Clientes
-    if is_gerente:
-        clientes = Cliente.objects.all()
-    else:
-        clientes = Cliente.objects.filter(ticket__usuario=request.user)
+    tickets = tickets.prefetch_related(
+        Prefetch("orcamento_set", queryset=orcamentos, to_attr="orcamentos_prefetch"),
+        Prefetch("recebimentos", queryset=recebimentos, to_attr="recebimentos_prefetch"),
+    )
     
     # Aplica filtros comuns a todos os modelos
     
@@ -121,10 +114,15 @@ def relatorio_view(request):
     
     # Filtro de usuário (apenas para gerentes)
     if filtros['usuario'] != "all" and is_gerente:
-        tickets = tickets.filter(usuario_id=filtros['usuario'])
-        orcamentos = orcamentos.filter(ticket_orcamento__usuario_id=filtros['usuario'])
-        pagamentos = pagamentos.filter(ticket_pagamento__usuario_id=filtros['usuario'])
-        clientes = clientes.filter(ticket__usuario_id=filtros['usuario'])
+        if not str(filtros['usuario']).isdecimal():
+            raise Http404('Operador não encontrado.')
+        operador = get_object_or_404(usuarios, pk=filtros['usuario'])
+        tickets = tickets.filter(
+            Q(assumido_por=operador) | Q(assumido_por__isnull=True, usuario=operador),
+        )
+        orcamentos = orcamentos.filter(ticket_orcamento__in=tickets)
+        pagamentos = pagamentos.filter(ticket_pagamento__in=tickets)
+        clientes = clientes.filter(ticket__in=tickets).distinct()
     
     # Filtro de categoria
     if filtros['categoria'] != "all":
@@ -134,12 +132,18 @@ def relatorio_view(request):
     
     # Filtro de cliente
     if filtros['cliente'] != "all":
+        if not str(filtros['cliente']).isdecimal():
+            raise Http404('Cliente não encontrado.')
+        get_object_or_404(clientes_base, pk=filtros['cliente'])
         tickets = tickets.filter(cliente_id=filtros['cliente'])
         orcamentos = orcamentos.filter(ticket_orcamento__cliente_id=filtros['cliente'])
         pagamentos = pagamentos.filter(ticket_pagamento__cliente_id=filtros['cliente'])
     
     # Filtro de colaborador
     if filtros['colaborador'] != "all":
+        if not str(filtros['colaborador']).isdecimal():
+            raise Http404('Colaborador não encontrado.')
+        get_object_or_404(colaboradores_base, pk=filtros['colaborador'])
         tickets = tickets.filter(colaborador_id=filtros['colaborador'])
         orcamentos = orcamentos.filter(ticket_orcamento__colaborador_id=filtros['colaborador'])
         pagamentos = pagamentos.filter(ticket_pagamento__colaborador_id=filtros['colaborador'])
@@ -240,32 +244,14 @@ def relatorio_view(request):
     else:
         novos_clientes = clientes.filter(data_cadastro__gte=data_limite).count()
     
-    # Lista de usuários para filtro (apenas para gerentes)
-    usuarios = User.objects.all() if is_gerente else User.objects.filter(id=request.user.id)
-    
-    # Lista de colaboradores para filtro - Versão mais eficiente
-    if is_gerente:
-        # Gerente: todos os colaboradores que aparecem em qualquer ticket
-        colaboradores = Colaborador.objects.filter(
-            Exists(Ticket.objects.filter(colaborador=OuterRef('pk')))
-        ).distinct()
-    else:
-        # Usuário normal: colaboradores que aparecem nos SEUS tickets
-        colaboradores = Colaborador.objects.filter(
-            Exists(Ticket.objects.filter(colaborador=OuterRef('pk'), usuario=request.user))
-        ).distinct()
-
-    # Lista de clientes para filtro - COM DISTINCT
-    if is_gerente:
-        # Gerente vê todos os clientes distintos que têm tickets
-        clientes_list = Cliente.objects.filter(
-            ticket__isnull=False
-        ).distinct().order_by('nome_razao_social')
-    else:
-        # Usuário normal vê clientes distintos dos SEUS tickets
-        clientes_list = Cliente.objects.filter(
-            ticket__usuario=request.user
-        ).distinct().order_by('nome_razao_social')
+    if not is_gerente:
+        usuarios = usuarios.filter(pk=request.user.pk)
+    colaboradores = colaboradores_base.filter(
+        Exists(tickets_base.filter(colaborador=OuterRef('pk'))),
+    ).distinct()
+    clientes_list = dados_da_empresa(request.user, Cliente.objects.all()).filter(
+        ticket__in=tickets_base,
+    ).distinct().order_by('nome_razao_social')
 
     # Prepara contexto
     context = {

@@ -28,3 +28,8 @@ class Colaborador(AbstractUserRole):
         'ver_ticket': True,
     }
 
+class Assinante(AbstractUserRole):
+    available_permissions = {
+        'criar_ticket': True,
+        'ver_ticket': True,
+    }

@@ -1,99 +1,36 @@
-{% extends '../_layout/base.html' %}
-
-{% load permission_tags %}
+{% extends '_layout/base.html' %}
 
 {% block conteudo %}
 <div class="app-page">
-<div class="app-page-header">
+  <header class="app-page-header">
     <div>
-        <h1 class="app-page-title">Perfil do usuário</h1>
-        <p class="app-page-description">Confira as informações da conta e gerencie o perfil.</p>
+      <h1 class="app-page-title">Perfil do usuário</h1>
+      <p class="app-page-description">Confira as informações da conta e seu vínculo de acesso.</p>
     </div>
-</div>
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow-sm border-0">
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-4">
-                        <i class="bi bi-person-circle fs-1 me-3 text-primary"></i>
-                        <div>
-                            <h4 class="mb-0">{{ user.get_full_name|default:user.username }}</h4>
-                            <small class="text-muted">@{{ user.username }}</small>
-                        </div>
-                    </div>
-
-                    <hr>
-
-                    <h6 class="text-muted">Informações do Usuário</h6>
-                    <ul class="list-group list-group-flush mb-3">
-                        <li class="list-group-item d-flex flex-wrap gap-2 justify-content-between">
-                            <strong>Email:</strong> <span>{{ user.email }}</span>
-                        </li>
-                        <li class="list-group-item d-flex flex-wrap gap-2 justify-content-between">
-                            <strong>Data de cadastro:</strong> <span>{{ user.date_joined|date:"d/m/Y H:i" }}</span>
-                        </li>
-                        <li class="list-group-item d-flex flex-wrap gap-2 justify-content-between">
-                            <strong>Último login:</strong> <span>{{ user.last_login|default:"Nunca" }}</span>
-                        </li>
-                        <li class="list-group-item d-flex flex-wrap gap-2 justify-content-between">
-                            <strong>Grupo:</strong>
-                            <span>
-                                {% if user.groups.all %}
-                                    {{ user.groups.first.name }}
-                                {% else %}
-                                    <span class="text-muted">Sem grupo</span>
-                                {% endif %}
-                            </span>
-                        </li>
-                        <li class="list-group-item d-flex flex-wrap gap-2 justify-content-between">
-                            <strong>Ativo:</strong>
-                            <span>
-                                {% if user.is_active %}
-                                    <span class="text-success">Sim</span>
-                                {% else %}
-                                    <span class="text-danger">Não</span>
-                                {% endif %}
-                            </span>
-                        </li>
-                    </ul>
-
-                    <div class="app-page-actions justify-content-end">
-                        <a href="{% url 'editar-usuario' user.id %}" class="btn btn-outline-primary me-2">
-                            <i class="bi bi-pencil-square me-1"></i> Editar Perfil
-                        </a>
-                        {% if user|has_role:'gerente' %}
-                        <!-- Botão para deletar o usuário, abre o modal de confirmação! Apenas o Gerente tem permissão de deletar o usuário -->
-                        <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#confirmarDelecaoModal">
-                            <i class="bi bi-trash me-1"></i> Deletar
-                        </button>
-                        {% endif %}
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal de confirmação de exclusão -->
-<div class="modal fade" id="confirmarDelecaoModal" tabindex="-1" aria-labelledby="confirmarDelecaoModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="confirmarDelecaoModalLabel">Confirmar Exclusão</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+  </header>
+  <div class="row justify-content-center"><div class="col-md-8">
+    <div class="card"><div class="card-body">
+      <div class="d-flex align-items-center mb-4">
+        <i class="bi bi-person-circle fs-1 me-3 text-primary" aria-hidden="true"></i>
+        <div><h2 class="h4 mb-0">{{ usuario_perfil.get_full_name|default:usuario_perfil.username }}</h2><span class="text-muted">@{{ usuario_perfil.username }}</span></div>
       </div>
-      <div class="modal-body">
-        Você tem certeza que deseja deletar o usuário <strong>{{ user.get_full_name|default:user.username }}</strong>? Esta ação é irreversível.
+      <dl class="row g-3">
+        <dt class="col-sm-4">E-mail</dt><dd class="col-sm-8">{{ usuario_perfil.email|default:'Não informado' }}</dd>
+        <dt class="col-sm-4">Cadastro</dt><dd class="col-sm-8">{{ usuario_perfil.date_joined|date:'d/m/Y H:i' }}</dd>
+        <dt class="col-sm-4">Último login</dt><dd class="col-sm-8">{{ usuario_perfil.last_login|default:'Nunca' }}</dd>
+        <dt class="col-sm-4">Grupo</dt><dd class="col-sm-8">{{ usuario_perfil.groups.first.name|default:'Sem grupo' }}</dd>
+        <dt class="col-sm-4">Empresa</dt><dd class="col-sm-8">{{ empresa_perfil.nome_fantasia|default:'Sem vínculo de empresa' }}</dd>
+        <dt class="col-sm-4">Ativo</dt><dd class="col-sm-8">{{ usuario_perfil.is_active|yesno:'Sim,Não' }}</dd>
+      </dl>
+      <div class="app-page-actions justify-content-end">
+        {% if user.pk == usuario_perfil.pk %}
+        <a href="{% url 'password_change' %}" class="btn btn-outline-secondary"><i class="bi bi-key me-1" aria-hidden="true"></i>Alterar senha</a>
+        {% endif %}
+        {% if can_edit_profile and not is_assinante %}
+        <a href="{% url 'editar-usuario' usuario_perfil.pk %}" class="btn btn-outline-primary"><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Editar perfil</a>
+        {% endif %}
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <!-- Formulário para enviar a requisição POST de exclusão -->
-        <form action="" method="post">
-          {% csrf_token %}
-          <button type="submit" class="btn btn-danger">Sim, Deletar</button>
-        </form>
-      </div>
-    </div>
-  </div>
+    </div></div>
+  </div></div>
 </div>
 {% endblock %}

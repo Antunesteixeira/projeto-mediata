@@ -32,7 +32,7 @@
     <div class="wrapper">
         <aside class="sidebar" id="sidebar" aria-label="Menu principal">
             <div class="sidebar-header">
-                <a class="sidebar-brand" href="{% url 'dashboard' %}" aria-label="Mediata — Dashboard">
+                <a class="sidebar-brand" href="{% if is_assinante %}{% url 'index-tickets' %}{% else %}{% url 'dashboard' %}{% endif %}" aria-label="Mediata — {% if is_assinante %}Tickets{% else %}Dashboard{% endif %}">
                     <img src="{% static 'img/logo-mediata-5.1.png' %}" alt="Mediata">
                     <span class="app-brand-mark" aria-hidden="true">M</span>
                 </a>
@@ -40,18 +40,35 @@
             <div class="sidebar-section-label">MENU PRINCIPAL</div>
             <div class="sidebar-content">
                 <ul class="nav flex-column">
+                    {% if pode_operar_tickets %}
                     <li class="nav-item">
                         <a href="{% url 'dashboard' %}" class="nav-link" data-nav-prefix="/dashboard/">
                             <i class="bi bi-speedometer2"></i>
                             <span class="nav-link-text">Dashboard</span>
                         </a>
                     </li>
+                    {% endif %}
                     <li class="nav-item">
                         <a href="{% url 'index-tickets' %}" class="nav-link" data-nav-prefix="/tickets/">
                             <i class="bi bi-ticket-detailed"></i>
                             <span class="nav-link-text">Tickets</span>
                         </a>
                     </li>
+                    {% if not is_assinante and empresa_atual or user.is_superuser %}
+                    <li class="nav-item">
+                        <a href="{% url 'tickets-disponiveis' %}" class="nav-link" data-nav-prefix="/tickets/disponiveis/">
+                            <i class="bi bi-inbox" aria-hidden="true"></i><span class="nav-link-text">Tickets disponíveis</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    {% if is_assinante or not pode_operar_tickets %}
+                    <li class="nav-item">
+                        <a href="{% if user.is_authenticated %}{% url 'perfil-usuario' user.id %}{% else %}{% url 'login' %}{% endif %}" class="nav-link" data-nav-prefix="/usuarios/">
+                            <i class="bi bi-person" aria-hidden="true"></i>
+                            <span class="nav-link-text">Meu perfil</span>
+                        </a>
+                    </li>
+                    {% else %}
                     <li class="nav-item">
                         <a href="{% url 'lista_colaboradores' %}" class="nav-link" data-nav-prefix="/colaborador/">
                             <i class="bi bi-people"></i>
@@ -87,7 +104,7 @@
                                         <span class="nav-link-text">Perfil Usuário</span>
                                     </a>
                                 </li>
-                                {% if user|has_role:'gerente' %}
+                                {% if pode_gerenciar_usuarios %}
                                 <li class="nav-item">
                                     <a href="{% url 'index-usuarios' %}" class="nav-link">
                                         <i class="bi bi-people"></i>
@@ -153,6 +170,7 @@
                             <span class="nav-link-text">Configurações</span>
                         </a>
                     </li>
+                    {% endif %}
 
                 </ul>
             </div>

@@ -1,0 +1,8 @@
+{% extends '_layout/base.html' %}
+{% block title %}Ticket indisponível | Mediata{% endblock %}
+{% block conteudo %}
+<div class="app-page">
+  <header class="app-page-header"><div><h1 class="app-page-title">Este ticket já foi assumido</h1><p class="app-page-description">A lista de chamados disponíveis foi atualizada. Escolha outra solicitação para atender.</p></div></header>
+  <a class="btn btn-primary" href="{% url 'tickets-disponiveis' %}"><i class="bi bi-arrow-left me-1" aria-hidden="true"></i>Voltar aos disponíveis</a>
+</div>
+{% endblock %}

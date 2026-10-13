@@ -1,5 +1,6 @@
 # admin.py
 from django.contrib import admin
+from .admin_access import SuperuserOnlyAdminMixin
 from .models import Empresa, HorarioFuncionamento, Funcionario, Servico
 
 class HorarioFuncionamentoInline(admin.TabularInline):
@@ -16,7 +17,7 @@ class ServicoInline(admin.TabularInline):
     extra = 1
 
 @admin.register(Empresa)
-class EmpresaAdmin(admin.ModelAdmin):
+class EmpresaAdmin(SuperuserOnlyAdminMixin, admin.ModelAdmin):
     list_display = ['nome_fantasia', 'cnpj', 'cidade', 'estado', 'ativo']
     list_filter = ['ativo', 'estado', 'tipo_empresa']
     search_fields = ['nome_fantasia', 'razao_social', 'cnpj']
@@ -45,13 +46,13 @@ class EmpresaAdmin(admin.ModelAdmin):
     ]
 
 @admin.register(Funcionario)
-class FuncionarioAdmin(admin.ModelAdmin):
+class FuncionarioAdmin(SuperuserOnlyAdminMixin, admin.ModelAdmin):
     list_display = ['nome', 'cargo', 'empresa', 'ativo']
     list_filter = ['cargo', 'ativo', 'empresa']
     search_fields = ['nome', 'email']
 
 @admin.register(Servico)
-class ServicoAdmin(admin.ModelAdmin):
+class ServicoAdmin(SuperuserOnlyAdminMixin, admin.ModelAdmin):
     list_display = ['nome', 'empresa', 'ativo']
     list_filter = ['ativo', 'empresa']
     search_fields = ['nome']

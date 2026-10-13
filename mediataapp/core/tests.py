@@ -11,6 +11,7 @@ from rolepermissions.roles import assign_role
 from clientes.models import Cliente
 from colaborador.models import Colaborador
 from tickets.models import Orcamento, Pagamentos, Recebimentos, Ticket
+from usuarios.test_helpers import criar_empresa, vincular_usuario
 
 from .models import Empresa
 
@@ -39,22 +40,30 @@ class DashboardTests(TestCase):
         cls.operator = User.objects.create_user(
             username='operadora', first_name='Ana', last_name='Operadora'
         )
+        cls.other_company = criar_empresa('Empresa externa', '00.000.000/0000-02')
+        assign_role(cls.operator, 'operador')
         cls.other_operator = User.objects.create_user(
             username='externo', first_name='Bruno', last_name='Externo'
         )
+        assign_role(cls.other_operator, 'operador')
         cls.manager = User.objects.create_user(username='gerente')
         assign_role(cls.manager, 'gerente')
+        for user, company in (
+            (cls.operator, cls.company), (cls.manager, cls.company),
+            (cls.other_operator, cls.other_company),
+        ):
+            vincular_usuario(user, company)
         cls.admin = User.objects.create_superuser(
             username='administrador', email='admin@example.com', password='test-only-password'
         )
         cls.customer = Cliente.objects.create(
-            nome_razao_social='Cliente próprio', cpf_cnpj='11111111111'
+            empresa=cls.company, nome_razao_social='Cliente próprio', cpf_cnpj='11111111111'
         )
         cls.other_customer = Cliente.objects.create(
-            nome_razao_social='Cliente externo', cpf_cnpj='22222222222'
+            empresa=cls.other_company, nome_razao_social='Cliente externo', cpf_cnpj='22222222222'
         )
-        cls.collaborator = Colaborador.objects.create(nome_completo='Prestador próprio')
-        cls.other_collaborator = Colaborador.objects.create(nome_completo='Prestador externo')
+        cls.collaborator = Colaborador.objects.create(empresa=cls.company, nome_completo='Prestador próprio')
+        cls.other_collaborator = Colaborador.objects.create(empresa=cls.other_company, nome_completo='Prestador externo')
 
     def setUp(self):
         self.sequence = 0
@@ -65,11 +74,14 @@ class DashboardTests(TestCase):
         defaults = {
             'ticket': f'T{self.sequence:06d}',
             'usuario': self.operator,
+            'empresa': self.company,
             'cliente': self.customer,
             'colaborador': self.collaborator,
             'descricao': 'Serviço de teste',
         }
         defaults.update(kwargs)
+        if 'empresa' not in kwargs and defaults['usuario'] == self.other_operator:
+            defaults['empresa'] = self.other_company
         created_at = defaults.pop('created_at', self.now)
         ticket = Ticket.objects.create(**defaults)
         Ticket.objects.filter(pk=ticket.pk).update(data_criacao=created_at)
@@ -114,11 +126,11 @@ class DashboardTests(TestCase):
         self.assertIn('/accounts/login/', response.url)
         self.assertIn('next=/dashboard/', response.url)
 
-    def test_requires_company_registration(self):
-        Empresa.objects.all().delete()
+    def test_internal_user_without_company_cannot_access_dashboard(self):
+        self.operator.vinculo_empresa.delete()
         self.client.force_login(self.operator)
         response = self.client.get(self.url)
-        self.assertRedirects(response, reverse('empresa_cadastrar'), fetch_redirect_response=False)
+        self.assertEqual(response.status_code, 403)
 
     def test_empty_dashboard_has_zero_metrics_and_complete_empty_chart_series(self):
         response = self.dashboard()
@@ -175,7 +187,7 @@ class DashboardTests(TestCase):
         self.assertNotIn('Cliente externo', str(charts))
         self.assertNotIn('Prestador externo', str(charts))
 
-    def test_manager_and_superuser_see_all_tickets_including_missing_relations(self):
+    def test_manager_sees_own_company_and_superuser_sees_all_including_missing_relations(self):
         own = self.ticket()
         other = self.ticket(
             usuario=self.other_operator,
@@ -184,29 +196,38 @@ class DashboardTests(TestCase):
         )
         unassigned = self.ticket(usuario=None, cliente=None, colaborador=None)
         self.budget(other, '2000')
-        for user in (self.manager, self.admin):
+        for user, expected in (
+            (self.manager, {own.pk, unassigned.pk}),
+            (self.admin, {own.pk, other.pk, unassigned.pk}),
+        ):
             with self.subTest(user=user.username):
                 response = self.dashboard(user)
                 self.assertEqual(
                     {ticket.pk for ticket in response.context['tickets']},
-                    {own.pk, other.pk, unassigned.pk},
+                    expected,
                 )
                 metrics = response.context['dashboard_metrics']
-                self.assertEqual(metrics['tickets_total'], 3)
-                self.assertEqual(metrics['budget_total'], Decimal('2000'))
+                self.assertEqual(metrics['tickets_total'], len(expected))
+                self.assertEqual(metrics['budget_total'], Decimal('2000') if user == self.admin else 0)
                 for key in ('operators_count', 'clients_count', 'collaborators_count'):
-                    self.assertEqual(metrics[key], 2)
-                self.assertIn('Cliente externo', str(response.context['dashboard_charts']))
+                    self.assertEqual(metrics[key], 2 if user == self.admin else 1)
+                if user == self.admin:
+                    self.assertIn('Cliente externo', str(response.context['dashboard_charts']))
+                else:
+                    self.assertNotIn('Cliente externo', str(response.context['dashboard_charts']))
 
-    def test_client_and_collaborator_roles_keep_own_scope_even_with_linked_collaborator(self):
+    def test_client_and_collaborator_get_basic_company_tickets_but_no_financial_dashboard(self):
+        company_tickets = []
         for role in ('cliente', 'colaborador'):
             with self.subTest(role=role):
                 user = User.objects.create_user(username=f'conta_{role}', first_name=f'Conta {role}')
                 assign_role(user, role)
+                vincular_usuario(user, self.company)
                 linked_collaborator = Colaborador.objects.create(
-                    user=user, nome_completo=f'Prestador da conta {role}'
+                    empresa=self.company, user=user, nome_completo=f'Prestador da conta {role}'
                 )
                 own = self.ticket(usuario=user, colaborador=linked_collaborator)
+                company_tickets.append(own)
                 other = self.ticket(
                     usuario=self.other_operator,
                     cliente=self.other_customer,
@@ -218,44 +239,31 @@ class DashboardTests(TestCase):
                 self.budget(other, '40000')
                 self.payment(other, '20000', True)
                 self.receipt(other, '30000', True)
-                response = self.dashboard(user)
-                self.assertEqual([ticket.pk for ticket in response.context['tickets']], [own.pk])
-                metrics = response.context['dashboard_metrics']
-                for key, value in {
-                    'tickets_total': 1, 'active': 1, 'finalized': 0, 'emergency': 0,
-                    'budget_total': Decimal('500'), 'budget_month': Decimal('500'),
-                    'paid_total': 0, 'received_total': 0,
-                    'operators_count': 1, 'clients_count': 1, 'collaborators_count': 1,
-                }.items():
-                    self.assertEqual(metrics[key], value, msg=f'{role}: {key}')
-                charts = response.context['dashboard_charts']
-                self.assertEqual(sum(item['value'] for item in charts['status']), 1)
-                self.assertEqual(sum(item['tickets'] for item in charts['monthly']), 1)
-                self.assertEqual(sum(item['budget'] for item in charts['monthly']), 500)
-                self.assertEqual([item['value'] for item in charts['histogram']], [1, 0, 0, 0, 0])
-                for key in ('operators', 'clients', 'collaborators'):
-                    self.assertEqual([item['value'] for item in charts[key]], [1])
-                self.assertNotIn('Bruno Externo', str(charts))
-                self.assertNotIn('Cliente externo', str(charts))
-                self.assertNotContains(response, f'#{other.ticket}')
+                self.client.force_login(user)
+                self.assertRedirects(
+                    self.client.get(self.url), reverse('index-tickets'), fetch_redirect_response=False,
+                )
+                self.assertEqual(self.client.get(reverse('relatorios')).status_code, 403)
+                response = self.client.get(reverse('index-tickets'))
+                self.assertEqual(response.status_code, 200)
+                self.assertEqual(
+                    {ticket.pk for ticket in response.context['tickets']},
+                    {ticket.pk for ticket in company_tickets},
+                )
+                self.assertNotContains(response, other.ticket)
+                self.assertNotContains(response, 'R$')
 
-    def test_empty_dashboard_actions_follow_each_role_create_permission(self):
-        for role, can_create in (('cliente', True), ('operador', True), ('colaborador', False)):
+    def test_empty_financial_dashboard_actions_are_available_to_company_operators_and_managers(self):
+        for role in ('operador', 'gerente'):
             with self.subTest(role=role):
                 user = User.objects.create_user(username=f'acao_{role}')
                 assign_role(user, role)
+                vincular_usuario(user, self.company)
                 response = self.dashboard(user)
                 self.assertEqual(response.context['dashboard_metrics']['tickets_total'], 0)
-                self.assertFalse(response.context['dashboard_can_view_all'])
-                if can_create:
-                    self.assertContains(response, 'Novo ticket')
-                    self.assertContains(response, reverse('cadastro-ticket'))
-                    self.assertContains(response, 'Criar primeiro ticket')
-                else:
-                    self.assertContains(response, 'Ver tickets')
-                    self.assertContains(response, 'Seus tickets aparecerão aqui')
-                    self.assertNotContains(response, reverse('cadastro-ticket'))
-                    self.assertNotContains(response, 'Criar primeiro ticket')
+                self.assertContains(response, 'Novo ticket')
+                self.assertContains(response, reverse('cadastro-ticket'))
+                self.assertContains(response, 'Criar primeiro ticket')
 
     def test_financial_totals_are_exact_without_join_multiplication_and_allow_nulls(self):
         first = self.ticket(status='E')
@@ -355,8 +363,10 @@ class DashboardTests(TestCase):
     def test_rankings_limit_top_five_and_count_tickets_per_distinct_participant(self):
         for index, count in enumerate(range(7, 0, -1)):
             operator = User.objects.create_user(username=f'ranking{index}', first_name=f'Operador {index}')
-            customer = Cliente.objects.create(nome_razao_social=f'Cliente {index}', cpf_cnpj=f'333333333{index:02d}')
-            collaborator = Colaborador.objects.create(nome_completo=f'Prestador {index}')
+            assign_role(operator, 'operador')
+            vincular_usuario(operator, self.company)
+            customer = Cliente.objects.create(empresa=self.company, nome_razao_social=f'Cliente {index}', cpf_cnpj=f'333333333{index:02d}')
+            collaborator = Colaborador.objects.create(empresa=self.company, nome_completo=f'Prestador {index}')
             for _ in range(count):
                 self.ticket(usuario=operator, cliente=customer, colaborador=collaborator)
         response = self.dashboard(self.manager)

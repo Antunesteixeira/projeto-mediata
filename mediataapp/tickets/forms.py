@@ -1,4 +1,6 @@
 from django import forms
+from core.models import Empresa
+from core.tenancy import empresa_do_usuario
 from .models import Ticket, Orcamento, Servico, Material, HistoricoTicket, ItemOrcamento, Pagamentos, Anexo, Recebimentos
 
 class TicketForm(forms.ModelForm):
@@ -16,12 +18,17 @@ class TicketForm(forms.ModelForm):
     class Meta:
         model = Ticket
         fields = [
+            'empresa',
             'ticket',
             'status',
             'emergencial',
             'data_finalizar',
             'descricao'
         ]
+
+        help_texts = {
+            'ticket': 'Opcional. Deixe em branco para gerar ano e mês + sequência de três dígitos (ex.: 2610001).',
+        }
 
         labels = {
             'ticket': 'Número do Ticket',
@@ -39,7 +46,7 @@ class TicketForm(forms.ModelForm):
         widgets = {
             'ticket': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': 'Ex: 1234'
+                'placeholder': 'Deixe em branco para gerar automaticamente'
             }),
             'status': forms.Select(attrs={
                 'class': 'form-select'
@@ -77,11 +84,62 @@ class TicketForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        self.fields['ticket'].required = False
+        if self.user and self.user.is_superuser:
+            self.fields['empresa'].queryset = Empresa.objects.filter(ativo=True)
+            self.fields['empresa'].required = True
+            self.fields['empresa'].widget.attrs['class'] = 'form-select'
+            if self.instance.pk:
+                self.fields['empresa'].disabled = True
+                self.fields['empresa'].required = False
+        else:
+            self.fields.pop('empresa', None)
+            if self.user and not self.instance.pk:
+                self.instance.empresa = empresa_do_usuario(self.user)
+        if self.instance.pk:
+            self.fields['ticket'].help_text = 'Deixe em branco para manter o número atual.'
 
         # Esconde o campo emergencial para usuários não superuser
         if not self.instance.pk and self.user and not self.user.is_superuser:
             self.fields['emergencial'].widget = forms.HiddenInput()
             self.fields['emergencial'].required = False
+
+    def clean_ticket(self):
+        codigo = self.cleaned_data.get('ticket', '')
+        if self.instance.pk and not codigo:
+            return self.instance.ticket
+        return codigo
+
+
+class AssinanteTicketForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['ticket'].help_text = 'Deixe em branco para manter o número atual.'
+
+    def clean_ticket(self):
+        codigo = self.cleaned_data.get('ticket', '')
+        if self.instance.pk and not codigo:
+            return self.instance.ticket
+        return codigo
+
+    class Meta:
+        model = Ticket
+        fields = ['ticket', 'descricao']
+        labels = {'ticket': 'Número do Ticket', 'descricao': 'Descrição do serviço'}
+        help_texts = {'ticket': TicketForm.Meta.help_texts['ticket']}
+        widgets = {
+            'ticket': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Deixe em branco para gerar automaticamente',
+            }),
+            'descricao': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 5,
+                'placeholder': 'Descreva o problema ou o serviço que você precisa.',
+            }),
+        }
+
 
 class OrcamentoForm(forms.ModelForm):
     class Meta:

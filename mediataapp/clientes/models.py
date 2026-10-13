@@ -1,6 +1,11 @@
 from django.db import models
 
 class Cliente(models.Model):
+    empresa = models.ForeignKey(
+        'core.Empresa', on_delete=models.PROTECT, null=True, blank=True,
+        related_name='clientes',
+    )
+
     TIPO_PESSOA_CHOICES = [
         ('F', 'Pessoa Física'),
         ('J', 'Pessoa Jurídica'),
@@ -10,7 +15,7 @@ class Cliente(models.Model):
     nome_razao_social = models.CharField("Nome / Razão Social", max_length=150)
     sobrenome_nome_fantasia = models.CharField("Sobrenome / Nome Fantasia", max_length=150, blank=True, null=True)
 
-    cpf_cnpj = models.CharField("CPF / CNPJ", max_length=18, unique=True)
+    cpf_cnpj = models.CharField("CPF / CNPJ", max_length=18)
     rg_ie = models.CharField("RG / Inscrição Estadual", max_length=20, blank=True, null=True)
 
     email = models.EmailField("E-mail", max_length=100, blank=True, null=True)
@@ -27,6 +32,11 @@ class Cliente(models.Model):
 
     ativo = models.BooleanField(default=True)
     data_cadastro = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(fields=('empresa', 'cpf_cnpj'), name='clientes_empresa_cpf_cnpj_uniq'),
+        ]
 
     def __str__(self):
         return self.nome_razao_social

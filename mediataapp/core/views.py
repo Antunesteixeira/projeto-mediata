@@ -1,198 +1,196 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
 from django.contrib.auth import authenticate
 from django.contrib.auth import login as login_django
 from django.contrib.auth.decorators import login_required
-
-from django.http import Http404
-from tickets.models import Ticket
-from insumos.models import Insumos 
-
-from rolepermissions.checkers import has_role
-
-from django.contrib.auth.models import User, Group
-
-from django.http import JsonResponse
-from django.views import View
-
-from django.views.decorators.http import require_GET
-
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-from django.utils import timezone
-import logging
-
-# views.py
-from django.contrib import messages
-from .models import Empresa
-from .dashboard import build_dashboard_context
-
-# views.py
-from django.views.generic import DetailView
-
-# core/views.py
-from django.views.generic import CreateView, UpdateView, DetailView, ListView
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
-from .models import Empresa, HorarioFuncionamento, Funcionario, Servico
-from .forms import EmpresaForm, HorarioFuncionamentoForm, FuncionarioForm, ServicoForm
+from django.utils import timezone
+from django.views.decorators.http import require_GET
+from django.views.generic import CreateView, DetailView, ListView, UpdateView
 
-logger = logging.getLogger(__name__)
+from insumos.models import Insumos
+from tickets.models import Ticket
+from usuarios.access import is_assinante
+from .dashboard import build_dashboard_context
+from .forms import EmpresaForm
+from .models import Empresa
+from .tenancy import (
+    dados_da_empresa, empresa_do_usuario, pode_gerenciar_empresa,
+    pode_operar_tickets, tickets_da_empresa, usuarios_da_empresa,
+)
 
 
 def index(request):
+    if is_assinante(request.user):
+        return redirect('index-tickets')
     return render(request, 'index.html')
 
+
 def login(request):
-    if request.method == "GET":
-        if request.user.is_authenticated:
-            return redirect('/dashboard/')
-        else:
-            return render(request, 'registration/login.html')
-    else: 
-        username = request.POST.get('username')
-        password = request.POST.get('password')
+    if request.method == 'GET':
+        return redirect('dashboard') if request.user.is_authenticated else render(request, 'registration/login.html')
+    user = authenticate(username=request.POST.get('username'), password=request.POST.get('password'))
+    if user:
+        login_django(request, user)
+        return redirect('dashboard')
+    return redirect('login')
 
-        user = authenticate(username=username, password=password)
 
-        if user:
-            login_django(request, user)
-            return redirect('/dashboard/')
-        else:
-            return redirect('accounts/login/')
-        
 @login_required
 def dashboard(request):
-    empresa = Empresa.objects.first()
+    if is_assinante(request.user):
+        return redirect('index-tickets')
+    if not request.user.is_superuser and empresa_do_usuario(request.user) is None:
+        raise PermissionDenied('Sua conta precisa estar vinculada a uma empresa ativa.')
+    if not pode_operar_tickets(request.user):
+        return redirect('index-tickets')
+    empresa = empresa_do_usuario(request.user)
+    if request.user.is_superuser and empresa is None:
+        empresa = Empresa.objects.order_by('pk').first()
     if empresa is None:
-        # Se não houver empresa cadastrada, redireciona para o cadastro
-        messages.info(request, 'Por favor, cadastre a empresa antes de acessar o dashboard.')
+        messages.info(request, 'Cadastre a primeira empresa para iniciar a operação.')
         return redirect('empresa_cadastrar')
-
-    can_view_all = request.user.is_superuser or has_role(request.user, 'gerente')
-    tickets = Ticket.objects.all()
-    if not can_view_all:
-        tickets = tickets.filter(usuario=request.user)
-    context = build_dashboard_context(tickets, empresa, can_view_all, now=timezone.now())
+    context = build_dashboard_context(
+        tickets_da_empresa(request.user), empresa, True, now=timezone.now(),
+        is_platform_admin=request.user.is_superuser,
+    )
     return render(request, 'home/dashboard.html', context)
+
 
 @login_required
 def erro_404(request, exception):
     return render(request, '404.html', status=404)
 
+
 @login_required
 @require_GET
 def buscar_itens(request):
+    if not pode_operar_tickets(request.user):
+        raise PermissionDenied('A consulta de insumos é restrita à operação da empresa.')
     termo = request.GET.get('term', '').strip()
-    
-    if termo:
-        itens = Insumos.objects.filter(
-            Q(insumo__icontains=termo) | 
-            Q(codigo__icontains=termo)
-        ).order_by('insumo')[:10]
-        
-        resultados = [{
-            'id': item.id,
-            'label': f"{item.insumo} ({item.codigo}) - {item.get_tipo_display()}",
-            'value': item.insumo,
-            'codigo': item.codigo,
-            'tipo': item.tipo,
-            'tipo_display': item.get_tipo_display(),
-            'unidade': item.unidade,
-            'unidade_display': item.get_unidade_display() if item.unidade else '',
-            'valor_unit': str(item.valor_unit) if item.valor_unit else '0.00'
-        } for item in itens]
-    else:
-        resultados = []
-    
-    return JsonResponse(resultados, safe=False)
+    itens = dados_da_empresa(request.user, Insumos.objects.all())
+    itens = itens.filter(Q(insumo__icontains=termo) | Q(codigo__icontains=termo)).order_by('insumo')[:10] if termo else []
+    return JsonResponse([{
+        'id': item.id,
+        'label': f'{item.insumo} ({item.codigo}) - {item.get_tipo_display()}',
+        'value': item.insumo,
+        'codigo': item.codigo,
+        'tipo': item.tipo,
+        'tipo_display': item.get_tipo_display(),
+        'unidade': item.unidade,
+        'unidade_display': item.get_unidade_display() if item.unidade else '',
+        'valor_unit': str(item.valor_unit) if item.valor_unit else '0.00',
+    } for item in itens], safe=False)
 
 
-class EmpresaCreateView(CreateView):
+class EmpresaScopedMixin(LoginRequiredMixin):
+    def get_queryset(self):
+        queryset = Empresa.objects.all()
+        if self.request.user.is_superuser:
+            return queryset
+        company = empresa_do_usuario(self.request.user)
+        if company is None:
+            raise PermissionDenied('Sua conta precisa estar vinculada a uma empresa ativa.')
+        return queryset.filter(pk=company.pk)
+
+
+class EmpresaCreateView(LoginRequiredMixin, CreateView):
     model = Empresa
     form_class = EmpresaForm
     template_name = 'empresa/cadastro-empresa.html'
     success_url = reverse_lazy('empresa_success')
-    
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if not request.user.is_superuser:
+            raise PermissionDenied('Somente o administrador pode cadastrar empresas.')
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
         messages.success(self.request, 'Empresa cadastrada com sucesso!')
         return super().form_valid(form)
-    
+
     def form_invalid(self, form):
         messages.error(self.request, 'Por favor, corrija os erros abaixo.')
         return super().form_invalid(form)
 
 
-class EmpresaUpdateView(UpdateView):
+class EmpresaUpdateView(EmpresaScopedMixin, UpdateView):
     model = Empresa
     form_class = EmpresaForm
     template_name = 'empresa/cadastro-empresa.html'
     success_url = reverse_lazy('empresa_success')
-    
+
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if not pode_gerenciar_empresa(request.user):
+            raise PermissionDenied('Somente gerentes podem alterar a empresa.')
+        return super().dispatch(request, *args, **kwargs)
+
     def form_valid(self, form):
         messages.success(self.request, 'Empresa atualizada com sucesso!')
         return super().form_valid(form)
 
-# View baseada em classe para visualizar perfil da empresa
-class EmpresaDetailView(DetailView):
+
+class EmpresaDetailView(EmpresaScopedMixin, DetailView):
     model = Empresa
     template_name = 'empresa/perfil-empresa.html'
     context_object_name = 'empresa'
 
-# View baseada em classe para listar empresas
-class EmpresaListView(ListView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        company = self.object
+        context['equipe_usuarios'] = usuarios_da_empresa(self.request.user).filter(
+            vinculo_empresa__empresa=company,
+        ).prefetch_related('groups')
+        context['tickets_empresa'] = tickets_da_empresa(self.request.user).filter(
+            empresa=company,
+        ).select_related('usuario').order_by('-data_criacao')[:10]
+        context['pode_editar_empresa'] = pode_gerenciar_empresa(self.request.user)
+        return context
+
+
+class EmpresaListView(EmpresaScopedMixin, ListView):
     model = Empresa
     template_name = 'empresa/lista_empresas.html'
     context_object_name = 'empresas'
-    
-    def get_queryset(self):
-        return Empresa.objects.filter(ativo=True)
 
-# View baseada em função para sucesso (pode manter como função)
+
 @login_required
 def success_view(request):
+    if not request.user.is_superuser and empresa_do_usuario(request.user) is None:
+        raise PermissionDenied('Sua conta precisa estar vinculada a uma empresa ativa.')
     return render(request, 'empresa/success.html')
 
-# Views baseadas em função alternativas (se preferir)
+
 @login_required
 def empresa_cadastrar(request):
-    if request.method == 'POST':
-        form = EmpresaForm(request.POST)
-        if form.is_valid():
-            empresa = form.save()
-            messages.success(request, 'Empresa cadastrada com sucesso!')
-            return redirect('empresa_success')
-        else:
-            messages.error(request, 'Por favor, corrija os erros abaixo.')
-    else:
-        form = EmpresaForm()
-    
-    return render(request, 'empresa/cadastro_empresa.html', {'form': form})
+    return EmpresaCreateView.as_view()(request)
+
 
 @login_required
 def empresa_editar(request, pk):
-    empresa = get_object_or_404(Empresa, pk=pk)
-    
-    if request.method == 'POST':
-        form = EmpresaForm(request.POST, instance=empresa)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Empresa atualizada com sucesso!')
-            return redirect('empresa_success')
-        else:
-            messages.error(request, 'Por favor, corrija os erros abaixo.')
-    else:
-        form = EmpresaForm(instance=empresa)
-    
-    return render(request, 'empresa/cadastro_empresa.html', {'form': form})
+    return EmpresaUpdateView.as_view()(request, pk=pk)
+
 
 @login_required
 def empresa_perfil(request, pk):
-    empresa = get_object_or_404(Empresa, pk=pk)
-    return render(request, 'empresa/perfil-empresa.html', {'empresa': empresa})
+    return EmpresaDetailView.as_view()(request, pk=pk)
+
 
 @login_required
 def empresa_lista(request):
-    empresas = Empresa.objects.filter(ativo=True)
-    return render(request, 'empresa/lista_empresas.html', {'empresas': empresas})
+    return EmpresaListView.as_view()(request)
+
 
 @login_required
 def uploader_arquivos(request):
+    if not pode_operar_tickets(request.user):
+        raise PermissionDenied('O envio de arquivos é restrito à operação da empresa.')
     return render(request, 'uploader_arquivos.html')

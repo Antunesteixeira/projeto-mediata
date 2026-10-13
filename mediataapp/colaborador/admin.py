@@ -1,9 +1,10 @@
 from django.contrib import admin
 from .models import Colaborador
 from .forms import ColaboradorForm
+from core.admin_access import SuperuserOnlyAdminMixin
 
 @admin.register(Colaborador)
-class ColaboradorAdmin(admin.ModelAdmin):
+class ColaboradorAdmin(SuperuserOnlyAdminMixin, admin.ModelAdmin):
     form = ColaboradorForm
     list_display = ['id', 'tipo_pessoa', 'nome_ou_razao', 'email', 'telefone', 'banco', 'tipo_chave_pix']
     list_filter = ['tipo_pessoa', 'banco', 'tipo_chave_pix']
@@ -11,7 +12,7 @@ class ColaboradorAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Tipo de Pessoa', {
-            'fields': ('tipo_pessoa',)
+            'fields': ('empresa', 'tipo_pessoa',)
         }),
         ('Pessoa Física', {
             'fields': ('nome_completo', 'cpf', 'data_nascimento'),

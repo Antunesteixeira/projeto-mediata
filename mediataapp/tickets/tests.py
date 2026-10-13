@@ -10,14 +10,19 @@ from rolepermissions.roles import assign_role
 
 from clientes.models import Cliente
 from insumos.models import Insumos
+from usuarios.test_helpers import criar_empresa, vincular_usuario
 from .models import Ticket, Orcamento, ItemOrcamento, Pagamentos, Recebimentos, HistoricoTicket, Anexo
 from .reports import ticket_report
 
 
 class TicketPDFTests(TestCase):
     def setUp(self):
+        self.company = criar_empresa()
+        self.other_company = criar_empresa('Empresa fictícia B', '00.000.000/0000-02')
         self.user = User.objects.create_user(username='operador', password='test-only-password', first_name='Operador', last_name='Responsável')
-        self.ticket = Ticket.objects.create(ticket='PDF001', usuario=self.user, descricao='Descrição completa\nSegunda linha')
+        assign_role(self.user, 'operador')
+        vincular_usuario(self.user, self.company)
+        self.ticket = Ticket.objects.create(ticket='PDF001', usuario=self.user, empresa=self.company, descricao='Descrição completa\nSegunda linha')
         self.url = reverse('gerar_pdf_ticket', kwargs={'key': self.ticket.key})
 
     def test_requires_login(self):
@@ -42,15 +47,17 @@ class TicketPDFTests(TestCase):
             with self.subTest(role=role):
                 other_user = User.objects.create_user(username=f'outro_{role}')
                 assign_role(other_user, role)
+                vincular_usuario(other_user, self.other_company)
                 self.client.force_login(other_user)
                 response = self.client.get(self.url)
-                self.assertEqual(response.status_code, 404)
+                self.assertEqual(response.status_code, 404 if role == 'operador' else 403)
         renderer.assert_not_called()
 
     @patch('tickets.views.HTML')
     def test_manager_and_superuser_can_export_other_users_ticket(self, renderer):
         manager = User.objects.create_user(username='gerente_pdf')
         assign_role(manager, 'gerente')
+        vincular_usuario(manager, self.company)
         administrator = User.objects.create_superuser(
             username='admin_pdf', email='', password='test-only-password',
         )
@@ -75,12 +82,12 @@ class TicketPDFTests(TestCase):
 
     @patch('tickets.views.HTML')
     def test_report_contains_all_sections_and_does_not_update_budget(self, renderer):
-        client = Cliente.objects.create(nome_razao_social='Cliente PDF', cpf_cnpj='12345678901')
+        client = Cliente.objects.create(empresa=self.company, nome_razao_social='Cliente PDF', cpf_cnpj='12345678901')
         self.ticket.cliente = client
         self.ticket.nfe_path = 'nfe/nota-teste.pdf'
         self.ticket.save()
         budget = Orcamento.objects.create(ticket_orcamento=self.ticket, orcamento='Orçamento PDF', descricao='Escopo especial', valor_total=Decimal('999'))
-        supply = Insumos.objects.create(insumo='Peça teste', tipo='M', unidade='UN', valor_unit=Decimal('12.50'))
+        supply = Insumos.objects.create(empresa=self.company, insumo='Peça teste', tipo='M', unidade='UN', valor_unit=Decimal('12.50'))
         ItemOrcamento.objects.create(orcamento=budget, item=supply, quant=Decimal('2.50'))
         # Insumos removidos e valores financeiros vazios não impedem a exportação.
         ItemOrcamento.objects.create(orcamento=budget, item=None)
@@ -111,9 +118,12 @@ class TicketPDFTests(TestCase):
 
 class TicketReportFinancialTests(TestCase):
     def setUp(self):
+        self.company = criar_empresa()
         self.user = User.objects.create_user(username='financeiro_pdf')
+        assign_role(self.user, 'operador')
+        vincular_usuario(self.user, self.company)
         self.ticket = Ticket.objects.create(
-            ticket='FINPDF001', usuario=self.user, descricao='Ticket financeiro',
+            ticket='FINPDF001', usuario=self.user, empresa=self.company, descricao='Ticket financeiro',
         )
 
     def financial_entries(self):
@@ -143,6 +153,7 @@ class TicketReportFinancialTests(TestCase):
             (budgets[1], 'T', '9.00', '2.00'),
         ):
             supply = Insumos.objects.create(
+                empresa=self.company,
                 insumo=f'Insumo {kind}', tipo=kind, unidade='UN',
                 valor_unit=Decimal(price),
             )

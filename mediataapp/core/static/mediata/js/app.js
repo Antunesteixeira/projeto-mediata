@@ -73,7 +73,11 @@
       const href = link.getAttribute('href');
       return href && !href.startsWith('#') && new URL(href, location.origin).pathname.replace(/\/$/, '') === path;
     });
-    const section = links.find(link => (link.dataset.navPrefix || '').split(',').filter(Boolean).some(prefix => `${path}/`.startsWith(prefix)));
+    const sections = links.flatMap(link => (link.dataset.navPrefix || '').split(',')
+      .filter(prefix => prefix && `${path}/`.startsWith(prefix))
+      .map(prefix => ({link, length: prefix.length})))
+      .sort((first, second) => second.length - first.length);
+    const section = sections[0]?.link;
     [section, exact].filter(Boolean).forEach(link => link.classList.add('active'));
     const current = exact || section;
     if (current) current.setAttribute('aria-current', 'page');

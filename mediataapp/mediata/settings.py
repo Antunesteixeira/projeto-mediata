@@ -50,6 +50,8 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django_auto_logout.middleware.auto_logout',
+    'usuarios.middleware.AssinanteAccessMiddleware',
+    'usuarios.middleware.EmpresaAccessMiddleware',
 ]
 
 ROOT_URLCONF = 'mediata.urls'
@@ -65,6 +67,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'django_auto_logout.context_processors.auto_logout_client',
+                'usuarios.context_processors.access_permissions',
             ],
         },
     },

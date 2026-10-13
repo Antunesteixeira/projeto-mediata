@@ -5,13 +5,16 @@
 <div class="container-fluid app-page px-0">
     <header class="app-page-header">
         <div>
-            <h1 class="app-page-title">Tickets</h1>
-            <p class="app-page-description">Acompanhe os serviços, responsáveis e prazos da sua operação.</p>
+            <h1 class="app-page-title">{% if is_assinante %}Meus tickets{% else %}Tickets{% endif %}</h1>
+            <p class="app-page-description">{% if is_assinante %}Cadastre solicitações e acompanhe o andamento dos seus tickets.{% else %}Acompanhe os serviços, responsáveis e prazos da sua operação.{% endif %}</p>
         </div>
         <div class="app-page-actions">
+            {% if not is_assinante %}<a href="{% url 'tickets-disponiveis' %}" class="btn btn-outline-primary"><i class="bi bi-inbox me-1" aria-hidden="true"></i>Tickets disponíveis</a>{% endif %}
+            {% if pode_criar_ticket %}
             <a href="{% url 'cadastro-ticket' %}" class="btn btn-primary">
                 <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Novo Ticket
             </a>
+            {% endif %}
         </div>
     </header>
     <div class="card mb-4">
@@ -47,9 +50,10 @@
                     <thead class="table-light">
                         <tr>
                             <th scope="col" width="10%">Ticket</th>
+                            <th scope="col">Empresa responsável</th>
                             <th scope="col">Colaborador</th>
                             <th scope="col">Cliente</th>
-                            {% if user|has_role:'gerente' %}
+                            {% if not is_assinante and user|has_role:'gerente' %}
                             <th scope="col">Operador</th>
                             {% endif %}
                             <th scope="col" width="12%">Criação</th>
@@ -61,10 +65,13 @@
                     </thead>
                     <tbody>
                         {% for ticket in tickets %}
-                        <tr>
+                        <tr data-href="{% url 'exibir-ticket' ticket.key %}">
                             <td><strong>#{{ ticket.ticket }}</strong></td>
+                            <td>{{ ticket.empresa.nome_fantasia|default:'Aguardando empresa' }}</td>
                             <td>
-                                {% if not ticket.colaborador %}
+                                {% if not pode_operar_tickets %}
+                                    <span>{{ ticket.colaborador|default:'Não informado' }}</span>
+                                {% elif not ticket.colaborador %}
                                     <a href="{% url 'add-colaborador-ticket' ticket.id %}" class="btn btn-sm btn-outline-secondary">
                                         <i class="bi bi-person-plus"></i> Atribuir
                                     </a>
@@ -75,7 +82,9 @@
                                 {% endif %}
                             </td>
                             <td>
-                                {% if not ticket.cliente %}
+                                {% if not pode_operar_tickets %}
+                                    <span>{{ ticket.cliente|default:'Não informado' }}</span>
+                                {% elif not ticket.cliente %}
                                     <a href="{% url 'add-cliente-ticket' ticket.id %}" class="btn btn-sm btn-outline-secondary">
                                         <i class="bi bi-person-plus"></i> Atribuir
                                     </a>
@@ -85,9 +94,9 @@
                                     </a>
                                 {% endif %}
                             </td>
-                            {% if user|has_role:'gerente' %}
+                            {% if not is_assinante and user|has_role:'gerente' %}
                             <td>
-                                <span class="text-muted">{{ ticket.usuario }}</span>
+                                <span class="text-muted">{{ ticket.assumido_por|default:'Não atribuído' }}</span>
                             </td>
                             {% endif %}
                             <td data-order="{{ ticket.data_criacao|date:'Y-m-d H:i:s' }}">
@@ -136,10 +145,12 @@
                                        data-bs-toggle="tooltip" title="Visualizar">
                                         <i class="bi bi-eye"></i>
                                     </a>
+                                    {% if pode_operar_tickets or is_assinante and ticket.status == 'L' %}
                                     <a href="{% url 'editar-ticket' ticket.key %}" class="btn btn-sm btn-outline-success"
                                        data-bs-toggle="tooltip" title="Editar">
                                         <i class="bi bi-pencil"></i>
                                     </a>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -153,8 +164,11 @@
 
 <script>
     $(document).ready(function () {
+        const creationColumnIndex = $('#datatablesSimple thead th')
+            .filter(function () { return $(this).text().trim() === 'Criação'; })
+            .index();
         const tabela = $('#datatablesSimple').DataTable({
-            order: [[4, 'desc']],
+            order: [[creationColumnIndex, 'desc']],
             language: {
                 search: "Pesquisar:",
                 lengthMenu: "Mostrar _MENU_ registros por página",
@@ -168,7 +182,8 @@
                 zeroRecords: "Nenhum resultado encontrado",
             },
             dom: '<"top"f>rt<"bottom"lip><"clear">',
-            responsive: true
+            responsive: true,
+            columnDefs: [{ targets: -1, orderable: false, searchable: false }]
         });
 
         // Filtro por Status (detecta índice automaticamente)
@@ -187,8 +202,10 @@
 
         $('[data-bs-toggle="tooltip"]').tooltip();
         
-        $('#datatablesSimple tbody tr').css('cursor', 'pointer').on('click', function() {
-            window.location = $(this).find('a[href*="exibir-ticket"]').attr('href');
+        $('#datatablesSimple tbody tr[data-href]').css('cursor', 'pointer');
+        $('#datatablesSimple tbody').on('click', 'tr[data-href]', function(event) {
+            if ($(event.target).closest('a, button, input, select, textarea').length) return;
+            window.location = $(this).data('href');
         });
     });
 </script>
