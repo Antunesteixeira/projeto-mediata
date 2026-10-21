@@ -124,6 +124,7 @@ class EditarRecebimentoTests(TestCase):
         form = response.context['form']
         self.assertEqual(form.instance.pk, self.recebimento.pk)
         self.assertTrue(form.fields['status_recebimento'].required)
+        self.assertNotIn('recebimento_realizado', form.fields)
         for field, expected in (
             ('data_emissao', '2026-09-29'),
             ('data_vencimento', '2026-10-20'),
@@ -266,11 +267,8 @@ class EditarRecebimentoTests(TestCase):
         self.assertEqual(self.receipt_snapshot(self.other_receipt), other)
         self.assertEqual(Recebimentos.objects.count(), 2)
 
-    def test_changed_timestamp_uses_submitted_seconds_and_false_status_is_valid(self):
-        payload = self.valid_payload(
-            data_recebimento_realizado='2026-10-06T10:11:12',
-            status_recebimento='False',
-        )
+    def test_changed_received_timestamp_uses_submitted_seconds(self):
+        payload = self.valid_payload(data_recebimento_realizado='2026-10-06T10:11:12')
         response = self.client.post(self.url, payload)
         self.assert_saved_to_ticket(response)
         self.recebimento.refresh_from_db()
@@ -279,4 +277,34 @@ class EditarRecebimentoTests(TestCase):
         )
         self.assertEqual(self.recebimento.data_recebimento_realizado, expected)
         self.assertEqual(self.recebimento.data_recebimento_realizado.microsecond, 0)
+        self.assertTrue(self.recebimento.status_recebimento)
+        self.assertTrue(self.recebimento.recebimento_realizado)
+
+    def test_reopening_received_receipt_clears_effective_date_and_confirmation(self):
+        response = self.client.post(self.url, self.valid_payload(status_recebimento='False'))
+        self.assert_saved_to_ticket(response)
+        self.recebimento.refresh_from_db()
         self.assertFalse(self.recebimento.status_recebimento)
+        self.assertFalse(self.recebimento.recebimento_realizado)
+        self.assertIsNone(self.recebimento.data_recebimento_realizado)
+
+    def test_pending_legacy_receipt_cannot_acquire_new_effective_date(self):
+        Recebimentos.objects.filter(pk=self.recebimento.pk).update(status_recebimento=False)
+        before = self.receipt_snapshot()
+        response = self.client.post(self.url, self.valid_payload(
+            status_recebimento='False', data_recebimento_realizado='2026-10-06T10:11:12',
+        ))
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('data_recebimento_realizado', response.context['form'].errors)
+        self.assertEqual(self.receipt_snapshot(), before)
+
+    def test_unchanged_pending_legacy_receipt_preserves_timestamp_and_syncs_confirmation(self):
+        Recebimentos.objects.filter(pk=self.recebimento.pk).update(status_recebimento=False)
+        payload = self.valid_payload(status_recebimento='False')
+        payload.pop('data_recebimento_realizado')
+        response = self.client.post(self.url, payload)
+        self.assert_saved_to_ticket(response)
+        self.recebimento.refresh_from_db()
+        self.assertEqual(self.recebimento.data_recebimento_realizado, self.original_timestamp)
+        self.assertFalse(self.recebimento.status_recebimento)
+        self.assertFalse(self.recebimento.recebimento_realizado)

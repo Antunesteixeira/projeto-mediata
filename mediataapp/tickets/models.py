@@ -179,7 +179,10 @@ class Pagamentos(models.Model):
     )
     tipo = models.CharField(max_length=1, choices=TIPO_CHOICES)
     valor_pagamento = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor do Pagamento", null=True, blank=True)
-    data_pagamento = models.DateField()
+    # Mantém a data histórica sem presumir se era vencimento ou baixa.
+    data_pagamento = models.DateField(null=True, blank=True)
+    data_vencimento = models.DateField(null=True, blank=True, db_index=True)
+    data_pagamento_realizado = models.DateField(null=True, blank=True)
     data_update_pagamento = models.DateTimeField(auto_now_add=True, blank=True, null=True)
     status_pagamento = models.BooleanField(default=False)
     ticket_pagamento = models.ForeignKey(Ticket, on_delete=models.CASCADE, related_name="pagamentos")

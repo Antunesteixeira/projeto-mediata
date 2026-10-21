@@ -1,4 +1,6 @@
+from datetime import datetime
 from django import forms
+from django.utils import timezone
 from core.models import Empresa
 from core.tenancy import empresa_do_usuario
 from .models import Ticket, Orcamento, Servico, Material, HistoricoTicket, ItemOrcamento, Pagamentos, Anexo, Recebimentos
@@ -219,29 +221,89 @@ class ItemOrcamentoForm(forms.ModelForm):
             }),
         }
 
-class PagamentoForm(forms.ModelForm):
-    valor_pagamento = forms.DecimalField(
-        widget=forms.NumberInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'Ex: 100.00',
-            'step': '0.01'
-        })
-    )
-
-    class Meta:
-        model = Pagamentos
-        fields = ['tipo', 'valor_pagamento', 'status_pagamento', 'data_pagamento']
-        
-        widgets = {
-            'tipo': forms.Select(attrs={'class': 'form-select'}),
-            'status_pagamento': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'data_pagamento': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-        }
+class FinanceiroFormMixin:
+    """Valida novas movimentações sem atribuir datas ao histórico desconhecido."""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        if self.instance and self.instance.pk:
-            self.initial['valor_pagamento'] = self.instance.valor_pagamento
+        self._novo_lancamento = not bool(self.instance.pk)
+        self._situacao_original = getattr(self.instance, self.campo_situacao)
+        self._data_real_original = getattr(self.instance, self.campo_data_real)
+        campos_financeiros = (self.campo_valor, 'data_vencimento', self.campo_data_real)
+        if self.is_bound and not self._novo_lancamento:
+            # Uma edição de descrição/comprovante não apaga dados que não enviou.
+            self.data = self.data.copy()
+            for nome in campos_financeiros:
+                if nome not in self.data:
+                    self.data[nome] = getattr(self.instance, nome)
+        self.fields[self.campo_valor].required = (
+            self._novo_lancamento or getattr(self.instance, self.campo_valor) is not None
+        )
+        self.fields['data_vencimento'].required = (
+            self._novo_lancamento or self.instance.data_vencimento is not None
+        )
+        self.fields[self.campo_data_real].required = False
+
+    def clean(self):
+        cleaned = super().clean()
+        valor = cleaned.get(self.campo_valor)
+        if valor is not None and valor <= 0:
+            self.add_error(self.campo_valor, 'Informe um valor maior que zero.')
+
+        if self.campo_situacao not in cleaned:
+            return cleaned
+        liquidado = cleaned[self.campo_situacao]
+        data_real = cleaned.get(self.campo_data_real)
+        if (
+            not self._novo_lancamento and liquidado and self._situacao_original
+            and data_real is None and self.campo_data_real not in self.errors
+        ):
+            # Deixar em branco não remove uma baixa histórica sem reabertura.
+            data_real = cleaned[self.campo_data_real] = self._data_real_original
+        if not liquidado and self._situacao_original and not self._novo_lancamento:
+            # Reabrir a movimentação desfaz a baixa; editar o legado não a desfaz.
+            cleaned[self.campo_data_real] = None
+            return cleaned
+        if liquidado and (self._novo_lancamento or not self._situacao_original) and data_real is None:
+            self.add_error(self.campo_data_real, 'Informe a data em que a movimentação foi liquidada.')
+        if data_real is not None and data_real != self._data_real_original:
+            if not liquidado:
+                self.add_error(self.campo_data_real, 'Marque a movimentação como liquidada para informar esta data.')
+            futura = (
+                data_real > timezone.now() if isinstance(data_real, datetime)
+                else data_real > timezone.localdate()
+            )
+            if futura:
+                self.add_error(self.campo_data_real, 'A data de liquidação não pode estar no futuro.')
+        return cleaned
+
+
+class PagamentoForm(FinanceiroFormMixin, forms.ModelForm):
+    campo_valor = 'valor_pagamento'
+    campo_situacao = 'status_pagamento'
+    campo_data_real = 'data_pagamento_realizado'
+
+    class Meta:
+        model = Pagamentos
+        fields = [
+            'tipo', 'valor_pagamento', 'status_pagamento',
+            'data_vencimento', 'data_pagamento_realizado',
+        ]
+        labels = {
+            'data_vencimento': 'Data de vencimento',
+            'data_pagamento_realizado': 'Data do pagamento realizado',
+            'status_pagamento': 'Pago',
+        }
+        widgets = {
+            'tipo': forms.Select(attrs={'class': 'form-select'}),
+            'valor_pagamento': forms.NumberInput(attrs={
+                'class': 'form-control', 'placeholder': 'Ex: 100.00', 'step': '0.01', 'min': '0.01',
+            }),
+            'status_pagamento': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'data_vencimento': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date', 'class': 'form-control'}),
+            'data_pagamento_realizado': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date', 'class': 'form-control'}),
+        }
+
 
 class AnexoForm(forms.ModelForm):
     class Meta:
@@ -253,19 +315,30 @@ class AnexoForm(forms.ModelForm):
         }
 
 
-class RecebimentosForm(forms.ModelForm):
+class RecebimentosForm(FinanceiroFormMixin, forms.ModelForm):
+    campo_valor = 'valor_recebimento'
+    campo_situacao = 'status_recebimento'
+    campo_data_real = 'data_recebimento_realizado'
+
     class Meta:
         model = Recebimentos
-        exclude = ['razao_social', 'ticket_recebimento', 'comprovante_recebimento']  # ← exclui o campo FK
+        fields = [
+            'numero_nota_fiscal', 'serie_nota_fiscal', 'data_emissao',
+            'data_vencimento', 'valor_recebimento', 'status_recebimento',
+            'descricao_recebimento', 'forma_pagamento', 'tipo_pagamento',
+            'data_recebimento_realizado',
+        ]
         widgets = {
-            'data_emissao': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'data_vencimento': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'data_emissao': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date', 'class': 'form-control'}),
+            'data_vencimento': forms.DateInput(format='%Y-%m-%d', attrs={'type': 'date', 'class': 'form-control'}),
+            'valor_recebimento': forms.NumberInput(attrs={'step': '0.01', 'min': '0.01'}),
             'descricao_recebimento': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
-            'recebimento_realizado': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'data_recebimento_realizado': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'data_recebimento_realizado': forms.DateTimeInput(
+                format='%Y-%m-%dT%H:%M:%S',
+                attrs={'type': 'datetime-local', 'step': '1', 'class': 'form-control'},
+            ),
         }
         labels = {
-            #'razao_social': 'Razão Social',
             'numero_nota_fiscal': 'Número da Nota Fiscal',
             'serie_nota_fiscal': 'Série da Nota Fiscal',
             'data_emissao': 'Data de Emissão',
@@ -275,43 +348,31 @@ class RecebimentosForm(forms.ModelForm):
             'descricao_recebimento': 'Descrição',
             'forma_pagamento': 'Forma de Pagamento',
             'tipo_pagamento': 'Tipo de Pagamento',
-            #'comprovante_recebimento': 'Comprovante',
-            'recebimento_realizado': 'Recebimento Realizado',
-            'data_recebimento_realizado': 'Data do Recebimento'
+            'data_recebimento_realizado': 'Data e hora do recebimento',
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Adiciona classe form-control a todos os campos que não são checkbox/radio
-        for field_name, field in self.fields.items():
-            if not isinstance(field.widget, (forms.CheckboxInput, forms.RadioSelect)):
-                field.widget.attrs.setdefault('class', 'form-control')
-        # Define todos como não obrigatórios (ajuste conforme necessário)
-        for field in self.fields.values():
-            field.required = False
-        # Exemplo: tornar valor_recebimento obrigatório
-        # self.fields['valor_recebimento'].required = True
-
-
-class EditarRecebimentoForm(RecebimentosForm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
         self.fields['status_recebimento'].required = True
-        for name in ('data_emissao', 'data_vencimento'):
-            self.fields[name].widget.format = '%Y-%m-%d'
-        self.fields['data_recebimento_realizado'].widget = forms.DateTimeInput(
-            format='%Y-%m-%dT%H:%M:%S',
-            attrs={'type': 'datetime-local', 'step': '1', 'class': 'form-control'},
-        )
-        self.fields['data_recebimento_realizado'].label = 'Data e hora do recebimento'
         for field in self.fields.values():
             if isinstance(field.widget, forms.Select):
                 field.widget.attrs['class'] = 'form-select'
+            else:
+                field.widget.attrs.setdefault('class', 'form-control')
 
     def clean_data_recebimento_realizado(self):
         value = self.cleaned_data.get('data_recebimento_realizado')
-        original = self.instance.data_recebimento_realizado
+        original = self._data_real_original
         # O navegador exibe segundos; conserva a precisão do registro sem alteração.
         if original is not None and value is not None and original.replace(microsecond=0) == value:
             return original
         return value
+
+    def save(self, commit=True):
+        # A confirmação acompanha a fonte principal, sem aceitar checkbox forjado.
+        self.instance.recebimento_realizado = bool(self.cleaned_data.get('status_recebimento'))
+        return super().save(commit=commit)
+
+
+class EditarRecebimentoForm(RecebimentosForm):
+    pass

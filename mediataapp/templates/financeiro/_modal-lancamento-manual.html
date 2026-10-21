@@ -1,0 +1,23 @@
+<div class="modal fade finance-manual-modal" id="novoLancamentoModal" tabindex="-1" aria-labelledby="novoLancamentoModalLabel" aria-hidden="true" data-reabrir="{% if reabrir_novo_lancamento %}true{% else %}false{% endif %}">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <form method="post" action="{{ novo_lancamento_url }}" class="modal-content" novalidate data-manual-financeiro>
+            {% csrf_token %}
+            <input type="hidden" name="apresentacao" value="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="novoLancamentoModalLabel">Novo lançamento</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <div class="finance-section-heading finance-manual-heading">
+                    <div><p>Registre uma entrada ou saída. Marque a quitação quando o pagamento ou recebimento acontecer.</p></div>
+                    <span class="finance-manual-required">* Campos obrigatórios</span>
+                </div>
+                {% include 'financeiro/_campos-lancamento-manual.html' with form=manual_form only %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2 me-1" aria-hidden="true"></i>Salvar lançamento</button>
+            </div>
+        </form>
+    </div>
+</div>

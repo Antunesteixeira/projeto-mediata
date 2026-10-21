@@ -20,5 +20,5 @@ admin.site.register(Recebimentos, EmpresaAdmin)
 
 @admin.register(Pagamentos)
 class PagamentosAdmin(SuperuserOnlyAdminMixin, admin.ModelAdmin):
-    list_display = ('ticket_pagamento', 'tipo', 'valor_pagamento', 'data_pagamento', 'status_pagamento')
+    list_display = ('ticket_pagamento', 'tipo', 'valor_pagamento', 'data_vencimento', 'data_pagamento_realizado', 'status_pagamento')
     list_filter = ('status_pagamento', 'tipo')

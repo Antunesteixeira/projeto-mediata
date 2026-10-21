@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'clientes',
     'colaborador',
     'relatorios',
+    'financeiro',
     # apps de terceiros
     'rolepermissions',
     'widget_tweaks',

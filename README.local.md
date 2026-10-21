@@ -114,6 +114,56 @@ simultâneos e não reutiliza números de tickets excluídos. Cada mês inicia e
 `001`, com limite de `999`; ao atingir o limite, o cadastro pede um código único
 informado manualmente. Na edição, deixar o campo em branco mantém o número atual.
 
+## Financeiro
+
+O menu **Financeiro** (`/financeiro/`) reúne pagamentos e recebimentos dos
+tickets e lançamentos manuais em uma lista própria, com uma linha por lançamento. Gerentes e operadores consultam
+somente a empresa ativa da conta; o administrador da plataforma consulta todas.
+Perfis de acompanhamento e assinantes não acessam os valores internos.
+
+Filtros disponíveis:
+
+- Operação: créditos e débitos, somente créditos ou somente débitos.
+- Situação: todas, pago, recebido, vencido ou em aberto (a vencer).
+- Vencimento: todos os períodos, próximos 30/60/90 dias ou personalizado.
+- Datas inicial e final inclusivas; os atalhos incluem hoje em N dias.
+
+Vencido significa pendente com vencimento anterior ao dia local atual. Em aberto
+significa pendente vencendo hoje ou futuramente. Registros sem vencimento ficam
+identificados em Todos os períodos; não recebem uma data presumida. O período
+filtra o vencimento do lançamento, sem depender da criação do ticket ou da data
+de quitação. Filtros inválidos exibem erros e não retornam lançamentos.
+
+Os indicadores somam todos os registros filtrados, inclusive outras páginas,
+com valores recebidos, pagos, a receber, a pagar e vencidos. Valores ausentes
+ficam identificados e não entram nas somas. Orçamentos permanecem fora da lista;
+os totais descrevem os lançamentos registrados, sem representar saldo bancário.
+
+Use **Editar** ou **Corrigir** na própria lista para atualizar um lançamento e
+voltar aos filtros anteriores. Para os registros originados de tickets, os mesmos
+campos financeiros são utilizados nas duas telas. Novos registros exigem valor positivo e vencimento; uma nova quitação
+exige data efetiva, sem permitir datas futuras. Nos recebimentos, o status é a
+fonte única e a confirmação acompanha esse status ao salvar pelo formulário.
+Reabrir um lançamento remove sua data efetiva; datas pendentes incoerentes
+podem ser corrigidas explicitamente sem apagar dados omitidos na edição.
+
+**Novo lançamento** abre um modal na própria consulta para registrar créditos e
+débitos independentes de ticket,
+com descrição, cliente/favorecido opcional, valor, vencimento e quitação. A empresa
+é definida pela conta; o administrador da plataforma deve escolher uma empresa
+ativa. A autoria é registrada no cadastro e a empresa permanece fixa na edição.
+Os registros aparecem como **Manual** na coluna de origem e participam dos mesmos
+filtros, totais e paginação. Erros de cadastro reabrem o modal com os valores
+informados; salvar retorna aos filtros e à página da consulta. Reabrir remove a
+data da quitação. A migração
+`financeiro.0001` cria a tabela própria sem alterar registros dos tickets.
+
+A migração `tickets.0038` mantém valores, status e datas históricas. Acrescenta
+`Pagamentos.data_vencimento` e `data_pagamento_realizado`, sem preencher datas
+por suposição; `data_pagamento` anterior é preservada e passa a ser opcional.
+Dados antigos incompletos são sinalizados para revisão. A inicialização local
+e a de produção aplicam essa migração normalmente.
+
 ## Dependências e produção
 
 As dependências têm versões exatas em `mediataapp/requirements.txt`. Ao atualizar

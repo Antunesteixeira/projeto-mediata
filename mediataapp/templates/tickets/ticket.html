@@ -419,7 +419,7 @@
   <div class="info-card card mb-4">
     <div class="card-body">
       <div class="d-flex flex-wrap gap-3 justify-content-between align-items-center mb-4 ticket-toolbar">
-        <h5 class="card-title mb-0"><i class="bi bi-cash me-2"></i>Pagamentos</h5>
+        <h5 id="pagamentos" class="card-title mb-0"><i class="bi bi-cash me-2"></i>Pagamentos</h5>
         <button class="btn btn-sm btn-warning" data-bs-toggle="modal" data-bs-target="#ModalPagamento">
           <i class="bi bi-plus-circle me-1"></i>Adicionar Pagamento
         </button>
@@ -492,8 +492,8 @@
               <tr>
                 <th>#</th>
                 <th>Tipo</th>
-                <th>Data</th>
-                <th>Atualização</th>
+                <th>Vencimento</th>
+                <th>Pagamento efetivo</th>
                 <th class="text-end">Valor</th>
                 <th class="text-center">Status</th>
                 <th class="text-end">Ações</th>
@@ -506,20 +506,7 @@
                 <td>
                   <div class="d-flex align-items-center">
                     <!-- Botão de Editar -->
-                    <a
-                      class="btn btn-sm btn-link text-primary p-0 me-1 btn-editar-pagamento"
-                      href="#"
-                      data-bs-toggle="modal"
-                      data-bs-target="#ModalEditarPagamento"
-                      data-id="{{ pag.id }}"
-                      data-tipo="{{ pag.tipo }}"
-                      data-valor="{{ pag.valor_pagamento|floatformat:2 }}"
-                      data-data="{{ pag.data_pagamento|date:'Y-m-d' }}"
-                      data-status="{{ pag.status_pagamento }}"
-                      title="Editar"
-                    >
-                      <i class="bi bi-pencil"></i>
-                    </a>
+                    <a class="btn btn-sm btn-link text-primary p-0 me-1" href="{% url 'editar-pagamento' pag.id ticket.key %}" title="Editar pagamento"><i class="bi bi-pencil" aria-hidden="true"></i></a>
 
                     <!-- Botão de Deletar -->
                     <form action="{% url 'deletar-pagamento' pag.id ticket.key %}" method="post" class="d-inline">{% csrf_token %}<button type="submit" class="btn btn-sm btn-link text-danger p-0 me-1" data-bs-toggle="tooltip" title="Remover">
@@ -539,8 +526,8 @@
                     {% endif %}
                   </div>
                 </td>
-                <td>{{ pag.data_pagamento|date:"d/m/Y" }}</td>
-                <td>{{ pag.data_update_pagamento|date:"d/m/Y H:i" }}</td>
+                <td>{{ pag.data_vencimento|date:'d/m/Y'|default:'Não informado' }}{% if not pag.data_vencimento and pag.data_pagamento %}<small class="d-block text-muted">Data anterior: {{ pag.data_pagamento|date:'d/m/Y' }}</small>{% endif %}</td>
+                <td>{% if pag.status_pagamento %}{{ pag.data_pagamento_realizado|date:'d/m/Y'|default:'Não informada' }}{% else %}—{% endif %}</td>
                 <td class="text-end">R$ {{ pag.valor_pagamento|floatformat:2 }}</td>
                 <td class="text-center">
                   {% if pag.status_pagamento == False %}
@@ -632,14 +619,14 @@
           <thead class="table-light">
             <tr>
               <th>#</th>
-              <th>Data Recebimento</th>
+              <th>Vencimento / cadastro</th>
               <th>Razão Social</th>
               <th>Nota Fiscal</th>
               <th>Valor</th>
               <th>Status</th>
               <th>Forma/Tipo</th>
               <!--<th>Comprovante</th>-->
-              <th>Confirmação</th>
+              <th>Recebimento efetivo</th>
               <th class="text-end">Ações</th>
             </tr>
           </thead>
@@ -647,7 +634,7 @@
             {% for rec in recebimentos %}
             <tr>
               <td>{{ forloop.counter }}</td>
-              <td>{{ rec.data_recebimento|date:"d/m/Y H:i" }}</td>
+              <td>{{ rec.data_vencimento|date:'d/m/Y'|default:'Sem vencimento' }}<small class="d-block text-muted">Cadastro: {{ rec.data_recebimento|date:'d/m/Y H:i' }}</small></td>
               <td>{{ rec.razao_social|default:"-" }}</td>
               <td>
                 {% if rec.numero_nota_fiscal %}
@@ -682,11 +669,9 @@
                 {% endif %}
               </td>-->
               <td>
-                {% if rec.recebimento_realizado %}
-                  <span class="badge bg-primary">Sim</span>
-                {% else %}
-                  <span class="badge bg-secondary text-dark">Não</span>
-                {% endif %}
+                {% if rec.status_recebimento %}
+                  {{ rec.data_recebimento_realizado|date:'d/m/Y H:i'|default:'Data não informada' }}
+                {% else %}—{% endif %}
               </td>
               <td class="text-end">
                 <div class="d-flex align-items-center justify-content-end gap-2" role="group" aria-label="Ações do recebimento">
@@ -941,94 +926,17 @@
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
+          {{ pagamento.non_field_errors }}
+          {% for field in pagamento %}
           <div class="mb-3">
-            <label for="id_tipo_add" class="form-label">Tipo</label>
-            <select name="tipo" id="id_tipo_add" class="form-select" required>
-              <option value="">Selecione o tipo</option>
-              <option value="M">Material</option>
-              <option value="S">Serviço</option>
-              <option value="O">Mão de Obra</option>
-              <option value="E">Equipamento</option>
-              <option value="T">Taxa</option>
-            </select>
+            {% if field.field.widget.input_type == 'checkbox' %}
+              <div class="form-check">{{ field }}<label class="form-check-label" for="{{ field.id_for_label }}">{{ field.label }}</label></div>
+            {% else %}<label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>{{ field }}{% endif %}
+            {% if field.help_text %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+            {% for error in field.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
           </div>
-          <div class="mb-3">
-            <label for="id_valor_pagamento_add" class="form-label">Valor</label>
-            <input type="number" 
-                  name="valor_pagamento"
-                  id="id_valor_pagamento_add"
-                  class="form-control"
-                  step="0.01"
-                  placeholder="Ex: 100.00"
-                  required>
-          </div>
-          <div class="mb-3">
-            <label for="id_data_pagamento_add" class="form-label">Data</label>
-            <input type="date" name="data_pagamento" id="id_data_pagamento_add" class="form-control" required>
-          </div>
-          <div class="mb-3 form-check">
-            <input type="checkbox" name="status_pagamento" class="form-check-input" id="statusCheckAdd">
-            <label class="form-check-label" for="statusCheckAdd">Pagamento realizado</label>
-          </div>
+          {% endfor %}
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-          <button type="submit" class="btn btn-primary">Salvar Pagamento</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
-<!-- Modal Editar Pagamento -->
-<div class="modal fade" id="ModalEditarPagamento" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form method="post" id="pagamentoFormEditar">
-        {% csrf_token %}
-        <input type="hidden" name="form_type" value="form-pagamento">
-        <input type="hidden" name="pagamento_id" id="pagamento_id_editar" value="">
-        
-        <div class="modal-header">
-          <h5 class="modal-title">Editar Pagamento</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        
-        <div class="modal-body">
-          <div class="mb-3">
-            <label for="id_tipo_editar" class="form-label">Tipo</label>
-            <select name="tipo" id="id_tipo_editar" class="form-select" required>
-              <option value="">Selecione o tipo</option>
-              <option value="M">Material</option>
-              <option value="S">Serviço</option>
-              <option value="O">Mão de Obra</option>
-              <option value="E">Equipamento</option>
-              <option value="T">Taxa</option>
-            </select>
-          </div>
-          
-          <div class="mb-3">
-            <label for="id_valor_pagamento_editar" class="form-label">Valor</label>
-            <input type="number" 
-                  name="valor_pagamento"
-                  id="id_valor_pagamento_editar"
-                  class="form-control"
-                  step="0.01"
-                  placeholder="Ex: 100.00"
-                  required>
-          </div>
-          
-          <div class="mb-3">
-            <label for="id_data_pagamento_editar" class="form-label">Data</label>
-            <input type="date" name="data_pagamento" id="id_data_pagamento_editar" class="form-control" required>
-          </div>
-          
-          <div class="mb-3 form-check">
-            <input type="checkbox" name="status_pagamento" class="form-check-input" id="statusCheckEditar">
-            <label class="form-check-label" for="statusCheckEditar">Pagamento realizado</label>
-          </div>
-        </div>
-        
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
           <button type="submit" class="btn btn-primary">Salvar Pagamento</button>
@@ -1157,59 +1065,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 
-<script>
-// URL base para edição
-const baseEditUrl = "{% url 'editar-pagamento' 0 ticket.key %}";
 
-document.querySelectorAll('.btn-editar-pagamento').forEach(btn => {
-  btn.addEventListener('click', function(e) {
-    e.preventDefault();
-
-    console.log('Dados recebidos:', {
-      id: this.dataset.id,
-      tipo: this.dataset.tipo,
-      valor: this.dataset.valor,
-      data: this.dataset.data,
-      status: this.dataset.status
-    });
-
-    // Conversão segura do valor
-    let valorNumerico = 0;
-    try {
-      const valorString = this.dataset.valor.toString()
-        .replace(/[^\d,.]/g, '')
-        .replace(/\./g, '')
-        .replace(',', '.');
-      valorNumerico = parseFloat(valorString) || 0;
-    } catch (e) {
-      console.error("Erro na conversão do valor:", e);
-    }
-
-    // Preenchimento do modal
-    const modal = document.getElementById('ModalEditarPagamento');
-    modal.querySelector('select[name="tipo"]').value = this.dataset.tipo;
-    modal.querySelector('input[name="valor_pagamento"]').value = valorNumerico.toFixed(2);
-    modal.querySelector('input[name="data_pagamento"]').value = this.dataset.data;
-    modal.querySelector('input[name="status_pagamento"]').checked = 
-      ['True', 'true', '1'].includes(this.dataset.status);
-
-    // Atualiza ação do formulário e campo hidden
-    const form = modal.querySelector('form');
-    form.action = baseEditUrl.replace('/0/', `/${this.dataset.id}/`);
-    form.querySelector('input[name="pagamento_id"]').value = this.dataset.id;
-  });
-});
-
-// Reset para novo pagamento
-document.getElementById('ModalEditarPagamento').addEventListener('show.bs.modal', function(e) {
-  if (!e.relatedTarget || !e.relatedTarget.classList.contains('btn-editar-pagamento')) {
-    const form = this.querySelector('form');
-    form.action = baseEditUrl.replace('/0/', '/0/');
-    form.reset();
-    form.querySelector('input[name="pagamento_id"]').value = '';
-  }
-});
-</script>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -1343,4 +1199,10 @@ document.addEventListener('DOMContentLoaded', function() {
 }
 </style>
 
+{% if recebimentos_form.is_bound and recebimentos_form.errors %}
+<script>document.addEventListener('DOMContentLoaded', function () { bootstrap.Modal.getOrCreateInstance(document.getElementById('ModalRecebimentos')).show(); });</script>
+{% endif %}
+{% if pagamento.is_bound and pagamento.errors %}
+<script>document.addEventListener('DOMContentLoaded', function () { bootstrap.Modal.getOrCreateInstance(document.getElementById('ModalPagamento')).show(); });</script>
+{% endif %}
 {% endblock %}

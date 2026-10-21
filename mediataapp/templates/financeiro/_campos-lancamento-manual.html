@@ -1,0 +1,22 @@
+{% for field in form.hidden_fields %}{{ field }}{% for error in field.errors %}<div class="alert alert-danger" role="alert">{{ error }}</div>{% endfor %}{% endfor %}
+{% if form.non_field_errors %}<div class="finance-form-errors" role="alert"><i class="bi bi-exclamation-circle" aria-hidden="true"></i><div>{{ form.non_field_errors }}</div></div>{% endif %}
+<div class="row g-3 finance-manual-fields">
+    {% for field in form.visible_fields %}
+    <div class="{% if field.name == 'descricao' or field.name == 'empresa' %}col-12{% else %}col-md-6{% endif %}{% if field.name == 'liquidado' %} finance-manual-settlement{% endif %}">
+        {% if field.field.widget.input_type == 'checkbox' %}
+        <div class="finance-manual-checkbox">
+            <div class="form-check">
+                {{ field }}
+                <label class="form-check-label" for="{{ field.id_for_label }}"{% if field.name == 'liquidado' %} data-settlement-label{% endif %}>{{ field.label }}</label>
+            </div>
+            {% if field.name == 'liquidado' %}<p data-settlement-help>Marque quando o valor tiver sido efetivamente pago ou recebido.</p>{% endif %}
+        </div>
+        {% else %}
+        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %}<span aria-hidden="true"> *</span>{% endif %}</label>
+        {{ field }}
+        {% endif %}
+        {% if field.help_text and field.name != 'liquidado' %}<div class="form-text">{{ field.help_text }}</div>{% endif %}
+        {% for error in field.errors %}<div class="invalid-feedback d-block" role="alert">{{ error }}</div>{% endfor %}
+    </div>
+    {% endfor %}
+</div>

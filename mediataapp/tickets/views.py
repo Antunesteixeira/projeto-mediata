@@ -194,7 +194,7 @@ def exibirticket(request, key):
     itemorcamento = ItemOrcamentoForm(prefix='itemorcamento')
     itemorcamento.fields['item'].queryset = Insumos.objects.filter(empresa=ticket.empresa)
     ticketformstatus = TicketForm(instance=ticket, user=request.user)
-    pagamento_form = PagamentoForm(prefix='form-pagamento')
+    pagamento_form = PagamentoForm()
     anexo_form = AnexoForm()
     recebimentos_form = RecebimentosForm()  # ← sem prefixo
 
@@ -248,23 +248,15 @@ def exibirticket(request, key):
                     return redirect('exibir-ticket', key=ticket.key)
                 
                 elif form_type == 'form-pagamento':
-                    valor = request.POST.get('valor_pagamento')
-                    data = request.POST.get('data_pagamento')
-                    status = 'status_pagamento' in request.POST
-                    
-                    if not all([valor, data]):
-                        messages.error(request, "Preencha todos os campos obrigatórios!")
-                    else:
-                        Pagamentos.objects.create(
-                            ticket_pagamento=ticket,
-                            tipo=request.POST.get('tipo'),
-                            valor_pagamento=valor,
-                            data_pagamento=data,
-                            status_pagamento=status
-                        )
+                    pagamento_form = PagamentoForm(request.POST)
+                    if pagamento_form.is_valid():
+                        pagamento = pagamento_form.save(commit=False)
+                        pagamento.ticket_pagamento = ticket
+                        pagamento.save()
                         messages.success(request, "Pagamento adicionado com sucesso!")
                         return redirect('exibir-ticket', key=ticket.key)
-                
+                    messages.error(request, 'Verifique os dados do pagamento.')
+
                 elif form_type == 'anexo':
                     anexo_form = AnexoForm(request.POST, request.FILES)
                     if anexo_form.is_valid():
@@ -610,7 +602,7 @@ def editar_pagamento(request, pagamento_id, key):
             pagamento.data_update_pagamento = timezone.now()
             form.save()
             messages.success(request, "Pagamento atualizado com sucesso!")
-            return redirect('exibir-ticket', key=ticket.key)
+            return redirect(f"{reverse('exibir-ticket', kwargs={'key': ticket.key})}#pagamentos")
         # Se o formulário for inválido, vai continuar para renderizar o template com erros
     else:
         form = PagamentoForm(instance=pagamento)
@@ -634,10 +626,8 @@ def add_pagamento(request, key):
             return redirect('exibir-ticket', key=ticket.key)
     else:
         form = PagamentoForm()
-    return render(request, 'tickets/ticket.html', {
-        'form': form,
-        'ticket': ticket,
-        # inclua outros contextos necessários
+    return render(request, 'tickets/editar-pagamento.html', {
+        'form': form, 'ticket': ticket,
     })
 
 

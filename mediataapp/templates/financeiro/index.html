@@ -1,0 +1,150 @@
+{% extends '_layout/base.html' %}
+{% load static %}
+
+{% block title %}Financeiro | Mediata{% endblock %}
+{% block body_class %}has-financeiro{% endblock %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'mediata/financeiro.css' %}">
+<link rel="stylesheet" href="{% static 'mediata/manual-financeiro.css' %}">
+{% endblock %}
+
+{% block conteudo %}
+<div class="app-page finance-page">
+    <header class="app-page-header flex-wrap">
+        <div>
+            <div class="finance-eyebrow">CONTAS A PAGAR E A RECEBER</div>
+            <h1 class="app-page-title">Financeiro</h1>
+            <p class="app-page-description">Acompanhe entradas, saídas e vencimentos da empresa.</p>
+        </div>
+        <div class="app-page-actions mw-100">
+            <span class="finance-scope"><span aria-hidden="true"></span>{% if user.is_superuser %}Todas as empresas{% else %}{{ empresa_atual.nome_fantasia|default:empresa_atual.razao_social|default:'Minha empresa' }}{% endif %}</span>
+            <a href="{{ novo_lancamento_url }}" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#novoLancamentoModal" aria-haspopup="dialog"><i class="bi bi-plus-lg me-1" aria-hidden="true"></i>Novo lançamento</a>
+        </div>
+    </header>
+
+    <section class="card finance-filter-card" aria-labelledby="finance-filter-title">
+        <div class="card-body">
+            <div class="finance-section-heading">
+                <div><h2 id="finance-filter-title"><i class="bi bi-sliders" aria-hidden="true"></i> Filtrar lançamentos</h2><p>Consulte pela operação, situação e data de vencimento.</p></div>
+                <a href="{% url 'financeiro:index' %}" class="finance-clear">Limpar filtros</a>
+            </div>
+            <form method="get" action="{% url 'financeiro:index' %}" id="finance-filter-form" data-hoje="{{ data_hoje }}">
+                {% if form.errors %}
+                <div class="finance-form-errors" role="alert"><i class="bi bi-exclamation-circle" aria-hidden="true"></i><div>Revise os filtros para consultar os lançamentos.{% for error in form.non_field_errors %}<p>{{ error }}</p>{% endfor %}</div></div>
+                {% endif %}
+                <div class="finance-filter-grid">
+                    <div class="finance-filter-field">
+                        <label class="form-label" for="{{ form.operacao.id_for_label }}">Operação</label>
+                        {{ form.operacao }}
+                        {% for error in form.operacao.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="finance-filter-field">
+                        <label class="form-label" for="{{ form.situacao.id_for_label }}">Situação</label>
+                        {{ form.situacao }}
+                        {% for error in form.situacao.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="finance-filter-field finance-period-field">
+                        <label class="form-label" for="{{ form.periodo.id_for_label }}">Período do vencimento</label>
+                        {{ form.periodo }}
+                        {% for error in form.periodo.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="finance-filter-field">
+                        <label class="form-label" for="{{ form.data_inicio.id_for_label }}">Data inicial</label>
+                        {{ form.data_inicio }}
+                        {% for error in form.data_inicio.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <div class="finance-filter-field">
+                        <label class="form-label" for="{{ form.data_fim.id_for_label }}">Data final</label>
+                        {{ form.data_fim }}
+                        {% for error in form.data_fim.errors %}<div class="invalid-feedback d-block">{{ error }}</div>{% endfor %}
+                    </div>
+                    <button type="submit" class="btn btn-primary finance-filter-submit"><i class="bi bi-funnel" aria-hidden="true"></i> Aplicar filtros</button>
+                </div>
+                <p class="finance-filter-help" id="finance-period-help">Os atalhos consideram os próximos dias. Use o período personalizado para consultar outras datas. Lançamentos sem vencimento aparecem em “Todos os períodos”.</p>
+            </form>
+        </div>
+    </section>
+
+    <section class="finance-metrics" aria-label="Totais dos lançamentos filtrados">
+        <article class="finance-metric finance-credit">
+            <div class="finance-metric-heading"><h2>Recebido</h2><span class="finance-metric-icon"><i class="bi bi-arrow-down-left" aria-hidden="true"></i></span></div>
+            <strong>R$ {{ totais.recebido|floatformat:'2g' }}</strong><p>Entradas efetivadas</p>
+        </article>
+        <article class="finance-metric finance-debit">
+            <div class="finance-metric-heading"><h2>Pago</h2><span class="finance-metric-icon"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></span></div>
+            <strong>R$ {{ totais.pago|floatformat:'2g' }}</strong><p>Saídas quitadas</p>
+        </article>
+        <article class="finance-metric finance-receivable">
+            <div class="finance-metric-heading"><h2>A receber</h2><span class="finance-metric-icon"><i class="bi bi-wallet2" aria-hidden="true"></i></span></div>
+            <strong>R$ {{ totais.a_receber|floatformat:'2g' }}</strong><p><span class="finance-overdue-amount">R$ {{ totais.vencido_credito|floatformat:'2g' }}</span> vencidos</p>
+        </article>
+        <article class="finance-metric finance-payable">
+            <div class="finance-metric-heading"><h2>A pagar</h2><span class="finance-metric-icon"><i class="bi bi-calendar2-check" aria-hidden="true"></i></span></div>
+            <strong>R$ {{ totais.a_pagar|floatformat:'2g' }}</strong><p><span class="finance-overdue-amount">R$ {{ totais.vencido_debito|floatformat:'2g' }}</span> vencidos</p>
+        </article>
+    </section>
+
+    {% if totais.sem_vencimento_count or totais.sem_valor_count or totais.sem_quitacao_count or totais.confirmacao_divergente_count %}
+    <aside class="finance-data-note" aria-label="Informações a revisar">
+        <i class="bi bi-info-circle" aria-hidden="true"></i>
+        <div><strong>Alguns lançamentos precisam de revisão</strong><p>Use “Corrigir” na tabela para completar ou conferir os dados.</p>
+            <div class="finance-data-chips">
+                {% if totais.sem_vencimento_count %}<span>{{ totais.sem_vencimento_count }} sem vencimento</span>{% endif %}
+                {% if totais.sem_valor_count %}<span>{{ totais.sem_valor_count }} sem valor informado</span>{% endif %}
+                {% if totais.sem_quitacao_count %}<span>{{ totais.sem_quitacao_count }} sem data da quitação</span>{% endif %}
+                {% if totais.confirmacao_divergente_count %}<span>{{ totais.confirmacao_divergente_count }} com confirmação divergente</span>{% endif %}
+            </div>
+        </div>
+    </aside>
+    {% endif %}
+
+    <section class="card finance-ledger" aria-labelledby="finance-ledger-title">
+        <div class="finance-ledger-heading">
+            <div class="finance-section-heading"><div><h2 id="finance-ledger-title">Lançamentos financeiros <span class="finance-count">{{ totais.quantidade }}</span></h2><p>Pagamentos, recebimentos e lançamentos manuais em uma só consulta.</p></div></div>
+            <dl class="finance-ledger-totals"><div><dt><span class="finance-total-dot finance-credit-dot" aria-hidden="true"></span>Créditos</dt><dd>R$ {{ totais.credito|floatformat:'2g' }}</dd></div><div><dt><span class="finance-total-dot finance-debit-dot" aria-hidden="true"></span>Débitos</dt><dd>R$ {{ totais.debito|floatformat:'2g' }}</dd></div></dl>
+        </div>
+        {% if lancamentos %}
+        <div class="table-responsive finance-table-wrap" tabindex="0" role="region" aria-label="Tabela de lançamentos financeiros, com rolagem horizontal">
+            <table class="table table-hover align-middle finance-table">
+                <caption class="visually-hidden">Pagamentos, recebimentos e lançamentos manuais que correspondem aos filtros selecionados.</caption>
+                <thead><tr><th scope="col">Operação</th><th scope="col">Origem / ticket</th><th scope="col">Descrição</th><th scope="col">Cliente / Favorecido</th><th scope="col">Vencimento</th><th scope="col" class="text-end">Valor</th><th scope="col">Situação</th><th scope="col">Quitação</th><th scope="col" class="text-end">Ações</th></tr></thead>
+                <tbody>
+                {% for lancamento in lancamentos %}
+                    <tr>
+                        <td><span class="finance-operation finance-operation-{{ lancamento.operacao }}"><i class="bi {% if lancamento.operacao == 'credito' %}bi-arrow-down-left{% else %}bi-arrow-up-right{% endif %}" aria-hidden="true"></i>{{ lancamento.operacao_label }}</span></td>
+                        <td>{% if lancamento.ticket_key %}<a class="finance-ticket" href="{% url 'exibir-ticket' lancamento.ticket_key %}">#{{ lancamento.ticket_codigo }}</a>{% else %}<span class="finance-cell-secondary"><i class="bi bi-pencil-square me-1" aria-hidden="true"></i>Manual</span>{% endif %}{% if user.is_superuser %}<span class="finance-cell-secondary finance-company">{{ lancamento.empresa_nome|default:'Sem empresa' }}</span>{% endif %}</td>
+                        <td class="finance-description">{{ lancamento.descricao|default:'Sem descrição' }}{% if lancamento.confirmacao_divergente %}<span class="finance-cell-warning"><i class="bi bi-exclamation-circle" aria-hidden="true"></i> Revisar confirmação</span>{% endif %}</td>
+                        <td class="finance-counterparty">{{ lancamento.contraparte|default:'Não informado' }}</td>
+                        <td class="finance-date">{% if lancamento.vencimento %}{{ lancamento.vencimento|date:'d/m/Y' }}{% else %}<span class="finance-cell-warning">Não informado</span>{% endif %}</td>
+                        <td class="text-end finance-amount">{% if lancamento.sem_valor %}<span class="finance-cell-warning">Não informado</span>{% else %}R$ {{ lancamento.valor|floatformat:'2g' }}{% endif %}</td>
+                        <td><span class="finance-status finance-status-{{ lancamento.situacao }}">{% if lancamento.situacao == 'pago' or lancamento.situacao == 'recebido' %}<i class="bi bi-check2-circle" aria-hidden="true"></i>{% elif lancamento.situacao == 'vencido' %}<i class="bi bi-exclamation-circle" aria-hidden="true"></i>{% else %}<i class="bi bi-clock" aria-hidden="true"></i>{% endif %}{{ lancamento.situacao_label }}</span></td>
+                        <td class="finance-date">{% if lancamento.quitacao %}{{ lancamento.quitacao|date:'d/m/Y' }}{% elif lancamento.legado_sem_quitacao %}<span class="finance-cell-warning">Não informada</span>{% else %}<span class="finance-cell-secondary">—</span>{% endif %}</td>
+                        <td class="text-end"><a class="btn btn-sm btn-outline-primary finance-edit" href="{{ lancamento.url_edicao }}" aria-label="{% if lancamento.sem_valor or not lancamento.vencimento or lancamento.legado_sem_quitacao or lancamento.confirmacao_divergente %}Corrigir{% else %}Editar{% endif %} {{ lancamento.operacao_label|lower }}{% if lancamento.ticket_key %} do ticket {{ lancamento.ticket_codigo }}{% else %} manual: {{ lancamento.descricao }}{% endif %}"><i class="bi bi-pencil" aria-hidden="true"></i>{% if lancamento.sem_valor or not lancamento.vencimento or lancamento.legado_sem_quitacao or lancamento.confirmacao_divergente %}Corrigir{% else %}Editar{% endif %}</a></td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="finance-empty"><span><i class="bi bi-receipt" aria-hidden="true"></i></span>{% if form.errors %}<h3>Revise os filtros da consulta</h3><p>Os lançamentos aparecerão após corrigir os campos indicados.</p>{% else %}<h3>Nenhum lançamento encontrado</h3><p>Experimente outro período ou ajuste os filtros. Você também pode registrar uma entrada ou saída pelo botão “Novo lançamento”.</p><a href="{% url 'financeiro:index' %}" class="btn btn-outline-primary">Ver todos os lançamentos</a>{% endif %}</div>
+        {% endif %}
+        <div class="finance-ledger-footer">
+            <p>{% if page_obj.paginator.count %}{{ page_obj.start_index }}–{{ page_obj.end_index }} de {{ page_obj.paginator.count }} lançamentos{% else %}0 lançamentos{% endif %}</p>
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="Páginas dos lançamentos financeiros"><ul class="pagination">
+                {% if page_obj.has_previous %}<li class="page-item"><a class="page-link" href="{% url 'financeiro:index' %}?{% if querystring_filtros %}{{ querystring_filtros }}&amp;{% endif %}page={{ page_obj.previous_page_number }}" aria-label="Página anterior"><i class="bi bi-chevron-left" aria-hidden="true"></i> Anterior</a></li>{% else %}<li class="page-item disabled"><span class="page-link">Anterior</span></li>{% endif %}
+                <li class="page-item active"><span class="page-link" aria-current="page">{{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+                {% if page_obj.has_next %}<li class="page-item"><a class="page-link" href="{% url 'financeiro:index' %}?{% if querystring_filtros %}{{ querystring_filtros }}&amp;{% endif %}page={{ page_obj.next_page_number }}" aria-label="Próxima página">Próxima <i class="bi bi-chevron-right" aria-hidden="true"></i></a></li>{% else %}<li class="page-item disabled"><span class="page-link">Próxima</span></li>{% endif %}
+            </ul></nav>
+            {% endif %}
+        </div>
+    </section>
+    <p class="finance-footnote"><i class="bi bi-info-circle" aria-hidden="true"></i> Os totais consideram todos os lançamentos dos filtros, inclusive outras páginas. Valores sem informação ficam fora das somas.</p>
+</div>
+{% include 'financeiro/_modal-lancamento-manual.html' %}
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'mediata/financeiro.js' %}" defer></script>
+<script src="{% static 'mediata/manual-financeiro.js' %}" defer></script>
+{% endblock %}
