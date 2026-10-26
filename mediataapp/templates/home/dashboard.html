@@ -9,8 +9,8 @@
   <header class="dashboard-heading">
     <div>
       <div class="dashboard-eyebrow">MEDIATA <span></span> GESTÃO DE SERVIÇOS</div>
-      <h1>Visão geral da operação</h1>
-      <p>{% if dashboard_can_view_financial %}Acompanhe sua operação, suas finanças e as pessoas que fazem acontecer.{% else %}Acompanhe os serviços, os responsáveis e o andamento dos tickets da sua empresa.{% endif %}</p>
+      <h1>{% if dashboard_can_view_all %}Visão geral da operação{% else %}Meus tickets{% endif %}</h1>
+      <p>{% if dashboard_can_view_financial %}Acompanhe sua operação, suas finanças e as pessoas que fazem acontecer.{% else %}Acompanhe os serviços, os responsáveis e o andamento dos tickets cadastrados por você.{% endif %}</p>
     </div>
     <div class="dashboard-heading-actions">
       <span class="dashboard-scope"><span class="scope-dot"></span>{{ dashboard_scope }}</span>
@@ -116,7 +116,7 @@
   </section>
 
   <section class="dashboard-panel ticket-panel" id="dashboard-tickets" aria-labelledby="tickets-title">
-    <div class="panel-heading"><div><div class="panel-eyebrow">CENTRAL DE SERVIÇOS</div><h2 id="tickets-title">Seus tickets, em um só lugar</h2><p>Consulte os detalhes e acompanhe cada etapa da execução.</p></div><a href="{% url 'index-tickets' %}" class="dashboard-text-link">Ver todos <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div>
+    <div class="panel-heading"><div><div class="panel-eyebrow">CENTRAL DE SERVIÇOS</div><h2 id="tickets-title">{% if dashboard_can_view_all %}Seus tickets, em um só lugar{% else %}Tickets cadastrados por você{% endif %}</h2><p>Consulte os detalhes e acompanhe cada etapa da execução.</p></div><a href="{% url 'index-tickets' %}" class="dashboard-text-link">Ver todos <i class="bi bi-arrow-right" aria-hidden="true"></i></a></div>
     {% if dashboard_metrics.emergency %}<div class="dashboard-emergency"><i class="bi bi-lightning-charge" aria-hidden="true"></i> {{ dashboard_metrics.emergency }} ticket{{ dashboard_metrics.emergency|pluralize }} {% if dashboard_metrics.emergency == 1 %}emergencial{% else %}emergenciais{% endif %} nesta visão.</div>{% endif %}
     <div class="ticket-filters">
       <label class="dashboard-search" for="search-box"><i class="bi bi-search" aria-hidden="true"></i><span class="visually-hidden">Pesquisar tickets</span><input id="search-box" type="search" placeholder="Pesquisar ticket, cliente ou colaborador…"></label>

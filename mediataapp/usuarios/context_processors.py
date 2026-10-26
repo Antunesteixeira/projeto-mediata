@@ -1,4 +1,6 @@
-from core.tenancy import empresa_do_usuario, pode_gerenciar_empresa, pode_operar_tickets
+from core.tenancy import (
+    empresa_do_usuario, pode_consultar_fila, pode_gerenciar_empresa, pode_operar_tickets,
+)
 from rolepermissions.checkers import has_permission
 from .access import is_assinante
 
@@ -12,6 +14,7 @@ def access_permissions(request):
         'empresa_atual': company,
         'empresa_vinculada': company.nome_fantasia if company is not None else '',
         'pode_operar_tickets': pode_operar_tickets(request.user),
+        'pode_consultar_fila': pode_consultar_fila(request.user),
         'pode_gerenciar_usuarios': can_manage,
         'pode_gerenciar_empresa': can_manage,
         'pode_acessar_financeiro': can_manage,

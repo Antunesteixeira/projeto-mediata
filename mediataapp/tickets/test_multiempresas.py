@@ -85,7 +85,7 @@ class TicketMultiempresaTests(TestCase):
         configuration.enable()
         self.addCleanup(configuration.disable)
         self.media_root = Path(media.name)
-        self.client.force_login(self.operator_a)
+        self.client.force_login(self.manager_a)
 
     def snapshot(self):
         models = (
@@ -154,7 +154,7 @@ class TicketMultiempresaTests(TestCase):
             self.assertNotContains(response, private_value)
         self.assertEqual(self.client.get(self.url('exibir-ticket')).status_code, 404)
         self.assertEqual(self.client.get(self.url('editar-ticket')).status_code, 404)
-        self.assertEqual(self.client.get(self.url('gerar_pdf_ticket')).status_code, 403)
+        self.assertEqual(self.client.get(self.url('gerar_pdf_ticket')).status_code, 404)
         self.assertEqual(self.snapshot(), before)
 
     def test_claim_uses_actor_company_and_preserves_author_status_number_and_finances(self):
@@ -168,7 +168,7 @@ class TicketMultiempresaTests(TestCase):
         self.assertEqual(response.status_code, 302)
         saved = Ticket.objects.get(pk=original.pk)
         self.assertEqual(saved.empresa_id, self.company_a.pk)
-        self.assertEqual(saved.assumido_por_id, self.operator_a.pk)
+        self.assertEqual(saved.assumido_por_id, self.manager_a.pk)
         self.assertIsNotNone(saved.assumido_em)
         for field in ('usuario_id', 'status', 'ticket', 'key', 'descricao', 'nfe_path'):
             self.assertEqual(getattr(saved, field), getattr(original, field))
@@ -185,7 +185,7 @@ class TicketMultiempresaTests(TestCase):
         response = self.claim(user=self.manager_a)
         self.assertEqual(response.status_code, 302)
         self.assertEqual(self.snapshot(), first_claim)
-        response = self.claim(user=self.operator_b)
+        response = self.claim(user=self.manager_b)
         self.assertEqual(response.status_code, 409)
         self.assertNotIn(self.company_a.nome_fantasia, response.content.decode())
         self.assertNotIn(self.available.descricao, response.content.decode())
@@ -264,7 +264,7 @@ class TicketMultiempresaTests(TestCase):
         inactive = User.objects.create_user(username='operador_empresa_inativa')
         assign_role(inactive, 'operador')
         vincular_usuario(inactive, inactive_company)
-        actors = [missing, inactive, self.subscriber]
+        actors = [missing, inactive, self.subscriber, self.operator_a, self.operator_b]
         for role in ('cliente', 'colaborador'):
             user = User.objects.create_user(username=f'{role}_sem_claim')
             assign_role(user, role)
@@ -280,14 +280,17 @@ class TicketMultiempresaTests(TestCase):
             self.client.force_login(user)
             self.assertEqual(self.client.get(reverse('tickets-disponiveis')).status_code, 403)
 
-    def test_claimed_ticket_is_visible_to_company_team_and_independent_author(self):
+    def test_claimed_ticket_is_visible_to_manager_and_independent_author_but_not_operator(self):
         self.claim_as_a()
-        for user in (self.operator_a, self.manager_a, self.subscriber):
+        for user in (self.manager_a, self.subscriber):
             with self.subTest(user=user.username):
                 self.client.force_login(user)
                 response = self.client.get(reverse('index-tickets'))
                 self.assertContains(response, self.available.ticket)
                 self.assertEqual(self.client.get(self.url('exibir-ticket')).status_code, 200)
+        self.client.force_login(self.operator_a)
+        self.assertNotContains(self.client.get(reverse('index-tickets')), self.available.ticket)
+        self.assertEqual(self.client.get(self.url('exibir-ticket')).status_code, 404)
         self.client.force_login(self.subscriber)
         self.assertEqual(self.client.get(self.url('editar-ticket')).status_code, 200)
         self.assertEqual(self.claim().status_code, 403)
@@ -295,14 +298,13 @@ class TicketMultiempresaTests(TestCase):
 
     def test_other_company_cannot_find_claimed_ticket_in_queue_or_full_routes(self):
         self.claim_as_a()
-        self.client.force_login(self.operator_b)
+        self.client.force_login(self.manager_b)
         for name in ('index-tickets', 'tickets-disponiveis', 'buscar_tickets'):
             response = self.client.get(reverse(name))
             self.assertEqual(response.status_code, 200)
             self.assertNotContains(response, self.available.ticket)
         for name in ('ticket-disponivel', 'exibir-ticket', 'editar-ticket', 'gerar_pdf_ticket'):
-            self.assertEqual(self.client.get(self.url(name)).status_code,
-                             403 if name == 'gerar_pdf_ticket' else 404)
+            self.assertEqual(self.client.get(self.url(name)).status_code, 404)
 
     @patch('tickets.views.HTML')
     def test_foreign_financial_and_mutation_endpoints_return_404_without_writes(self, renderer):
@@ -380,7 +382,7 @@ class AssumirTicketConcorrenteTests(TransactionTestCase):
         actors = []
         for index, company in enumerate(companies):
             user = User.objects.create_user(username=f'concorrente_empresa_{index}')
-            assign_role(user, 'operador')
+            assign_role(user, 'gerente')
             vincular_usuario(user, company)
             actors.append(user)
         author = User.objects.create_user(username='autor_concorrencia_independente')

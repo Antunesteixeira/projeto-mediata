@@ -16,7 +16,8 @@ from clientes.models import Cliente
 from core.models import Empresa
 from usuarios.access import is_assinante
 from core.tenancy import (
-    tickets_da_empresa, pode_acessar_financeiro, pode_assumir_ticket, pode_gerenciar_empresa,
+    tickets_da_empresa, pode_acessar_financeiro, pode_assumir_ticket, pode_consultar_fila,
+    pode_gerenciar_empresa,
 )
 from .access import (
     exigir_empresa, pode_operar_tickets, ticket_de_financeiro, ticket_de_operacao,
@@ -71,8 +72,8 @@ def _contexto_fila(request):
 @login_required
 @require_http_methods(['GET', 'HEAD'])
 def tickets_disponiveis(request):
-    if is_assinante(request.user):
-        raise PermissionDenied('O assinante acompanha seus próprios tickets.')
+    if not pode_consultar_fila(request.user):
+        raise PermissionDenied('Seu perfil permite consultar apenas os tickets que você cadastrou.')
     exigir_empresa(request.user)
     tickets = _tickets_disponiveis().select_related('usuario').order_by('-data_criacao')
     termo = request.GET.get('q', '').strip()
@@ -86,8 +87,8 @@ def tickets_disponiveis(request):
 @login_required
 @require_http_methods(['GET', 'HEAD'])
 def ticket_disponivel(request, key):
-    if is_assinante(request.user):
-        raise PermissionDenied('O assinante acompanha seus próprios tickets.')
+    if not pode_consultar_fila(request.user):
+        raise PermissionDenied('Seu perfil permite consultar apenas os tickets que você cadastrou.')
     exigir_empresa(request.user)
     ticket = get_object_or_404(_tickets_disponiveis().select_related('usuario'), key=key)
     contexto = _contexto_fila(request)
@@ -98,8 +99,8 @@ def ticket_disponivel(request, key):
 @login_required
 @require_POST
 def assumir_ticket(request, key):
-    if not pode_operar_tickets(request.user):
-        raise PermissionDenied('Somente gerentes e operadores podem assumir tickets.')
+    if not pode_assumir_ticket(request.user):
+        raise PermissionDenied('Somente gerentes podem assumir tickets para a empresa.')
     if request.user.is_superuser:
         empresa_id = request.POST.get('empresa', '')
         if not empresa_id.isdigit():

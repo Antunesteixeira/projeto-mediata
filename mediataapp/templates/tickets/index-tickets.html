@@ -5,11 +5,11 @@
 <div class="container-fluid app-page px-0">
     <header class="app-page-header">
         <div>
-            <h1 class="app-page-title">{% if is_assinante %}Meus tickets{% else %}Tickets{% endif %}</h1>
-            <p class="app-page-description">{% if is_assinante %}Cadastre solicitações e acompanhe o andamento dos seus tickets.{% else %}Acompanhe os serviços, responsáveis e prazos da sua operação.{% endif %}</p>
+            <h1 class="app-page-title">{% if is_assinante or pode_operar_tickets and not pode_gerenciar_empresa %}Meus tickets{% else %}Tickets{% endif %}</h1>
+            <p class="app-page-description">{% if is_assinante %}Cadastre solicitações e acompanhe o andamento dos seus tickets.{% elif pode_operar_tickets and not pode_gerenciar_empresa %}Cadastre e acompanhe os tickets criados por você nesta empresa.{% else %}Acompanhe os serviços, responsáveis e prazos da sua operação.{% endif %}</p>
         </div>
         <div class="app-page-actions">
-            {% if not is_assinante %}<a href="{% url 'tickets-disponiveis' %}" class="btn btn-outline-primary"><i class="bi bi-inbox me-1" aria-hidden="true"></i>Tickets disponíveis</a>{% endif %}
+            {% if pode_consultar_fila %}<a href="{% url 'tickets-disponiveis' %}" class="btn btn-outline-primary"><i class="bi bi-inbox me-1" aria-hidden="true"></i>Tickets disponíveis</a>{% endif %}
             {% if pode_criar_ticket %}
             <a href="{% url 'cadastro-ticket' %}" class="btn btn-primary">
                 <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Novo Ticket

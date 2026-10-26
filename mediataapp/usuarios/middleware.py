@@ -44,8 +44,8 @@ class EmpresaAccessMiddleware(MiddlewareMixin):
         'tickets-disponiveis', 'ticket-disponivel',
     }
     user_management_views = {'index-usuarios', 'registrar-usuarios', 'editar-usuario', 'editar-usuarios'}
-    operator_views = basic_ticket_views | {
-        'cadastro-ticket', 'editar-ticket', 'assumir-ticket', 'update-historico',
+    operator_views = (basic_ticket_views - {'tickets-disponiveis', 'ticket-disponivel'}) | {
+        'cadastro-ticket', 'editar-ticket', 'update-historico',
         'add-colaborador-ticket', 'cadastrar-colaborador-ticket',
         'add-cliente-ticket', 'cadastrar-cliente-ticket',
     }

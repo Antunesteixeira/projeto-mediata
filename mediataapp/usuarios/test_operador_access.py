@@ -1,4 +1,4 @@
-"""O operador atende os tickets da empresa sem receber acesso financeiro."""
+"""O operador atende somente os tickets que cadastrou na própria empresa."""
 
 from datetime import timedelta
 from decimal import Decimal
@@ -67,7 +67,7 @@ class OperadorAccessTests(TestCase):
             empresa=cls.outra_empresa, nome_completo='Prestador privado B',
         )
         cls.ticket = Ticket.objects.create(
-            ticket='OPSEG001', empresa=cls.empresa, usuario=cls.assinante,
+            ticket='OPSEG001', empresa=cls.empresa, usuario=cls.operador,
             assumido_por=cls.operador, status='L', descricao='Atendimento operacional A',
             cliente=cls.cliente, colaborador=cls.colaborador,
             nfe_path='nfe/nota-operacao-restrita.pdf',
@@ -76,15 +76,38 @@ class OperadorAccessTests(TestCase):
             valor_equipamento=Decimal('51234.60'),
         )
         cls.ticket_colega = Ticket.objects.create(
-            ticket='OPSEG002', empresa=cls.empresa, usuario=cls.assinante,
-            assumido_por=cls.colega, descricao='Atendimento do colega da mesma empresa',
+            ticket='OPSEG002', empresa=cls.empresa, usuario=cls.colega,
+            assumido_por=cls.operador, descricao='Atendimento criado pelo colega e atribuído ao operador',
         )
         cls.ticket_estrangeiro = Ticket.objects.create(
-            ticket='OPSEG003', empresa=cls.outra_empresa, usuario=cls.assinante,
-            assumido_por=cls.estrangeiro, descricao='Atendimento privado da outra empresa',
+            ticket='OPSEG003', empresa=cls.outra_empresa, usuario=cls.operador,
+            assumido_por=cls.operador, descricao='Atendimento de autoria do operador em outra empresa',
         )
         cls.disponivel = Ticket.objects.create(
             ticket='OPSEG004', usuario=cls.assinante, descricao='Solicitação disponível independente',
+        )
+        cls.ticket_gerente = Ticket.objects.create(
+            ticket='OPSEG005', empresa=cls.empresa, usuario=cls.gerente,
+            assumido_por=cls.operador, descricao='Atendimento criado pelo gerente e atribuído ao operador',
+        )
+        cls.ticket_assinante = Ticket.objects.create(
+            ticket='OPSEG006', empresa=cls.empresa, usuario=cls.assinante,
+            assumido_por=cls.operador, descricao='Atendimento criado pelo cliente e atribuído ao operador',
+        )
+        cls.ticket_proprio = Ticket.objects.create(
+            ticket='OPSEG007', empresa=cls.empresa, usuario=cls.operador,
+            assumido_por=cls.gerente, descricao='Atendimento do operador atribuído ao gerente',
+        )
+        cliente_restrito = Cliente.objects.create(
+            empresa=cls.empresa, nome_razao_social='Cliente exclusivo dos tickets de terceiros',
+            cpf_cnpj='00000000093',
+        )
+        colaborador_restrito = Colaborador.objects.create(
+            empresa=cls.empresa, nome_completo='Prestador exclusivo dos tickets de terceiros',
+        )
+        Ticket.objects.filter(pk__in=(cls.ticket_colega.pk, cls.ticket_gerente.pk,
+                                     cls.ticket_assinante.pk)).update(
+            cliente=cliente_restrito, colaborador=colaborador_restrito,
         )
         cls.insumo = Insumos.objects.create(
             empresa=cls.empresa, codigo='OPINS001', insumo='INSUMO-FINANCEIRO-RESTRITO',
@@ -155,6 +178,12 @@ class OperadorAccessTests(TestCase):
         payload.update(alteracoes)
         return payload
 
+    def tickets_inacessiveis(self):
+        return (
+            self.ticket_colega, self.ticket_gerente, self.ticket_assinante,
+            self.ticket_estrangeiro, self.disponivel,
+        )
+
     def assert_sem_financeiro(self, response):
         for segredo in (
             '91.234,56', '81.234,57', '71.234,58', '61.234,59', '51.234,60',
@@ -190,13 +219,15 @@ class OperadorAccessTests(TestCase):
                 self.assertEqual(self.client.get(url).status_code, 403)
         self.assertEqual(self.client.get(reverse('perfil-usuario', args=[self.operador.pk])).status_code, 200)
 
-    def test_operador_consulta_tickets_da_empresa_sem_valores_documentos_ou_dados_bancarios(self):
+    def test_operador_consulta_so_tickets_que_cadastrou_na_empresa_sem_dados_financeiros(self):
         listagem = self.client.get(reverse('index-tickets'))
         self.assertEqual(listagem.status_code, 200)
         self.assertEqual({item.pk for item in listagem.context['tickets']}, {
-            self.ticket.pk, self.ticket_colega.pk,
+            self.ticket.pk, self.ticket_proprio.pk,
         })
-        self.assertNotContains(listagem, self.ticket_estrangeiro.ticket)
+        for ticket in self.tickets_inacessiveis():
+            self.assertNotContains(listagem, ticket.ticket)
+            self.assertNotContains(listagem, ticket.descricao)
         self.assert_sem_financeiro(listagem)
         response = self.client.get(self.detail_url)
         self.assertEqual(response.status_code, 200)
@@ -210,11 +241,15 @@ class OperadorAccessTests(TestCase):
         ):
             with self.subTest(contexto=chave):
                 self.assertNotIn(chave, response.context)
-        for rota in ('exibir-ticket', 'editar-ticket'):
-            self.assertEqual(self.client.get(reverse(rota, args=[self.ticket_estrangeiro.key])).status_code, 404)
-        busca = self.client.get(reverse('buscar_tickets'), {'term': self.ticket_estrangeiro.ticket})
-        self.assertEqual(busca.status_code, 200)
-        self.assertNotContains(busca, self.ticket_estrangeiro.ticket)
+        for ticket in self.tickets_inacessiveis():
+            for rota in ('exibir-ticket', 'editar-ticket'):
+                self.assertEqual(self.client.get(reverse(rota, args=[ticket.key])).status_code, 404)
+        for parametros in ({}, {'term': self.ticket_colega.ticket}, {'q': self.ticket_gerente.ticket}):
+            busca = self.client.get(reverse('buscar_tickets'), parametros)
+            self.assertEqual(busca.status_code, 200)
+            for ticket in self.tickets_inacessiveis():
+                self.assertNotContains(busca, ticket.ticket)
+                self.assertNotContains(busca, ticket.descricao)
 
     def test_dashboard_operacional_nao_carrega_nem_serializa_indicadores_financeiros(self):
         with CaptureQueriesContext(connection) as queries:
@@ -223,12 +258,22 @@ class OperadorAccessTests(TestCase):
         self.assertFalse(response.context['dashboard_can_view_financial'])
         metrics = response.context['dashboard_metrics']
         self.assertEqual(metrics['tickets_total'], 2)
+        self.assertEqual({item.pk for item in response.context['tickets']}, {
+            self.ticket.pk, self.ticket_proprio.pk,
+        })
         for campo in (
             'budget_total', 'budget_month', 'paid_total', 'pending_payments',
             'receivable_total', 'received_total',
         ):
             self.assertNotIn(campo, metrics)
         charts = response.context['dashboard_charts']
+        self.assertEqual(sum(item['value'] for item in charts['status']), 2)
+        self.assertEqual(sum(item['tickets'] for item in charts['monthly']), 2)
+        self.assertNotIn('Cliente exclusivo dos tickets de terceiros', str(charts))
+        self.assertNotIn('Prestador exclusivo dos tickets de terceiros', str(charts))
+        for ticket in self.tickets_inacessiveis():
+            self.assertNotContains(response, ticket.ticket)
+            self.assertNotContains(response, ticket.descricao)
         self.assertNotIn('histogram', charts)
         self.assertTrue(all('budget' not in item for item in charts['monthly']))
         self.assertNotIn('orcamentos', response.context)
@@ -240,6 +285,52 @@ class OperadorAccessTests(TestCase):
         for tabela in ('tickets_orcamento', 'tickets_pagamentos', 'tickets_recebimentos', 'financeiro_lancamentomanual'):
             self.assertNotIn(tabela, sql)
         self.assert_sem_financeiro(response)
+
+    def test_urls_de_operacao_nao_permitem_consultar_ou_alterar_ticket_de_terceiro(self):
+        antes = self.snapshot()
+        for ticket in self.tickets_inacessiveis():
+            rotas = (
+                ('exibir-ticket', {'key': ticket.key}, ('get', 'post')),
+                ('editar-ticket', {'key': ticket.key}, ('get', 'post')),
+                ('update-historico', {'key': ticket.key}, ('get', 'post')),
+                ('add-colaborador-ticket', {'id_ticket': ticket.pk}, ('get',)),
+                ('add-cliente-ticket', {'id_ticket': ticket.pk}, ('get',)),
+                ('cadastrar-colaborador-ticket', {
+                    'id_ticket': ticket.pk, 'id_colaborador': self.colaborador.pk,
+                }, ('post',)),
+                ('cadastrar-cliente-ticket', {
+                    'id_ticket': ticket.pk, 'id_cliente': self.cliente.pk,
+                }, ('post',)),
+            )
+            for nome, kwargs, metodos in rotas:
+                for metodo in metodos:
+                    with self.subTest(ticket=ticket.ticket, rota=nome, metodo=metodo):
+                        response = getattr(self.client, metodo)(reverse(nome, kwargs=kwargs), {
+                            **self.payload_operacional(ticket=ticket.ticket),
+                            'usuario': self.operador.pk, 'usuario_id': self.operador.pk,
+                            'assumido_por': self.operador.pk, 'empresa': self.empresa.pk,
+                        })
+                        self.assertEqual(response.status_code, 404)
+                        self.assertNotContains(response, ticket.descricao, status_code=404)
+                        self.assertEqual(self.snapshot(), antes)
+
+    def test_gerente_mantem_visao_da_empresa_e_operador_nao_herda_acesso_pela_atribuicao(self):
+        self.client.force_login(self.gerente)
+        response = self.client.get(reverse('index-tickets'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual({item.pk for item in response.context['tickets']}, {
+            self.ticket.pk, self.ticket_colega.pk, self.ticket_gerente.pk,
+            self.ticket_assinante.pk, self.ticket_proprio.pk,
+        })
+        self.assertEqual(self.client.get(reverse('exibir-ticket', args=[self.ticket_assinante.key])).status_code, 200)
+        self.assertNotContains(response, self.ticket_estrangeiro.ticket)
+        self.client.force_login(self.colega)
+        response = self.client.get(reverse('index-tickets'))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual({item.pk for item in response.context['tickets']}, {self.ticket_colega.pk})
+        self.assertEqual(self.client.get(self.detail_url).status_code, 404)
+        self.client.force_login(self.operador)
+        self.assertEqual(self.client.get(reverse('exibir-ticket', args=[self.ticket_colega.key])).status_code, 404)
 
     @patch('tickets.views.HTML')
     def test_urls_financeiras_diretas_e_pdfs_negam_operador_sem_alteracoes(self, renderer):
@@ -372,7 +463,7 @@ class OperadorAccessTests(TestCase):
         self.assertEqual(self.ticket.descricao, 'Descrição operacional atualizada')
         self.assertEqual(self.ticket.status, 'E')
         self.assertEqual(self.ticket.empresa_id, self.empresa.pk)
-        self.assertEqual(self.ticket.usuario_id, self.assinante.pk)
+        self.assertEqual(self.ticket.usuario_id, self.operador.pk)
         self.assertEqual(self.ticket.assumido_por_id, self.operador.pk)
         self.assertEqual(self.ticket.nfe_path, 'nfe/nota-operacao-restrita.pdf')
         for campo, valor in valores_antes.items():
@@ -425,7 +516,20 @@ class OperadorAccessTests(TestCase):
                 self.assertEqual(self.client.post(reverse(nome, kwargs=kwargs)).status_code, 404)
                 self.assertEqual(self.snapshot(), antes)
 
-    def test_assumir_ticket_continua_permitido_sem_conceder_financeiro(self):
+    def test_operador_nao_acessa_fila_nem_assume_ticket_cadastrado_por_outro_usuario(self):
+        antes = self.snapshot()
+        for rota, kwargs, metodo in (
+            ('tickets-disponiveis', {}, 'get'),
+            ('ticket-disponivel', {'key': self.disponivel.key}, 'get'),
+            ('assumir-ticket', {'key': self.disponivel.key}, 'post'),
+        ):
+            with self.subTest(rota=rota):
+                response = getattr(self.client, metodo)(reverse(rota, kwargs=kwargs))
+                self.assertEqual(response.status_code, 403)
+                self.assertEqual(self.snapshot(), antes)
+
+    def test_gerente_continua_assumindo_ticket_sem_alterar_financas_ou_autoria(self):
+        self.client.force_login(self.gerente)
         financeiro_antes = self.snapshot(operational=False)
         self.assertContains(self.client.get(reverse('tickets-disponiveis')), self.disponivel.ticket)
         response = self.client.post(reverse('assumir-ticket', args=[self.disponivel.key]), {
@@ -434,11 +538,12 @@ class OperadorAccessTests(TestCase):
         self.assertEqual(response.status_code, 302)
         self.disponivel.refresh_from_db()
         self.assertEqual(self.disponivel.empresa_id, self.empresa.pk)
-        self.assertEqual(self.disponivel.assumido_por_id, self.operador.pk)
+        self.assertEqual(self.disponivel.assumido_por_id, self.gerente.pk)
         self.assertEqual(self.disponivel.usuario_id, self.assinante.pk)
         self.assertEqual(self.disponivel.valor_faturamento, Decimal('1.00'))
         self.assertEqual(self.snapshot(operational=False), financeiro_antes)
-        self.assertEqual(self.client.get(reverse('gerar_pdf_ticket', args=[self.disponivel.key])).status_code, 403)
+        self.client.force_login(self.operador)
+        self.assertEqual(self.client.get(reverse('exibir-ticket', args=[self.disponivel.key])).status_code, 404)
 
     def test_servico_financeiro_tambem_nega_operador_sem_depender_do_menu_ou_middleware(self):
         filtros = {'operacao': 'todas', 'situacao': 'todas', 'data_inicio': None, 'data_fim': None}

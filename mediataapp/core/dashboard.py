@@ -213,7 +213,10 @@ def build_dashboard_context(
         "dashboard_metrics": metrics,
         "dashboard_charts": charts,
         "dashboard_company": company,
-        "dashboard_scope": "Visão geral" if is_platform_admin else "Visão da empresa",
+        "dashboard_scope": (
+            "Visão geral" if is_platform_admin else
+            "Visão da empresa" if can_view_all else "Meus tickets"
+        ),
         "dashboard_updated_at": now,
         "dashboard_can_view_all": can_view_all,
         "dashboard_can_view_financial": can_view_financial,

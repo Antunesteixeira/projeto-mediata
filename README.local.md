@@ -74,11 +74,16 @@ pode consultar seus dados e alterar a própria senha.
 | --- | --- |
 | Administrador da plataforma | Gestão e valores de todas as empresas. |
 | Gerente | Gestão, orçamento, financeiro e relatórios da própria empresa ativa. |
-| Operador | Tickets da própria empresa, fila disponível, cadastro/edição operacional, status, histórico e associação de cliente/colaborador. |
+| Operador | Somente tickets cadastrados por ele na própria empresa, com edição operacional, status, histórico e associação de cliente/colaborador. |
 | Cliente/colaborador | Acompanhamento dos tickets da própria empresa, sem valores internos. |
 | Assinante | Cadastro e acompanhamento dos próprios tickets, conforme as regras de Levantamento. |
 
-O operador tem dashboard operacional e acesso ao próprio perfil. Orçamentos,
+O operador tem dashboard operacional limitado aos tickets que cadastrou e acesso
+ao próprio perfil. A autoria (`Ticket.usuario`) e a empresa precisam corresponder
+à conta: estar atribuído como responsável não concede acesso a tickets de terceiros.
+O filtro também vale para busca, detalhes, edição, histórico e associações,
+inclusive usando URLs conhecidas. A fila compartilhada e a assunção de tickets
+são reservadas à gestão para os perfis operacionais. Orçamentos,
 preços de insumos, BDI, pagamentos, recebimentos, documentos financeiros, PDFs
 completos, exclusão de tickets e cadastros administrativos ficam reservados à
 gestão. As mesmas restrições valem para URLs diretas, requisições POST, arquivos
@@ -98,7 +103,7 @@ administrador da plataforma acessa todas. Assinantes permanecem sem empresa.
 Uma conta interna sem empresa ativa não tem acesso aos módulos de operação.
 
 Os tickets novos de assinantes entram em **Tickets disponíveis**. Empresas ativas
-podem consultar a solicitação; um gerente ou operador usa **Assumir ticket** para
+podem consultar a solicitação; um gerente usa **Assumir ticket** para
 reservá-la. O administrador também pode assumir, selecionando uma empresa.
 Quando duas empresas tentam assumir simultaneamente, apenas uma consegue; a
 outra recebe uma mensagem de indisponibilidade. Repetir a operação na mesma

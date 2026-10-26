@@ -55,7 +55,7 @@ def dashboard(request):
         messages.info(request, 'Cadastre a primeira empresa para iniciar a operação.')
         return redirect('empresa_cadastrar')
     context = build_dashboard_context(
-        tickets_da_empresa(request.user), empresa, True, now=timezone.now(),
+        tickets_da_empresa(request.user), empresa, pode_gerenciar_empresa(request.user), now=timezone.now(),
         is_platform_admin=request.user.is_superuser,
         can_view_financial=pode_acessar_financeiro(request.user),
     )
