@@ -21,9 +21,9 @@ class InsumoUnitTests(TestCase):
             nome_fantasia='Empresa B insumos', razao_social='Empresa B de teste',
             cnpj='22.222.222/0001-22', email='empresa-b@example.com', telefone='(22) 2222-2222',
         )
-        cls.operator = User.objects.create_user(username='operador_insumos')
-        assign_role(cls.operator, 'operador')
-        UsuarioEmpresa.objects.create(usuario=cls.operator, empresa=cls.company)
+        cls.manager = User.objects.create_user(username='gerente_insumos')
+        assign_role(cls.manager, 'gerente')
+        UsuarioEmpresa.objects.create(usuario=cls.manager, empresa=cls.company)
 
     def form_data(self, unit):
         return {
@@ -34,13 +34,13 @@ class InsumoUnitTests(TestCase):
     def test_new_units_can_be_registered_and_loaded(self):
         for unit in ('SC25KG', 'M2/MES', 'M3XKM', 'PÇ', 'KW/H', 'pp.', 'PCT', 'SACO'):
             with self.subTest(unit=unit):
-                form = InsumoForm(data=self.form_data(unit), actor=self.operator)
+                form = InsumoForm(data=self.form_data(unit), actor=self.manager)
                 self.assertTrue(form.is_valid(), form.errors)
                 supply = form.save()
                 supply.refresh_from_db()
                 self.assertEqual(supply.unidade, unit)
                 self.assertEqual(supply.empresa_id, self.company.pk)
-                self.assertEqual(InsumoForm(instance=supply, actor=self.operator)['unidade'].value(), unit)
+                self.assertEqual(InsumoForm(instance=supply, actor=self.manager)['unidade'].value(), unit)
 
     def test_existing_units_keep_their_meaning_when_edited(self):
         for unit, name in (('PC', 'Peça'), ('SC', 'Saca'), ('ROLO', 'Rolo'), ('BALDE', 'Balde')):
@@ -48,7 +48,7 @@ class InsumoUnitTests(TestCase):
                 supply = Insumos.objects.create(
                     insumo='Insumo existente', tipo='M', unidade=unit, empresa=self.company,
                 )
-                form = InsumoForm(data=self.form_data(unit), instance=supply, actor=self.operator)
+                form = InsumoForm(data=self.form_data(unit), instance=supply, actor=self.manager)
                 self.assertTrue(form.is_valid(), form.errors)
                 form.save()
                 supply.refresh_from_db()
@@ -58,7 +58,7 @@ class InsumoUnitTests(TestCase):
     def test_company_scope_protects_listing_foreign_ids_and_forged_company(self):
         own = Insumos.objects.create(insumo='Insumo da empresa A', tipo='M', empresa=self.company)
         foreign = Insumos.objects.create(insumo='Insumo da empresa B', tipo='M', empresa=self.foreign_company)
-        self.client.force_login(self.operator)
+        self.client.force_login(self.manager)
         response = self.client.get(reverse('index-insumos'))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(set(response.context['insumos'].values_list('pk', flat=True)), {own.pk})
@@ -76,7 +76,7 @@ class InsumoUnitTests(TestCase):
 
     def test_read_only_roles_cannot_mutate_company_supplies(self):
         supply = Insumos.objects.create(insumo='Insumo protegido', tipo='M', empresa=self.company)
-        for role in ('cliente', 'colaborador'):
+        for role in ('operador', 'cliente', 'colaborador'):
             user = User.objects.create_user(username=f'{role}_insumos')
             assign_role(user, role)
             UsuarioEmpresa.objects.create(usuario=user, empresa=self.company)

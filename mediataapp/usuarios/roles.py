@@ -14,7 +14,6 @@ class Operador(AbstractUserRole):
     available_permissions = {
         'criar_ticket': True,
         'ver_ticket': True,
-        'criar_insumo': True,
     }
 
 class Cliente(AbstractUserRole):

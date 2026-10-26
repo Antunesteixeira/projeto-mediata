@@ -114,7 +114,7 @@ class DashboardTests(TestCase):
         )
 
     def dashboard(self, user=None):
-        self.client.force_login(user or self.operator)
+        self.client.force_login(user or self.manager)
         with patch('core.views.timezone.now', return_value=self.now):
             response = self.client.get(self.url)
         self.assertEqual(response.status_code, 200)
@@ -148,7 +148,7 @@ class DashboardTests(TestCase):
         for key in ('operators', 'clients', 'collaborators'):
             self.assertEqual(charts[key], [])
 
-    def test_operator_scope_applies_to_table_metrics_and_every_chart(self):
+    def test_manager_company_scope_applies_to_table_metrics_and_every_chart(self):
         own_active = self.ticket(status='E', emergencial=True)
         own_final = self.ticket(status='F')
         other = self.ticket(
@@ -253,7 +253,7 @@ class DashboardTests(TestCase):
                 self.assertNotContains(response, other.ticket)
                 self.assertNotContains(response, 'R$')
 
-    def test_empty_financial_dashboard_actions_are_available_to_company_operators_and_managers(self):
+    def test_ticket_creation_actions_are_available_on_both_dashboards(self):
         for role in ('operador', 'gerente'):
             with self.subTest(role=role):
                 user = User.objects.create_user(username=f'acao_{role}')

@@ -8,8 +8,7 @@ from django.http import FileResponse, Http404
 from django.utils.cache import patch_vary_headers
 from django.views.decorators.http import require_http_methods
 
-from core.tenancy import tickets_da_empresa
-from .access import pode_operar_tickets
+from core.tenancy import pode_acessar_financeiro, tickets_da_empresa
 from .models import Anexo, Pagamentos, Recebimentos
 
 
@@ -20,7 +19,7 @@ INLINE_EXTENSIONS = frozenset({'.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp'}
 @login_required
 @require_http_methods(['GET', 'HEAD'])
 def arquivo_privado(request, path):
-    if not pode_operar_tickets(request.user):
+    if not pode_acessar_financeiro(request.user):
         raise PermissionDenied('Seu perfil não permite acessar estes arquivos.')
 
     relative = PurePosixPath(path)

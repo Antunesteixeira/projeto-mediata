@@ -1,0 +1,79 @@
+  let angle = 0;
+  const total = chartData.status.reduce((sum, status) => sum + status.value, 0);
+  const stops = chartData.status.filter(status => status.value > 0).map(status => {
+    const previous = angle;
+    angle += status.value / total * 360;
+    return `${status.color} ${previous}deg ${angle}deg`;
+  });
+  if (total > 0) document.getElementById('status-donut').style.background = `conic-gradient(${stops.join(',')})`;
+  document.getElementById('status-donut').setAttribute('aria-label', chartData.status.map(status => `${status.label}: ${status.value}`).join('; '));
+  const legend = document.getElementById('status-legend');
+  chartData.status.forEach(status => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.setAttribute('aria-label', `Filtrar ${status.value} tickets com status ${status.label}`);
+    const dot = document.createElement('span'); dot.style.background = status.color;
+    const label = document.createElement('span'); label.textContent = status.label;
+    const count = document.createElement('strong'); count.textContent = number(status.value);
+    button.append(dot, label, count);
+    button.addEventListener('click', () => {
+      const select = document.getElementById('filtro-status');
+      select.value = status.label;
+      select.dispatchEvent(new Event('change', {bubbles:true}));
+      document.getElementById('dashboard-tickets').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block:'start'});
+    });
+    legend.appendChild(button);
+  });
+  document.querySelectorAll('.ranking-list').forEach(list => {
+    const bars = Array.from(list.querySelectorAll('[data-rank-value]'));
+    const maximum = Math.max(...bars.map(bar => Number(bar.dataset.rankValue)), 1);
+    bars.forEach(bar => {bar.style.width = Number(bar.dataset.rankValue) / maximum * 100 + '%';});
+  });
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.querySelectorAll('.dashboard-sections a').forEach(link => link.addEventListener('click', event => {
+    event.preventDefault();
+    document.querySelectorAll('.dashboard-sections a').forEach(item => item.classList.toggle('is-active', item === link));
+    document.querySelector(link.getAttribute('href')).scrollIntoView({behavior:reduceMotion ? 'auto' : 'smooth', block:'start'});
+  }));
+
+  const table = document.getElementById('datatablesSimple');
+  const search = document.getElementById('search-box');
+  const statusFilter = document.getElementById('filtro-status');
+  let dataTable = null;
+  const headers = table ? Array.from(table.querySelectorAll('thead th')) : [];
+  const columnIndex = name => headers.findIndex(header => header.textContent.trim() === name);
+  if (table && window.jQuery && window.jQuery.fn.DataTable) {
+    dataTable = window.jQuery(table).DataTable({
+      order:[[columnIndex('Criação'), 'desc']],
+      pageLength:10,
+      language:{lengthMenu:'_MENU_ por página', info:'_START_–_END_ de _TOTAL_ tickets', infoEmpty:'Nenhum ticket', infoFiltered:'(de _MAX_ tickets)', emptyTable:'Nenhum ticket cadastrado', zeroRecords:'Nenhum ticket com estes filtros', paginate:{first:'Primeira', last:'Última', next:'Próxima', previous:'Anterior'}},
+      dom:'rt<"bottom"lip><"clear">',
+      columnDefs:[{targets:[columnIndex('Ações')], orderable:false, searchable:false}]
+    });
+  }
+  const rows = table ? Array.from(table.querySelectorAll('tbody tr')) : [];
+  function applyFilters() {
+    if (!table) return;
+    if (dataTable) {
+      const escapeRegex = window.jQuery.fn.dataTable.util.escapeRegex;
+      dataTable.search(search.value).column(columnIndex('Status')).search(statusFilter.value ? '^\\s*' + escapeRegex(statusFilter.value) + '\\s*$' : '', true, false).draw();
+    } else {
+      let visible = 0;
+      const term = search.value.toLocaleLowerCase('pt-BR');
+      rows.forEach(row => {
+        const status = row.cells[columnIndex('Status')].textContent.trim();
+        row.hidden = !(row.textContent.toLocaleLowerCase('pt-BR').includes(term) && (!statusFilter.value || status === statusFilter.value));
+        if (!row.hidden) visible++;
+      });
+      document.getElementById('ticket-filter-empty').hidden = visible > 0;
+    }
+  }
+  search.addEventListener('input', applyFilters);
+  statusFilter.addEventListener('change', applyFilters);
+  document.getElementById('clear-ticket-filters').addEventListener('click', () => {search.value = ''; statusFilter.value = ''; applyFilters();});
+  if (table) table.addEventListener('click', event => {
+    if (event.target.closest('a,button,input,select')) return;
+    const row = event.target.closest('tr[data-href]');
+    if (row) window.location.assign(row.dataset.href);
+  });
+  if (window.bootstrap && window.bootstrap.Tooltip) document.querySelectorAll('.dashboard-shell [data-bs-toggle="tooltip"]').forEach(element => new window.bootstrap.Tooltip(element));

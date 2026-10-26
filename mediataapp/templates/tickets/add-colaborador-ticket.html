@@ -5,11 +5,11 @@
     <header class="app-page-header">
         <div>
             <h1 class="app-page-title">Adicionar Colaborador</h1>
-            <p class="app-page-description">Ticket #{{ tiket.ticket }} · Selecione o colaborador responsável por executar o serviço.</p>
+            <p class="app-page-description">Ticket #{{ ticket.ticket }} · Selecione o colaborador responsável por executar o serviço.</p>
         </div>
         <div class="app-page-actions">
-            <a href="{% url 'index-tickets' %}" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Voltar
+            <a href="{% url 'exibir-ticket' ticket.key %}" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Voltar ao ticket
             </a>
         </div>
     </header>

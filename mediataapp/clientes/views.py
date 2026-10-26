@@ -5,16 +5,16 @@ from .forms import ClienteForm, salvar_form_empresa
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.views.decorators.http import require_POST
-from core.tenancy import dados_da_empresa, pode_assumir_ticket
+from core.tenancy import dados_da_empresa, pode_gerenciar_empresa
 
 
-def _exigir_operacao(user):
-    if not (user.is_superuser or pode_assumir_ticket(user)):
+def _exigir_gestao(user):
+    if not pode_gerenciar_empresa(user):
         raise PermissionDenied('Seu acesso não permite gerenciar clientes da empresa.')
 
 @login_required
 def cadastrar_cliente(request):
-    _exigir_operacao(request.user)
+    _exigir_gestao(request.user)
     if request.method == 'POST':
         form = ClienteForm(request.POST, actor=request.user)
         if form.is_valid():
@@ -28,13 +28,13 @@ def cadastrar_cliente(request):
 
 @login_required
 def listar_clientes(request):
-    _exigir_operacao(request.user)
+    _exigir_gestao(request.user)
     clientes = dados_da_empresa(request.user, Cliente.objects.all()).order_by('-data_cadastro')
     return render(request, 'clientes/listar-clientes.html', {'clientes': clientes})
 
 @login_required
 def editar_cliente(request, cliente_id):
-    _exigir_operacao(request.user)
+    _exigir_gestao(request.user)
     cliente = get_object_or_404(dados_da_empresa(request.user, Cliente.objects.all()), id=cliente_id)
 
     if request.method == 'POST':
@@ -51,7 +51,7 @@ def editar_cliente(request, cliente_id):
 @login_required
 @require_POST
 def deletar_cliente(request, cliente_id):
-    _exigir_operacao(request.user)
+    _exigir_gestao(request.user)
     cliente = get_object_or_404(dados_da_empresa(request.user, Cliente.objects.all()), pk=cliente_id)
     if request.method == "POST":
         nome = str(cliente)  # ou cliente.nome, conforme seu modelo
@@ -62,7 +62,7 @@ def deletar_cliente(request, cliente_id):
 # views.py
 @login_required
 def perfil_cliente(request, id):
-    _exigir_operacao(request.user)
+    _exigir_gestao(request.user)
     cliente = get_object_or_404(dados_da_empresa(request.user, Cliente.objects.all()), id=id)
     context = {
         'cliente': cliente,

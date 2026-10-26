@@ -1,11 +1,12 @@
 from decimal import Decimal
 
 from django.conf import settings
+from django.core.exceptions import PermissionDenied
 from django.db.models import BooleanField, Case, CharField, Count, DecimalField, F, IntegerField, Q, Sum, UUIDField, Value, When
 from django.db.models.functions import Cast, Coalesce, NullIf, TruncDate
 from zoneinfo import ZoneInfo
 
-from core.tenancy import dados_da_empresa, tickets_da_empresa
+from core.tenancy import dados_da_empresa, pode_acessar_financeiro, tickets_da_empresa
 from .models import LancamentoManual
 from tickets.models import Pagamentos, Recebimentos
 
@@ -36,6 +37,8 @@ def totais_vazios():
 
 
 def fontes_financeiras(user, filtros, hoje):
+    if not pode_acessar_financeiro(user):
+        raise PermissionDenied('Seu acesso não permite consultar o financeiro da empresa.')
     tickets = tickets_da_empresa(user)
     pagamentos = Pagamentos.objects.filter(ticket_pagamento__in=tickets)
     recebimentos = Recebimentos.objects.filter(ticket_recebimento__in=tickets)

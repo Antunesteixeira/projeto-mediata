@@ -9,12 +9,12 @@ from django.db import IntegrityError, transaction
 from clientes.forms import salvar_form_empresa
 from django.views.decorators.http import require_POST
 from core.tenancy import (
-    dados_da_empresa, empresa_do_usuario, pode_assumir_ticket, pode_gerenciar_empresa,
+    dados_da_empresa, empresa_do_usuario, pode_gerenciar_empresa,
 )
 
 
-def _exigir_operacao(user):
-    if not (user.is_superuser or pode_assumir_ticket(user)):
+def _exigir_gestao(user):
+    if not pode_gerenciar_empresa(user):
         raise PermissionDenied('Seu acesso não permite gerenciar colaboradores da empresa.')
 
 
@@ -77,7 +77,7 @@ def criar_usuario_para_colaborador(request, colaborador_id):
 
 @login_required
 def cadastrar_colaborador(request):
-    _exigir_operacao(request.user)
+    _exigir_gestao(request.user)
     if request.method == "POST":
         form = ColaboradorForm(request.POST, actor=request.user)
         if form.is_valid():
@@ -93,13 +93,13 @@ def cadastrar_colaborador(request):
 
 @login_required
 def lista_colaboradores(request):
-    _exigir_operacao(request.user)
+    _exigir_gestao(request.user)
     colaboradores = dados_da_empresa(request.user, Colaborador.objects.all())
     return render(request, 'colaboradores/listar_colaboradores.html', {'colaboradores': colaboradores})
 
 @login_required
 def editar_colaborador(request, colaborador_id):
-    _exigir_operacao(request.user)
+    _exigir_gestao(request.user)
     colaborador = get_object_or_404(dados_da_empresa(request.user, Colaborador.objects.all()), id=colaborador_id)
 
     if request.method == 'POST':
@@ -116,7 +116,7 @@ def editar_colaborador(request, colaborador_id):
 @login_required
 @require_POST
 def deletar_colaborador(request, colaborador_id):
-    _exigir_operacao(request.user)
+    _exigir_gestao(request.user)
     colaborador = get_object_or_404(dados_da_empresa(request.user, Colaborador.objects.all()), pk=colaborador_id)
     if request.method == "POST":
         nome = str(colaborador)  # ou cliente.nome, conforme seu modelo
@@ -127,7 +127,7 @@ def deletar_colaborador(request, colaborador_id):
 # views.py
 @login_required
 def perfil_colaborador(request, id):
-    _exigir_operacao(request.user)
+    _exigir_gestao(request.user)
     colaborador = get_object_or_404(dados_da_empresa(request.user, Colaborador.objects.all()), id=id)
     context = {
         'colaborador': colaborador,

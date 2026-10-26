@@ -14,18 +14,18 @@ from django.db.models import Q
 from rolepermissions.decorators import has_role_decorator
 from django.core.exceptions import PermissionDenied
 from django.views.decorators.http import require_POST
-from core.tenancy import dados_da_empresa, pode_assumir_ticket
+from core.tenancy import dados_da_empresa, pode_gerenciar_empresa
 from clientes.forms import salvar_form_empresa
 
 
-def _exigir_operacao(user):
-    if not (user.is_superuser or pode_assumir_ticket(user)):
+def _exigir_gestao(user):
+    if not pode_gerenciar_empresa(user):
         raise PermissionDenied('Seu acesso não permite gerenciar insumos da empresa.')
 
 #@has_role_decorator('gerente')
 @login_required
 def insumos(request):
-    _exigir_operacao(request.user)
+    _exigir_gestao(request.user)
     insumos_obj = dados_da_empresa(request.user, Insumos.objects.all())
     if request.method == "POST":
         form = InsumoForm(request.POST, actor=request.user)
@@ -48,7 +48,7 @@ def insumos(request):
 #@has_role_decorator('gerente')
 @login_required
 def editar_insumos(request, id):
-    _exigir_operacao(request.user)
+    _exigir_gestao(request.user)
     insumos = dados_da_empresa(request.user, Insumos.objects.all())
     insumo = get_object_or_404(insumos, id=id)
     form = InsumoForm(request.POST if request.method == 'POST' else None, instance=insumo, actor=request.user)
@@ -76,7 +76,7 @@ def editar_insumos(request, id):
 @login_required
 @require_POST
 def deletar_insumo(request, id):
-    _exigir_operacao(request.user)
+    _exigir_gestao(request.user)
     insumo = get_object_or_404(dados_da_empresa(request.user, Insumos.objects.all()), id=id)
 
     # opcional: checar permissão extra, ex:

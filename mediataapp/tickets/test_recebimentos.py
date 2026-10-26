@@ -18,8 +18,8 @@ class EditarRecebimentoTests(TestCase):
     def setUpTestData(cls):
         cls.company = criar_empresa()
         cls.other_company = criar_empresa('Empresa fictícia B', '00.000.000/0000-02')
-        cls.owner = User.objects.create_user(username='operador_recebimento')
-        assign_role(cls.owner, 'operador')
+        cls.owner = User.objects.create_user(username='gerente_autor_recebimento')
+        assign_role(cls.owner, 'gerente')
         cls.other_user = User.objects.create_user(username='outro_recebimento')
         assign_role(cls.other_user, 'operador')
         cls.staff_user = User.objects.create_user(
@@ -203,7 +203,7 @@ class EditarRecebimentoTests(TestCase):
                         response = request(
                             self.url, self.valid_payload() if method == 'post' else {},
                         )
-                        self.assertEqual(response.status_code, 404)
+                        self.assertEqual(response.status_code, 403)
                 detail = self.client.get(self.detail_url)
                 self.assertEqual(detail.status_code, 404)
                 self.assertNotIn(self.url, detail.content.decode())

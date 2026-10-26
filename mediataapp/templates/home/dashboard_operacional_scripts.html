@@ -1,0 +1,60 @@
+<script>
+(() => {
+  'use strict';
+  const chartData = JSON.parse(document.getElementById('dashboard-chart-data').textContent);
+  const number = value => new Intl.NumberFormat('pt-BR').format(value);
+  const svgNS = 'http://www.w3.org/2000/svg';
+  function svgNode(tag, attributes = {}, text = '') {
+    const node = document.createElementNS(svgNS, tag);
+    Object.entries(attributes).forEach(([name, value]) => node.setAttribute(name, value));
+    if (text !== '') node.textContent = text;
+    return node;
+  }
+  function renderTrend() {
+    const container = document.getElementById('monthly-chart');
+    if (!container) return;
+    container.dataset.chartWidth = String(container.clientWidth);
+    const width = Math.min(620, Math.max(280, container.clientWidth));
+    const compact = width < 480;
+    const months = chartData.monthly;
+    const svg = svgNode('svg', {viewBox:`0 0 ${width} 240`, role:'img', 'aria-label':'Tickets cadastrados por mês'});
+    svg.appendChild(svgNode('title', {}, 'Tickets cadastrados por mês'));
+    container.replaceChildren(svg);
+    const plot = {left:compact ? 42 : 54, right:width - 18, top:25, bottom:192};
+    const maximum = Math.max(...months.map(month => month.tickets), 4);
+    const step = Math.max(1, Math.ceil(maximum / 4));
+    const maxY = step * 4;
+    for (let tick = 0; tick <= 4; tick++) {
+      const y = plot.bottom - (plot.bottom - plot.top) * tick / 4;
+      svg.appendChild(svgNode('line', {x1:plot.left, y1:y, x2:plot.right, y2:y, stroke:'#edf2f8', 'stroke-dasharray':tick ? '4 5' : '0'}));
+      svg.appendChild(svgNode('text', {x:plot.left - 12, y:y + 4, 'text-anchor':'end'}, number(tick * step)));
+    }
+    const slot = (plot.right - plot.left) / months.length;
+    const barWidth = slot * 0.42;
+    months.forEach((month, index) => {
+      const height = month.tickets / maxY * (plot.bottom - plot.top);
+      const x = plot.left + slot * index + (slot - barWidth) / 2;
+      const y = plot.bottom - height;
+      const label = month.label + ': ' + number(month.tickets) + ' tickets';
+      const rect = svgNode('rect', {x, y, width:barWidth, height:Math.max(height, 1), rx:5, fill:index === months.length - 1 ? '#3268dd' : '#b5c9f7', tabindex:'0', role:'img', 'aria-label':label});
+      rect.appendChild(svgNode('title', {}, label));
+      svg.appendChild(rect);
+      svg.appendChild(svgNode('text', {x:x + barWidth / 2, y:Math.max(y - 8, 14), 'text-anchor':'middle', class:'chart-value'}, number(month.tickets)));
+      const labelNode = svgNode('text', {x:x + barWidth / 2, y:plot.bottom + 24, 'text-anchor':'middle'});
+      (compact ? month.label.split('/') : [month.label]).forEach((line, lineIndex) => labelNode.appendChild(svgNode('tspan', {x:x + barWidth / 2, dy:lineIndex ? 13 : 0}, line)));
+      svg.appendChild(labelNode);
+    });
+    document.getElementById('trend-total').textContent = number(months.reduce((total, month) => total + month.tickets, 0));
+  }
+  renderTrend();
+  if (window.ResizeObserver) {
+    const observer = new ResizeObserver(entries => {
+      entries.forEach(({target}) => {
+        if (target.dataset.chartWidth !== String(target.clientWidth)) renderTrend();
+      });
+    });
+    observer.observe(document.getElementById('monthly-chart'));
+  }
+{% include 'home/dashboard_controls.html' %}
+})();
+</script>

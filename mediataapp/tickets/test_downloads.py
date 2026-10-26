@@ -26,7 +26,7 @@ class PrivateTicketDownloadsTests(TransactionTestCase):
         assign_role(cls.manager, 'gerente')
         UsuarioEmpresa.objects.create(usuario=cls.manager, empresa=cls.company)
         cls.other_manager = User.objects.create_user(username='private-foreign-fixture')
-        assign_role(cls.other_manager, 'operador')
+        assign_role(cls.other_manager, 'gerente')
         UsuarioEmpresa.objects.create(usuario=cls.other_manager, empresa=cls.other_company)
         cls.subscriber = User.objects.create_user(username='private-subscriber-fixture')
         assign_role(cls.subscriber, 'assinante')

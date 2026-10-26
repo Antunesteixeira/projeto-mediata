@@ -10,7 +10,7 @@
     <div>
       <div class="dashboard-eyebrow">MEDIATA <span></span> GESTÃO DE SERVIÇOS</div>
       <h1>Visão geral da operação</h1>
-      <p>Acompanhe sua operação, suas finanças e as pessoas que fazem acontecer.</p>
+      <p>{% if dashboard_can_view_financial %}Acompanhe sua operação, suas finanças e as pessoas que fazem acontecer.{% else %}Acompanhe os serviços, os responsáveis e o andamento dos tickets da sua empresa.{% endif %}</p>
     </div>
     <div class="dashboard-heading-actions">
       <span class="dashboard-scope"><span class="scope-dot"></span>{{ dashboard_scope }}</span>
@@ -32,6 +32,7 @@
       <strong>{{ dashboard_metrics.tickets_total }}</strong>
       <div class="metric-foot"><span class="metric-tag">{{ dashboard_metrics.active }} ativos</span><span>{{ dashboard_metrics.finalized }} finalizados</span></div>
     </article>
+    {% if dashboard_can_view_financial %}
     <article class="dashboard-metric">
       <div class="metric-top"><span>Orçamentos do mês</span><span class="metric-icon metric-violet"><i class="bi bi-file-earmark-text" aria-hidden="true"></i></span></div>
       <strong class="metric-money">R$ {{ dashboard_metrics.budget_month|floatformat:"2g" }}</strong>
@@ -47,20 +48,34 @@
       <strong class="metric-money">R$ {{ dashboard_metrics.receivable_total|floatformat:"2g" }}</strong>
       <div class="metric-foot">Recebimentos ainda pendentes</div>
     </article>
+    {% else %}
+    <article class="dashboard-metric">
+      <div class="metric-top"><span>Tickets ativos</span><span class="metric-icon metric-blue"><i class="bi bi-activity" aria-hidden="true"></i></span></div>
+      <strong>{{ dashboard_metrics.active }}</strong><div class="metric-foot">Serviços em acompanhamento</div>
+    </article>
+    <article class="dashboard-metric">
+      <div class="metric-top"><span>Finalizados</span><span class="metric-icon metric-green"><i class="bi bi-check2-circle" aria-hidden="true"></i></span></div>
+      <strong>{{ dashboard_metrics.finalized }}</strong><div class="metric-foot">Tickets com atendimento concluído</div>
+    </article>
+    <article class="dashboard-metric">
+      <div class="metric-top"><span>Emergenciais</span><span class="metric-icon metric-orange"><i class="bi bi-lightning-charge" aria-hidden="true"></i></span></div>
+      <strong>{{ dashboard_metrics.emergency }}</strong><div class="metric-foot">Tickets sinalizados como emergenciais</div>
+    </article>
+    {% endif %}
   </section>
 
   <section class="dashboard-chart-grid" aria-label="Evolução e distribuição dos tickets">
     <article class="dashboard-panel trend-panel">
       <div class="panel-heading">
         <div><div class="panel-eyebrow">ACOMPANHAMENTO</div><h2>Evolução mensal</h2><p>Últimos 6 meses, por data de cadastro</p></div>
-        <div class="chart-switch" role="group" aria-label="Indicador da evolução mensal">
+        {% if dashboard_can_view_financial %}<div class="chart-switch" role="group" aria-label="Indicador da evolução mensal">
           <button type="button" class="is-active" data-trend="budget" aria-pressed="true">Orçamentos</button>
           <button type="button" data-trend="tickets" aria-pressed="false">Tickets</button>
-        </div>
+        </div>{% endif %}
       </div>
-      <div class="chart-kicker"><span id="trend-total">R$ 0,00</span><span id="trend-caption">orçados no período</span></div>
+      <div class="chart-kicker"><span id="trend-total">{% if dashboard_can_view_financial %}R$ 0,00{% else %}0{% endif %}</span><span id="trend-caption">{% if dashboard_can_view_financial %}orçados no período{% else %}tickets cadastrados no período{% endif %}</span></div>
       <div class="dashboard-chart" id="monthly-chart" aria-label="Gráfico de evolução mensal"></div>
-      <details class="chart-data"><summary>Ver dados do gráfico</summary><div class="table-responsive"><table class="chart-data-table"><thead><tr><th>Mês</th><th>Tickets</th><th>Orçamentos</th></tr></thead><tbody>{% for month in dashboard_charts.monthly %}<tr><td>{{ month.label }}</td><td>{{ month.tickets }}</td><td>R$ {{ month.budget|floatformat:"2g" }}</td></tr>{% endfor %}</tbody></table></div></details>
+      <details class="chart-data"><summary>Ver dados do gráfico</summary><div class="table-responsive"><table class="chart-data-table"><thead><tr><th>Mês</th><th>Tickets</th>{% if dashboard_can_view_financial %}<th>Orçamentos</th>{% endif %}</tr></thead><tbody>{% for month in dashboard_charts.monthly %}<tr><td>{{ month.label }}</td><td>{{ month.tickets }}</td>{% if dashboard_can_view_financial %}<td>R$ {{ month.budget|floatformat:"2g" }}</td>{% endif %}</tr>{% endfor %}</tbody></table></div></details>
     </article>
     <article class="dashboard-panel status-panel">
       <div class="panel-heading"><div><div class="panel-eyebrow">OPERAÇÃO</div><h2>Tickets por status</h2><p>Clique em um status para filtrar a tabela</p></div><span class="panel-icon"><i class="bi bi-pie-chart" aria-hidden="true"></i></span></div>
@@ -70,6 +85,7 @@
     </article>
   </section>
 
+  {% if dashboard_can_view_financial %}
   <section class="dashboard-secondary-grid" aria-label="Análise financeira">
     <article class="dashboard-panel">
       <div class="panel-heading"><div><div class="panel-eyebrow">DISTRIBUIÇÃO FINANCEIRA</div><h2>Tickets por faixa de orçamento</h2><p>Quantidade de tickets com orçamento maior que zero</p></div><span class="panel-icon"><i class="bi bi-bar-chart" aria-hidden="true"></i></span></div>
@@ -89,6 +105,7 @@
     </article>
   </section>
 
+  {% endif %}
   <section id="dashboard-people" aria-labelledby="people-title">
     <div class="dashboard-section-heading"><div><h2 id="people-title">Pessoas e participação</h2><p>Os 5 principais por quantidade de tickets vinculados</p></div><span class="section-chip"><i class="bi bi-people" aria-hidden="true"></i> Conexões da operação</span></div>
     <div class="dashboard-people-grid">
@@ -121,7 +138,7 @@
                             <th scope="col" width="12%">Criação</th>
                             <th scope="col" width="10%">Finalização</th>
                             <th scope="col" width="12%">Status</th>
-                            <th scope="col" class="text-end text-nowrap">Valor do orçamento</th>
+                            {% if dashboard_can_view_financial %}<th scope="col" class="text-end text-nowrap">Valor do orçamento</th>{% endif %}
                             <th scope="col" width="10%">Ações</th>
                         </tr>
                     </thead>
@@ -185,9 +202,11 @@
                                     {{ ticket.get_status_display }}
                                 </span>
                             </td>
+                            {% if dashboard_can_view_financial %}
                             <td class="text-end text-nowrap" data-order="{{ ticket.total_orcamentos|unlocalize }}">
                                 R$ {{ ticket.total_orcamentos|floatformat:"2g" }}
                             </td>
+                            {% endif %}
                             <td>
                                 <div class="d-flex gap-2">
                                     <a href="{% url 'exibir-ticket' ticket.key %}" class="btn btn-sm btn-outline-primary"
@@ -213,5 +232,5 @@
   <footer class="dashboard-footer"><span>MEDIATA <span class="metric-divider">·</span> Gestão conectada, operação organizada.</span><a href="tel:+5586994815923"><i class="bi bi-headset" aria-hidden="true"></i> Suporte</a></footer>
 </div>
 {{ dashboard_charts|json_script:"dashboard-chart-data" }}
-{% include 'home/dashboard_scripts.html' %}
+{% if dashboard_can_view_financial %}{% include 'home/dashboard_scripts.html' %}{% else %}{% include 'home/dashboard_operacional_scripts.html' %}{% endif %}
 {% endblock %}

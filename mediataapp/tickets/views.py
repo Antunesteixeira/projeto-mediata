@@ -15,8 +15,12 @@ from colaborador.models import Colaborador
 from clientes.models import Cliente
 from core.models import Empresa
 from usuarios.access import is_assinante
-from core.tenancy import tickets_da_empresa, pode_assumir_ticket
-from .access import exigir_empresa, pode_operar_tickets, ticket_de_operacao
+from core.tenancy import (
+    tickets_da_empresa, pode_acessar_financeiro, pode_assumir_ticket, pode_gerenciar_empresa,
+)
+from .access import (
+    exigir_empresa, pode_operar_tickets, ticket_de_financeiro, ticket_de_operacao,
+)
 from django.core.exceptions import PermissionDenied, ValidationError
 
 from django.http import HttpResponse, HttpResponseBadRequest, Http404
@@ -36,6 +40,19 @@ from datetime import datetime
 
 from weasyprint import HTML
 from num2words import num2words
+
+
+def _salvar_total_orcamento(orcamento):
+    """Atualiza o total ao alterar os itens, sem gravar durante uma consulta."""
+    subtotal = ExpressionWrapper(
+        F('quant') * F('item__valor_unit'),
+        output_field=DecimalField(max_digits=18, decimal_places=2),
+    )
+    orcamento.valor_total = ItemOrcamento.objects.filter(orcamento=orcamento).aggregate(
+        total=Sum(subtotal),
+    )['total'] or Decimal('0')
+    orcamento.save(update_fields=['valor_total'])
+
 
 def _tickets_disponiveis():
     return Ticket.objects.filter(
@@ -181,6 +198,16 @@ def exibirticket(request, key):
         })
     ticket = ticket_de_operacao(request, key=key)
 
+    if not pode_acessar_financeiro(request.user):
+        if request.method not in ('GET', 'HEAD'):
+            raise PermissionDenied('Seu perfil permite apenas as operações não financeiras do ticket.')
+        return render(request, 'tickets/ticket.html', {
+            'ticket': ticket,
+            'historico': HistoricoTicket.objects.filter(ticket_historico=ticket),
+            'ticketformstatus': TicketForm(instance=ticket, user=request.user),
+            'pode_acessar_financeiro': False,
+        })
+
     anexos = Anexo.objects.filter(ticket_anexo=ticket)
     
     # Buscar orçamento existente
@@ -229,6 +256,10 @@ def exibirticket(request, key):
                         if not item_id or not quantidade:
                             messages.error(request, "Dados incompletos para o item de orçamento.")
                         else:
+                            orcamento = get_object_or_404(
+                                Orcamento.objects.select_for_update(),
+                                pk=orcamento.pk, ticket_orcamento=ticket,
+                            )
                             insumo = get_object_or_404(Insumos, pk=item_id, empresa=ticket.empresa)
                             try:
                                 quantidade = quantidade.replace(',', '.')
@@ -238,6 +269,7 @@ def exibirticket(request, key):
                                     quant=Decimal(quantidade)
                                 )
                                 item_orcamento.save()
+                                _salvar_total_orcamento(orcamento)
                                 messages.success(request, "Item adicionado com sucesso!")
                                 return redirect('exibir-ticket', key=ticket.key)
                             except Insumos.DoesNotExist:
@@ -303,7 +335,6 @@ def exibirticket(request, key):
         )
         total_itens = itens_orcamento.aggregate(total=Sum('subtotal'))['total'] or Decimal('0')
         orcamento.valor_total = total_itens
-        orcamento.save()
     else:
         itens_orcamento = ItemOrcamento.objects.none()
         total_itens = Decimal('0')
@@ -365,7 +396,7 @@ def exibirticket(request, key):
         'anexos': anexos,
         'recebimentos': recebimentos,
         'recebimentos_form': recebimentos_form,      # ← agora sem prefixo
-        'can_edit_recebimentos': pode_operar_tickets(request.user),
+        'can_edit_recebimentos': pode_acessar_financeiro(request.user),
         'form_anexo': anexo_form,                    # pode conter erros se for inválido
         'margem': margem,
         'orcamento': orcamento,
@@ -437,7 +468,10 @@ def editar_ticket(request, key):
             # Verifica se os dados do formulário foram alterados
             if form.has_changed():
                 ticket = form.save(commit=False)
-                ticket.save()
+                changed_fields = list(form.changed_data)
+                if not str(ticket.ticket or '').strip():
+                    changed_fields.append('ticket')
+                ticket.save(update_fields=changed_fields)
                 messages.success(request, "O Ticket atualizado com sucesso!")
             else:
                 messages.info(request, "Nenhuma alteração foi detectada.")
@@ -477,6 +511,8 @@ def buscar_tickets(request):
 @login_required
 @require_POST
 def deletar_ticket(request, key):
+    if not pode_gerenciar_empresa(request.user):
+        raise PermissionDenied('Somente gerentes podem excluir tickets da empresa.')
     ticket = ticket_de_operacao(request, key=key)
 
     # opcional: checar permissão extra, ex:
@@ -494,12 +530,19 @@ def deletar_ticket(request, key):
 @login_required
 @require_POST
 def deletar_itemorcamento(request, id, key):
-    ticket = ticket_de_operacao(request, key=key)
-    itemorcamento = get_object_or_404(ItemOrcamento, id=id, orcamento__ticket_orcamento=ticket)
-
+    ticket = ticket_de_financeiro(request, key=key)
     try:
-        itemorcamento.delete()
-        messages.success(request, f"Item #{itemorcamento.item} deletado com sucesso.")
+        with transaction.atomic():
+            itemorcamento = get_object_or_404(
+                ItemOrcamento, id=id, orcamento__ticket_orcamento=ticket,
+            )
+            orcamento = get_object_or_404(
+                Orcamento.objects.select_for_update(),
+                pk=itemorcamento.orcamento_id, ticket_orcamento=ticket,
+            )
+            itemorcamento.delete()
+            _salvar_total_orcamento(orcamento)
+            messages.success(request, f"Item #{itemorcamento.item} deletado com sucesso.")
     except ProtectedError:
         messages.error(request, "Não foi possível deletar o ticket porque há objetos relacionados protegendo-o.")
     return redirect('exibir-ticket', key)
@@ -542,7 +585,7 @@ def update_historico(request, key):
 @login_required
 @require_POST
 def deletar_pagamento(request, id, key):
-    ticket = ticket_de_operacao(request, key=key)
+    ticket = ticket_de_financeiro(request, key=key)
     pagamento = get_object_or_404(Pagamentos, id=id, ticket_pagamento=ticket)
 
     try:
@@ -557,7 +600,7 @@ def addTicketColaborador(request, id_ticket):
     ticket = ticket_de_operacao(request, pk=id_ticket)
     colaboradores = Colaborador.objects.filter(empresa=ticket.empresa)
     return render(request, 'tickets/add-colaborador-ticket.html', {
-        'colaboradores': colaboradores, 'id_ticket': ticket.pk,
+        'colaboradores': colaboradores, 'id_ticket': ticket.pk, 'ticket': ticket,
         'title': 'Adicionar Colaborador ao Ticket', 'origem': request.GET.get('origem'),
     })
 
@@ -577,7 +620,7 @@ def addTicketCliente(request, id_ticket):
     ticket = ticket_de_operacao(request, pk=id_ticket)
     clientes = Cliente.objects.filter(empresa=ticket.empresa)
     return render(request, 'tickets/add-cliente-ticket.html', {
-        'clientes': clientes, 'id_ticket': ticket.pk,
+        'clientes': clientes, 'id_ticket': ticket.pk, 'ticket': ticket,
     })
 
 
@@ -593,7 +636,7 @@ def cadastrarTicketCliente(request, id_cliente, id_ticket):
 
 @login_required
 def editar_pagamento(request, pagamento_id, key):
-    ticket = ticket_de_operacao(request, key=key)
+    ticket = ticket_de_financeiro(request, key=key)
     pagamento = get_object_or_404(Pagamentos, id=pagamento_id, ticket_pagamento=ticket)
 
     if request.method == 'POST':
@@ -615,7 +658,7 @@ def editar_pagamento(request, pagamento_id, key):
 
 @login_required
 def add_pagamento(request, key):
-    ticket = ticket_de_operacao(request, key=key)
+    ticket = ticket_de_financeiro(request, key=key)
     if request.method == 'POST':
         form = PagamentoForm(request.POST)
         if form.is_valid():
@@ -634,7 +677,7 @@ def add_pagamento(request, key):
 @login_required
 @require_POST
 def upload_nfe(request, key):
-    ticket = ticket_de_operacao(request, key=key)
+    ticket = ticket_de_financeiro(request, key=key)
     if request.method == 'POST' and request.FILES.get('arquivo'):
         arquivo = request.FILES['arquivo']
         extensao = os.path.splitext(arquivo.name)[1].lower()  # pega a extensão do arquivo e deixa minúscula
@@ -663,7 +706,7 @@ def upload_nfe(request, key):
 @login_required
 @require_POST
 def delete_nfe(request, key):
-    ticket = ticket_de_operacao(request, key=key)
+    ticket = ticket_de_financeiro(request, key=key)
     
     if ticket.nfe_path:
         # Remove o arquivo físico
@@ -687,7 +730,7 @@ def delete_nfe(request, key):
 @login_required
 @require_POST
 def upload_comprovante(request, id, key):
-    ticket = ticket_de_operacao(request, key=key)
+    ticket = ticket_de_financeiro(request, key=key)
     pagamento = get_object_or_404(Pagamentos, id=id, ticket_pagamento=ticket)
     if request.method == 'POST' and request.FILES.get('comprovante'):
         arquivo = request.FILES['comprovante']
@@ -717,7 +760,7 @@ def upload_comprovante(request, id, key):
 @login_required
 @require_POST
 def delete_comprovante(request, id, key):
-    ticket = ticket_de_operacao(request, key=key)
+    ticket = ticket_de_financeiro(request, key=key)
     pagamento = get_object_or_404(Pagamentos, id=id, ticket_pagamento=ticket)
 
     if pagamento.comprovante:
@@ -741,7 +784,7 @@ def delete_comprovante(request, id, key):
 
 @login_required
 def gerar_pdf_orcamento(request, ticket_id):
-    ticket = ticket_de_operacao(request, pk=ticket_id)
+    ticket = ticket_de_financeiro(request, pk=ticket_id)
     try:
         # Pega a primeira empresa cadastrada
         empresa = ticket.empresa
@@ -815,7 +858,7 @@ def gerar_pdf_orcamento(request, ticket_id):
 @login_required
 @require_POST
 def deletar_anexo(request, anexo_id, key):
-    ticket = ticket_de_operacao(request, key=key)
+    ticket = ticket_de_financeiro(request, key=key)
     anexo = get_object_or_404(Anexo, id=anexo_id, ticket_anexo=ticket)
     if request.method == 'POST':
         anexo.delete()
@@ -827,7 +870,7 @@ def deletar_anexo(request, anexo_id, key):
 @login_required
 @require_http_methods(['GET', 'POST'])
 def editar_recebimento(request, recebimento_id, key):
-    ticket = ticket_de_operacao(request, key=key)
+    ticket = ticket_de_financeiro(request, key=key)
     recebimento = get_object_or_404(
         Recebimentos, pk=recebimento_id, ticket_recebimento=ticket,
     )
@@ -849,7 +892,7 @@ def editar_recebimento(request, recebimento_id, key):
 @login_required
 @require_POST
 def deletar_recebimento(request, recebimento_id, key):
-    ticket = ticket_de_operacao(request, key=key)
+    ticket = ticket_de_financeiro(request, key=key)
     recebimento = get_object_or_404(Recebimentos, id=recebimento_id, ticket_recebimento=ticket)
     if request.method == 'POST':
         recebimento.delete()
@@ -864,7 +907,7 @@ def gerar_pdf_ticket(request, key):
     from pathlib import Path
     import base64
 
-    ticket = ticket_de_operacao(request, key=key)
+    ticket = ticket_de_financeiro(request, key=key)
     context = ticket_report(ticket)
     context['company'] = ticket.empresa
     context['generated_by'] = request.user.get_full_name() or request.user.username

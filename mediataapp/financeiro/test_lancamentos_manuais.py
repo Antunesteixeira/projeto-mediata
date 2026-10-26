@@ -27,14 +27,15 @@ class LancamentosManuaisTests(TestCase):
         cls.empresa_inativa = criar_empresa(
             'Financeiro avulso inativo', '00.000.000/0000-83', ativa=False,
         )
-        cls.operador = cls.usuario('operador_manual_a', 'operador', cls.empresa)
+        cls.gestor = cls.usuario('gestor_manual_a', 'gerente', cls.empresa)
+        cls.operador = cls.usuario('operador_manual_restrito', 'operador', cls.empresa)
         cls.gerente = cls.usuario('gerente_manual_a', 'gerente', cls.empresa)
-        cls.outro_operador = cls.usuario('operador_manual_b', 'operador', cls.outra_empresa)
+        cls.outro_gestor = cls.usuario('gestor_manual_b', 'gerente', cls.outra_empresa)
         cls.assinante = cls.usuario('assinante_manual', 'assinante')
         cls.colaborador = cls.usuario('colaborador_manual', 'colaborador', cls.empresa)
         cls.cliente = cls.usuario('cliente_manual', 'cliente', cls.empresa)
-        cls.sem_empresa = cls.usuario('operador_manual_sem_empresa', 'operador')
-        cls.inativo = cls.usuario('operador_manual_inativo', 'operador', cls.empresa_inativa)
+        cls.sem_empresa = cls.usuario('gerente_manual_sem_empresa', 'gerente')
+        cls.inativo = cls.usuario('gerente_manual_inativo', 'gerente', cls.empresa_inativa)
         cls.admin = User.objects.create_superuser(
             username='admin_manual', email='admin-manual@example.invalid',
             password='senha-apenas-para-testes',
@@ -55,7 +56,7 @@ class LancamentosManuaisTests(TestCase):
         self.hoje = timezone.localdate()
         self.url = reverse('financeiro:index')
         self.novo_url = reverse('financeiro:novo-lancamento')
-        self.client.force_login(self.operador)
+        self.client.force_login(self.gestor)
 
     def dados(self, **alteracoes):
         dados = {
@@ -69,7 +70,7 @@ class LancamentosManuaisTests(TestCase):
     def manual(self, operacao='credito', valor='10.00', vencimento=None,
                liquidado=False, empresa=None, **alteracoes):
         dados = {
-            'empresa': empresa or self.empresa, 'criado_por': self.operador,
+            'empresa': empresa or self.empresa, 'criado_por': self.gestor,
             'operacao': operacao, 'descricao': 'Lançamento manual de teste',
             'contraparte': 'Contraparte de teste', 'valor': Decimal(valor),
             'data_vencimento': vencimento or self.hoje,
@@ -81,7 +82,7 @@ class LancamentosManuaisTests(TestCase):
     def ticket(self, **alteracoes):
         dados = {
             'usuario': self.assinante, 'empresa': self.empresa,
-            'assumido_por': self.operador, 'descricao': 'Serviço vinculado ao financeiro',
+            'assumido_por': self.gestor, 'descricao': 'Serviço vinculado ao financeiro',
         }
         dados.update(alteracoes)
         return Ticket.objects.create(**dados)
@@ -138,7 +139,7 @@ class LancamentosManuaisTests(TestCase):
         urls = (self.novo_url, reverse('financeiro:editar-manual', args=[manual.pk]))
         antes = list(LancamentoManual.objects.values())
         for usuario in (
-            self.assinante, self.cliente, self.colaborador, self.sem_empresa, self.inativo,
+            self.operador, self.assinante, self.cliente, self.colaborador, self.sem_empresa, self.inativo,
         ):
             self.client.force_login(usuario)
             for url in urls:
@@ -150,7 +151,7 @@ class LancamentosManuaisTests(TestCase):
         self.assertEqual(list(LancamentoManual.objects.values()), antes)
 
     def test_cadastrar_credito_e_debito_independentes_nao_cria_ticket_ou_financeiro_do_ticket(self):
-        for operacao, usuario in (('credito', self.operador), ('debito', self.gerente)):
+        for operacao, usuario in (('credito', self.gestor), ('debito', self.gerente)):
             with self.subTest(operacao=operacao):
                 self.client.force_login(usuario)
                 response = self.client.post(self.novo_url, self.dados(operacao=operacao))
@@ -177,7 +178,7 @@ class LancamentosManuaisTests(TestCase):
         self.assertEqual(response.status_code, 302)
         lancamento = LancamentoManual.objects.get()
         self.assertEqual(lancamento.empresa_id, self.empresa.pk)
-        self.assertEqual(lancamento.criado_por_id, self.operador.pk)
+        self.assertEqual(lancamento.criado_por_id, self.gestor.pk)
 
     def test_superusuario_escolhe_empresa_ativa_explicitamente(self):
         self.client.force_login(self.admin)
@@ -264,7 +265,7 @@ class LancamentosManuaisTests(TestCase):
         self.assertEqual(response.status_code, 302)
         manual.refresh_from_db()
         self.assertEqual(manual.empresa_id, self.empresa.pk)
-        self.assertEqual(manual.criado_por_id, self.operador.pk)
+        self.assertEqual(manual.criado_por_id, self.gestor.pk)
         self.assertEqual(manual.criado_em, criado_em)
         self.assertEqual(manual.operacao, 'debito')
         self.assertEqual(manual.descricao, 'Aluguel atualizado')
@@ -287,7 +288,7 @@ class LancamentosManuaisTests(TestCase):
         self.assertEqual(response.status_code, 302)
         manual.refresh_from_db()
         self.assertEqual(manual.empresa_id, self.empresa.pk)
-        self.assertEqual(manual.criado_por_id, self.operador.pk)
+        self.assertEqual(manual.criado_por_id, self.gestor.pk)
 
     def test_reabrir_lancamento_limpa_quitacao_e_atualiza_situacao(self):
         manual = self.manual(liquidado=True, vencimento=self.hoje - timedelta(days=1))
@@ -398,7 +399,7 @@ class LancamentosManuaisTests(TestCase):
         self.assert_manuais(response, [proprio])
         self.assert_totais(response, credito='10.11', a_receber='10.11')
         self.assertNotContains(response, estrangeiro.descricao)
-        response = self.consultar(usuario=self.outro_operador)
+        response = self.consultar(usuario=self.outro_gestor)
         self.assert_manuais(response, [estrangeiro])
         self.assert_totais(response, credito='999.99')
         response = self.consultar(usuario=self.admin)
@@ -487,7 +488,7 @@ class LancamentosManuaisTests(TestCase):
         manual = self.manual()
         editar = reverse('financeiro:editar-manual', args=[manual.pk])
         protegido = Client(enforce_csrf_checks=True)
-        protegido.force_login(self.operador)
+        protegido.force_login(self.gestor)
         antes = list(LancamentoManual.objects.values())
         for url in (self.novo_url, editar):
             with self.subTest(url=url):
@@ -583,7 +584,7 @@ class LancamentosManuaisTests(TestCase):
 
     def test_modal_valido_exige_csrf_e_cria_na_empresa_preservando_retorno_seguro(self):
         protegido = Client(enforce_csrf_checks=True)
-        protegido.force_login(self.operador)
+        protegido.force_login(self.gestor)
         response = protegido.get(self.url)
         self.assertEqual(response.status_code, 200)
         self.assertIn('csrftoken', protegido.cookies)
@@ -603,7 +604,7 @@ class LancamentosManuaisTests(TestCase):
         self.assertEqual(parse_qs(destino.query), {nome: [valor] for nome, valor in filtros.items()})
         lancamento = LancamentoManual.objects.get()
         self.assertEqual(lancamento.empresa_id, self.empresa.pk)
-        self.assertEqual(lancamento.criado_por_id, self.operador.pk)
+        self.assertEqual(lancamento.criado_por_id, self.gestor.pk)
         self.assertEqual(lancamento.descricao, dados['descricao'])
         self.assertEqual(lancamento.valor, Decimal('123.45'))
         self.assertFalse(Ticket.objects.exists())

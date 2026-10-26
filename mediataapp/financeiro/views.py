@@ -10,7 +10,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_GET, require_http_methods
 
-from core.tenancy import dados_da_empresa, pode_operar_tickets, tickets_da_empresa
+from core.tenancy import dados_da_empresa, pode_acessar_financeiro, tickets_da_empresa
 from tickets.forms import EditarRecebimentoForm, PagamentoForm
 from tickets.models import Pagamentos, Recebimentos
 from .forms import FiltroFinanceiroForm, LancamentoManualForm
@@ -22,7 +22,7 @@ from .services import (
 
 
 def _exigir_acesso(user):
-    if not pode_operar_tickets(user):
+    if not pode_acessar_financeiro(user):
         raise PermissionDenied('Seu acesso não permite consultar o financeiro da empresa.')
 
 

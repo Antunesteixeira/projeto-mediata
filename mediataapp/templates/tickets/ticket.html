@@ -166,12 +166,16 @@
         </div>
       </div>
       <div class="app-page-actions">
+        {% if pode_acessar_financeiro %}
         <a href="{% url 'gerar_pdf_ticket' ticket.key %}" class="btn btn-sm btn-outline-primary">
           <i class="bi bi-file-earmark-pdf me-1"></i>PDF completo
         </a>
+        {% endif %}
+        {% if pode_gerenciar_empresa %}
         <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#confirmDeleteModal">
           <i class="bi bi-trash"></i>
         </button>
+        {% endif %}
       </div>
   </header>
   <p class="text-muted small mb-3"><i class="bi bi-building me-1" aria-hidden="true"></i>{{ ticket.empresa.nome_fantasia|default:'Empresa não atribuída' }} · Responsável: {% if ticket.assumido_por %}{{ ticket.assumido_por.get_full_name|default:ticket.assumido_por.username }}{% else %}Não atribuído{% endif %}</p>
@@ -211,6 +215,7 @@
     </div>
   </div>
 
+{% if pode_acessar_financeiro %}
 <!-- Orçamento e Itens -->
 <div class="info-card card mb-4">
   <div class="card-body">
@@ -362,11 +367,14 @@
   </div>
 </div>
 
+{% endif %}
+
   <!-- Informações adicionais -->
   <div class="info-card card mb-4">
     <div class="card-body">
       <h5 class="card-title"><i class="bi bi-info-circle me-2"></i>INFORMAÇÕES ADICIONAIS</h5>
       <div class="row">
+        {% if pode_acessar_financeiro %}
         <div class="col-md-4 mb-3">
           <label class="text-muted small mb-1">BDI</label>
           <div class="fw-bold">R$ {{ valor_custo_total|floatformat:2 }}</div>
@@ -375,7 +383,8 @@
           <label class="text-muted small mb-1">Fator/Margem</label>
           <div class="fw-bold">{{ margem|floatformat:3 }}</div>
         </div>
-        <div class="col-md-4 mb-3">
+        {% endif %}
+        <div class="{% if pode_acessar_financeiro %}col-md-4{% else %}col-12{% endif %} mb-3">
           <label class="text-muted small mb-1">Status</label>
           <div>
             {% with ticket.status as s %}
@@ -415,6 +424,7 @@
     </div>
   </div>
 
+{% if pode_acessar_financeiro %}
   <!-- Pagamentos -->
   <div class="info-card card mb-4">
     <div class="card-body">
@@ -750,6 +760,8 @@
   </div>
 </div>
 
+{% endif %}
+
   <!-- Timeline -->
   <div class="info-card card">
     <div class="card-body">
@@ -789,6 +801,7 @@
 
 <!-- Modais -->
 
+{% if pode_acessar_financeiro %}
 <!-- Orçamento -->
 <div class="modal fade" id="ModalOrcamento" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
@@ -946,6 +959,9 @@
   </div>
 </div>
 
+{% endif %}
+
+{% if pode_gerenciar_empresa %}
 <!-- Modal de confirmação -->
 <div class="modal fade" id="confirmDeleteModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
@@ -968,6 +984,8 @@
     </div>
   </div>
 </div>
+
+{% endif %}
 
 <!-- Modal Editar Status (CORRIGIDO) -->
 <div class="modal fade" id="myModal" tabindex="-1" aria-labelledby="myModalLabel" aria-hidden="true">
@@ -997,6 +1015,7 @@
 </div>
 
 
+{% if pode_acessar_financeiro %}
 <!-- Modal Recebimentos (corrigido) -->
 <div class="modal fade" id="ModalRecebimentos" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-lg">
@@ -1204,5 +1223,6 @@ document.addEventListener('DOMContentLoaded', function() {
 {% endif %}
 {% if pagamento.is_bound and pagamento.errors %}
 <script>document.addEventListener('DOMContentLoaded', function () { bootstrap.Modal.getOrCreateInstance(document.getElementById('ModalPagamento')).show(); });</script>
+{% endif %}
 {% endif %}
 {% endblock %}

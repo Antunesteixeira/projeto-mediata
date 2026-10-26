@@ -19,15 +19,15 @@ class PagamentosFinanceiroIntegrationTests(TestCase):
     @classmethod
     def setUpTestData(cls):
         cls.empresa = criar_empresa('Empresa integração financeira', '00.000.000/0000-81')
-        cls.operador = User.objects.create_user(username='operador_integracao_financeira')
-        assign_role(cls.operador, 'operador')
-        vincular_usuario(cls.operador, cls.empresa)
+        cls.gerente = User.objects.create_user(username='gerente_integracao_financeira')
+        assign_role(cls.gerente, 'gerente')
+        vincular_usuario(cls.gerente, cls.empresa)
         cls.ticket = Ticket.objects.create(
-            ticket='FININT001', usuario=cls.operador, empresa=cls.empresa,
+            ticket='FININT001', usuario=cls.gerente, empresa=cls.empresa,
             descricao='Ticket para criação e edição de despesas',
         )
         cls.outro_ticket = Ticket.objects.create(
-            ticket='FININT002', usuario=cls.operador, empresa=cls.empresa,
+            ticket='FININT002', usuario=cls.gerente, empresa=cls.empresa,
             descricao='Outro ticket não pode receber o pagamento por campo forjado',
         )
 
@@ -37,7 +37,7 @@ class PagamentosFinanceiroIntegrationTests(TestCase):
         self.addCleanup(current_timezone.__exit__, None, None, None)
         self.hoje = timezone.localdate()
         self.url = reverse('exibir-ticket', kwargs={'key': self.ticket.key})
-        self.client.force_login(self.operador)
+        self.client.force_login(self.gerente)
 
     def payload(self, **alteracoes):
         dados = {

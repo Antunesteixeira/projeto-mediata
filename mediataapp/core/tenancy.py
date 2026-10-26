@@ -84,3 +84,8 @@ def pode_operar_tickets(user):
         and empresa_do_usuario(user) is not None
         and user.groups.filter(name__in=('gerente', 'operador')).exists()
     )
+
+
+def pode_acessar_financeiro(user):
+    """Valores e documentos financeiros são restritos à gestão da empresa."""
+    return pode_gerenciar_empresa(user)

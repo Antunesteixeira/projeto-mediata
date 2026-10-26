@@ -13,7 +13,7 @@ from django.core.exceptions import FieldError, PermissionDenied
 from django.db.models import Exists, OuterRef
 from django.core.paginator import Paginator
 from core.tenancy import (
-    dados_da_empresa, pode_assumir_ticket, tickets_da_empresa, usuarios_da_empresa,
+    dados_da_empresa, pode_acessar_financeiro, tickets_da_empresa, usuarios_da_empresa,
 )
 
 
@@ -22,7 +22,7 @@ PENDING_TICKET_STATUSES = ('V', 'X', 'E', 'A')
 
 @login_required
 def relatorio_view(request):
-    if not (request.user.is_superuser or pode_assumir_ticket(request.user)):
+    if not pode_acessar_financeiro(request.user):
         raise PermissionDenied('Seu acesso não permite consultar relatórios financeiros.')
     # Valores padrão para filtros
     filtros = {

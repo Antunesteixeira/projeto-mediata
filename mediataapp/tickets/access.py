@@ -1,7 +1,9 @@
 from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 
-from core.tenancy import empresa_do_usuario, pode_operar_tickets, tickets_da_empresa
+from core.tenancy import (
+    empresa_do_usuario, pode_acessar_financeiro, pode_operar_tickets, tickets_da_empresa,
+)
 
 
 def exigir_empresa(user):
@@ -16,4 +18,10 @@ def exigir_empresa(user):
 def ticket_de_operacao(request, **lookup):
     if not pode_operar_tickets(request.user):
         raise PermissionDenied('Seu perfil permite apenas acompanhar os tickets.')
+    return get_object_or_404(tickets_da_empresa(request.user), **lookup)
+
+
+def ticket_de_financeiro(request, **lookup):
+    if not pode_acessar_financeiro(request.user):
+        raise PermissionDenied('Seu perfil não permite acessar informações financeiras.')
     return get_object_or_404(tickets_da_empresa(request.user), **lookup)

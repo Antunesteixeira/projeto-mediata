@@ -33,10 +33,12 @@ class TicketMultiempresaTests(TestCase):
         cls.operator_a = User.objects.create_user(username='operador_empresa_a')
         cls.manager_a = User.objects.create_user(username='gerente_empresa_a')
         cls.operator_b = User.objects.create_user(username='operador_empresa_b')
+        cls.manager_b = User.objects.create_user(username='gerente_empresa_b')
         for user, role, company in (
             (cls.operator_a, 'operador', cls.company_a),
             (cls.manager_a, 'gerente', cls.company_a),
             (cls.operator_b, 'operador', cls.company_b),
+            (cls.manager_b, 'gerente', cls.company_b),
         ):
             assign_role(user, role)
             vincular_usuario(user, company)
@@ -152,7 +154,7 @@ class TicketMultiempresaTests(TestCase):
             self.assertNotContains(response, private_value)
         self.assertEqual(self.client.get(self.url('exibir-ticket')).status_code, 404)
         self.assertEqual(self.client.get(self.url('editar-ticket')).status_code, 404)
-        self.assertEqual(self.client.get(self.url('gerar_pdf_ticket')).status_code, 404)
+        self.assertEqual(self.client.get(self.url('gerar_pdf_ticket')).status_code, 403)
         self.assertEqual(self.snapshot(), before)
 
     def test_claim_uses_actor_company_and_preserves_author_status_number_and_finances(self):
@@ -299,12 +301,13 @@ class TicketMultiempresaTests(TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertNotContains(response, self.available.ticket)
         for name in ('ticket-disponivel', 'exibir-ticket', 'editar-ticket', 'gerar_pdf_ticket'):
-            self.assertEqual(self.client.get(self.url(name)).status_code, 404)
+            self.assertEqual(self.client.get(self.url(name)).status_code,
+                             403 if name == 'gerar_pdf_ticket' else 404)
 
     @patch('tickets.views.HTML')
     def test_foreign_financial_and_mutation_endpoints_return_404_without_writes(self, renderer):
         self.claim_as_a()
-        self.client.force_login(self.operator_b)
+        self.client.force_login(self.manager_b)
         key = self.available.key
         routes = (
             ('editar-ticket', {'key': key}), ('deletar-ticket', {'key': key}),

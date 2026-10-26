@@ -11,10 +11,14 @@ from django.urls import reverse
 
 EXPECTED_GROUP_PERMISSIONS = {
     'gerente': {'criar_ticket', 'ver_ticket', 'criar_insumo', 'criar_usuarios', 'ver_usuarios'},
-    'operador': {'criar_ticket', 'ver_ticket', 'criar_insumo'},
+    'operador': {'criar_ticket', 'ver_ticket'},
     'cliente': {'criar_ticket', 'ver_ticket'},
     'colaborador': {'ver_ticket'},
     'assinante': {'criar_ticket', 'ver_ticket'},
+}
+LEGACY_GROUP_PERMISSIONS = {
+    **EXPECTED_GROUP_PERMISSIONS,
+    'operador': {'criar_ticket', 'ver_ticket', 'criar_insumo'},
 }
 MIGRATION_MODULE = 'usuarios.migrations.0002_garantir_grupos_de_acesso'
 
@@ -32,14 +36,15 @@ class GruposDeAcessoTests(TestCase):
         # da transação do TestCase, permitindo também executar em SQLite.
         migration.garantir_grupos_de_acesso(historical_apps, connection.schema_editor())
 
-    def assert_expected_groups_and_permissions(self):
+    def assert_expected_groups_and_permissions(self, *, legacy=False):
+        expected_groups = LEGACY_GROUP_PERMISSIONS if legacy else EXPECTED_GROUP_PERMISSIONS
         self.assertEqual(
             set(Group.objects.filter(name__in=EXPECTED_GROUP_PERMISSIONS).values_list('name', flat=True)),
             set(EXPECTED_GROUP_PERMISSIONS),
         )
         content_type = self.user_content_type()
         known_permissions = set().union(*EXPECTED_GROUP_PERMISSIONS.values())
-        for name, expected_permissions in EXPECTED_GROUP_PERMISSIONS.items():
+        for name, expected_permissions in expected_groups.items():
             with self.subTest(group=name):
                 group = Group.objects.get(name=name)
                 assigned = set(group.permissions.filter(
@@ -154,7 +159,7 @@ class GruposDeAcessoTests(TestCase):
 
         self.run_forward()
 
-        self.assert_expected_groups_and_permissions()
+        self.assert_expected_groups_and_permissions(legacy=True)
         for name, pk in original_ids.items():
             self.assertEqual(Group.objects.get(name=name).pk, pk)
         self.assertEqual(set(member.groups.values_list('pk', flat=True)), original_memberships)
@@ -184,13 +189,15 @@ class GruposDeAcessoTests(TestCase):
         )
         existing_permission.name = 'Nome personalizado da permissão existente'
         existing_permission.save(update_fields=['name'])
+        # A 0002 representa a política histórica; a 0005 reduz os acessos atuais.
+        self.run_forward()
         before = self.access_snapshot()
 
         self.run_forward()
         self.run_forward()
 
         self.assertEqual(self.access_snapshot(), before)
-        self.assert_expected_groups_and_permissions()
+        self.assert_expected_groups_and_permissions(legacy=True)
 
     def test_reverse_keeps_groups_permissions_and_user_memberships(self):
         member = User.objects.create_user(username='membro_reversao_fixture')

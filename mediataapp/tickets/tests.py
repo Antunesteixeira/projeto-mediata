@@ -20,7 +20,7 @@ class TicketPDFTests(TestCase):
         self.company = criar_empresa()
         self.other_company = criar_empresa('Empresa fictícia B', '00.000.000/0000-02')
         self.user = User.objects.create_user(username='operador', password='test-only-password', first_name='Operador', last_name='Responsável')
-        assign_role(self.user, 'operador')
+        assign_role(self.user, 'gerente')
         vincular_usuario(self.user, self.company)
         self.ticket = Ticket.objects.create(ticket='PDF001', usuario=self.user, empresa=self.company, descricao='Descrição completa\nSegunda linha')
         self.url = reverse('gerar_pdf_ticket', kwargs={'key': self.ticket.key})
@@ -43,14 +43,14 @@ class TicketPDFTests(TestCase):
 
     @patch('tickets.views.HTML')
     def test_other_users_cannot_export_ticket(self, renderer):
-        for role in ('operador', 'cliente', 'colaborador'):
+        for role in ('gerente', 'operador', 'cliente', 'colaborador'):
             with self.subTest(role=role):
                 other_user = User.objects.create_user(username=f'outro_{role}')
                 assign_role(other_user, role)
                 vincular_usuario(other_user, self.other_company)
                 self.client.force_login(other_user)
                 response = self.client.get(self.url)
-                self.assertEqual(response.status_code, 404 if role == 'operador' else 403)
+                self.assertEqual(response.status_code, 404 if role == 'gerente' else 403)
         renderer.assert_not_called()
 
     @patch('tickets.views.HTML')
@@ -120,7 +120,7 @@ class TicketReportFinancialTests(TestCase):
     def setUp(self):
         self.company = criar_empresa()
         self.user = User.objects.create_user(username='financeiro_pdf')
-        assign_role(self.user, 'operador')
+        assign_role(self.user, 'gerente')
         vincular_usuario(self.user, self.company)
         self.ticket = Ticket.objects.create(
             ticket='FINPDF001', usuario=self.user, empresa=self.company, descricao='Ticket financeiro',

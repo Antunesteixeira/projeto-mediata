@@ -20,7 +20,7 @@ from .forms import EmpresaForm
 from .models import Empresa
 from .tenancy import (
     dados_da_empresa, empresa_do_usuario, pode_gerenciar_empresa,
-    pode_operar_tickets, tickets_da_empresa, usuarios_da_empresa,
+    pode_acessar_financeiro, pode_operar_tickets, tickets_da_empresa, usuarios_da_empresa,
 )
 
 
@@ -57,6 +57,7 @@ def dashboard(request):
     context = build_dashboard_context(
         tickets_da_empresa(request.user), empresa, True, now=timezone.now(),
         is_platform_admin=request.user.is_superuser,
+        can_view_financial=pode_acessar_financeiro(request.user),
     )
     return render(request, 'home/dashboard.html', context)
 
@@ -69,8 +70,8 @@ def erro_404(request, exception):
 @login_required
 @require_GET
 def buscar_itens(request):
-    if not pode_operar_tickets(request.user):
-        raise PermissionDenied('A consulta de insumos é restrita à operação da empresa.')
+    if not pode_acessar_financeiro(request.user):
+        raise PermissionDenied('A consulta de preços é restrita à gestão da empresa.')
     termo = request.GET.get('term', '').strip()
     itens = dados_da_empresa(request.user, Insumos.objects.all())
     itens = itens.filter(Q(insumo__icontains=termo) | Q(codigo__icontains=termo)).order_by('insumo')[:10] if termo else []
@@ -88,7 +89,16 @@ def buscar_itens(request):
 
 
 class EmpresaScopedMixin(LoginRequiredMixin):
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if not pode_gerenciar_empresa(request.user):
+            raise PermissionDenied('A administração da empresa é restrita aos gerentes.')
+        return super().dispatch(request, *args, **kwargs)
+
     def get_queryset(self):
+        if not pode_gerenciar_empresa(self.request.user):
+            raise PermissionDenied('A administração da empresa é restrita aos gerentes.')
         queryset = Empresa.objects.all()
         if self.request.user.is_superuser:
             return queryset
@@ -164,8 +174,8 @@ class EmpresaListView(EmpresaScopedMixin, ListView):
 
 @login_required
 def success_view(request):
-    if not request.user.is_superuser and empresa_do_usuario(request.user) is None:
-        raise PermissionDenied('Sua conta precisa estar vinculada a uma empresa ativa.')
+    if not pode_gerenciar_empresa(request.user):
+        raise PermissionDenied('A administração da empresa é restrita aos gerentes.')
     return render(request, 'empresa/success.html')
 
 
@@ -191,6 +201,6 @@ def empresa_lista(request):
 
 @login_required
 def uploader_arquivos(request):
-    if not pode_operar_tickets(request.user):
-        raise PermissionDenied('O envio de arquivos é restrito à operação da empresa.')
+    if not pode_gerenciar_empresa(request.user):
+        raise PermissionDenied('O envio de arquivos é restrito à gestão da empresa.')
     return render(request, 'uploader_arquivos.html')

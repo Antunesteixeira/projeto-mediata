@@ -6,7 +6,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from core.models import Empresa
-from core.tenancy import empresa_do_usuario, pode_operar_tickets
+from core.tenancy import empresa_do_usuario, pode_acessar_financeiro
 from .models import LancamentoManual
 
 
@@ -121,7 +121,7 @@ class LancamentoManualForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        if self.actor is None or not pode_operar_tickets(self.actor):
+        if self.actor is None or not pode_acessar_financeiro(self.actor):
             raise ValidationError('Seu acesso não permite cadastrar lançamentos financeiros.')
         if not self.actor.is_superuser:
             empresa = empresa_do_usuario(self.actor)

@@ -44,6 +44,11 @@ class EmpresaAccessMiddleware(MiddlewareMixin):
         'tickets-disponiveis', 'ticket-disponivel',
     }
     user_management_views = {'index-usuarios', 'registrar-usuarios', 'editar-usuario', 'editar-usuarios'}
+    operator_views = basic_ticket_views | {
+        'cadastro-ticket', 'editar-ticket', 'assumir-ticket', 'update-historico',
+        'add-colaborador-ticket', 'cadastrar-colaborador-ticket',
+        'add-cliente-ticket', 'cadastrar-cliente-ticket',
+    }
 
     def process_view(self, request, view_func, view_args, view_kwargs):
         from core.tenancy import empresa_do_usuario, pode_gerenciar_empresa, pode_operar_tickets
@@ -66,4 +71,10 @@ class EmpresaAccessMiddleware(MiddlewareMixin):
             raise PermissionDenied('A gestão de usuários é restrita aos gerentes da empresa.')
         if not pode_operar_tickets(user) and view_name not in self.basic_ticket_views:
             raise PermissionDenied('Seu acesso permite acompanhar os tickets da sua empresa.')
+        if (
+            pode_operar_tickets(user)
+            and not pode_gerenciar_empresa(user)
+            and view_name not in self.operator_views
+        ):
+            raise PermissionDenied('Seu acesso é restrito à operação dos tickets da sua empresa.')
         return None

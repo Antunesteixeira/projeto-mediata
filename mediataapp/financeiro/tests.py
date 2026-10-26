@@ -32,8 +32,8 @@ class FinanceiroTests(TestCase):
         cls.colaborador = cls.usuario('colaborador_financeiro', 'colaborador', cls.empresa)
         cls.cliente = cls.usuario('cliente_financeiro', 'cliente', cls.empresa)
         cls.assinante = cls.usuario('assinante_financeiro', 'assinante')
-        cls.sem_empresa = cls.usuario('sem_empresa_financeiro', 'operador')
-        cls.inativo = cls.usuario('empresa_inativa_financeiro', 'operador', cls.empresa_inativa)
+        cls.sem_empresa = cls.usuario('sem_empresa_financeiro', 'gerente')
+        cls.inativo = cls.usuario('empresa_inativa_financeiro', 'gerente', cls.empresa_inativa)
         cls.admin = User.objects.create_superuser(
             username='admin_financeiro', email='admin-financeiro@example.invalid',
             password='senha-apenas-para-testes',
@@ -65,7 +65,7 @@ class FinanceiroTests(TestCase):
         self.addCleanup(current_timezone.__exit__, None, None, None)
         self.hoje = timezone.localdate()
         self.url = reverse('financeiro:index')
-        self.client.force_login(self.operador)
+        self.client.force_login(self.gerente)
 
     def debito(self, valor='10.00', vencimento='hoje', pago=False, ticket=None, **extras):
         if vencimento == 'hoje':
@@ -124,19 +124,19 @@ class FinanceiroTests(TestCase):
         self.assertIn('/accounts/login/', response.url)
         self.assertEqual(parse_qs(urlsplit(response.url).query)['next'], [self.url])
 
-    def test_financeiro_restrito_a_operadores_gerentes_e_superusuarios(self):
+    def test_financeiro_restrito_a_gerentes_e_superusuarios(self):
         self.credito('987.65', descricao_recebimento='Conteúdo financeiro restrito')
-        for usuario in (self.colaborador, self.cliente, self.assinante, self.sem_empresa, self.inativo):
+        for usuario in (self.operador, self.colaborador, self.cliente, self.assinante, self.sem_empresa, self.inativo):
             with self.subTest(usuario=usuario.username):
                 response = self.consultar(usuario=usuario, status=403)
                 self.assertNotContains(response, 'Conteúdo financeiro restrito', status_code=403)
 
-    def test_operador_e_gerente_veem_toda_empresa_sem_filtrar_por_autor_do_ticket(self):
+    def test_gerente_ve_toda_empresa_sem_filtrar_por_autor_do_ticket(self):
         credito = self.credito('123.45')
         debito = self.debito('54.32')
         estrangeiro = self.credito('500.00', ticket=self.outro_ticket)
         fila = self.credito('900.00', ticket=self.disponivel)
-        for usuario in (self.operador, self.gerente):
+        for usuario in (self.gerente,):
             with self.subTest(usuario=usuario.username):
                 response = self.consultar(
                     {'empresa': self.outra_empresa.pk, 'usuario': self.assinante.pk}, usuario,
@@ -405,9 +405,9 @@ class FinanceiroTests(TestCase):
         for url in urls:
             for metodo in ('get', 'post'):
                 with self.subTest(url=url, metodo=metodo):
-                    self.client.force_login(self.operador)
+                    self.client.force_login(self.gerente)
                     self.assertEqual(getattr(self.client, metodo)(url, {}).status_code, 404)
-                    for usuario in (self.assinante, self.colaborador, self.cliente, self.sem_empresa, self.inativo):
+                    for usuario in (self.operador, self.assinante, self.colaborador, self.cliente, self.sem_empresa, self.inativo):
                         self.client.force_login(usuario)
                         self.assertEqual(getattr(self.client, metodo)(url, {}).status_code, 403)
         self.assertEqual(list(Pagamentos.objects.values()), antes_p)

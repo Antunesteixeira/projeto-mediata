@@ -68,7 +68,10 @@ def _responsavel_operacional(ticket):
     return autor if vinculo.empresa_id == ticket.empresa_id else None
 
 
-def build_dashboard_context(tickets, company, can_view_all, now=None, *, is_platform_admin=False):
+def build_dashboard_context(
+    tickets, company, can_view_all, now=None, *, is_platform_admin=False,
+    can_view_financial=True,
+):
     """Monta indicadores, gráficos e tabela sem consultas por ticket.
 
     O chamador deve fornecer um queryset já limitado ao escopo do usuário.
@@ -76,33 +79,53 @@ def build_dashboard_context(tickets, company, can_view_all, now=None, *, is_plat
     evitar multiplicação de valores quando um ticket tem várias relações.
     """
     now = timezone.localtime(now or timezone.now())
-    tickets = list(tickets.select_related(
+    tickets = tickets.select_related(
         "usuario", "usuario__vinculo_empresa", "assumido_por", "cliente", "colaborador",
-    ).prefetch_related(
-        'usuario__groups',
-        Prefetch("orcamento_set", queryset=Orcamento.objects.all(), to_attr="orcamentos_prefetch"),
-        Prefetch("pagamentos", queryset=Pagamentos.objects.all(), to_attr="pagamentos_prefetch"),
-        Prefetch("recebimentos", queryset=Recebimentos.objects.all(), to_attr="recebimentos_prefetch"),
-    ))
+    )
+    if can_view_financial:
+        tickets = tickets.prefetch_related(
+            'usuario__groups',
+            Prefetch("orcamento_set", queryset=Orcamento.objects.all(), to_attr="orcamentos_prefetch"),
+            Prefetch("pagamentos", queryset=Pagamentos.objects.all(), to_attr="pagamentos_prefetch"),
+            Prefetch("recebimentos", queryset=Recebimentos.objects.all(), to_attr="recebimentos_prefetch"),
+        )
+    else:
+        # A visão operacional não carrega valores, documentos ou dados bancários.
+        tickets = tickets.prefetch_related(None).only(
+            'id', 'ticket', 'key', 'status', 'emergencial', 'data_criacao',
+            'data_finalizar', 'empresa_id', 'usuario_id', 'assumido_por_id',
+            'cliente_id', 'colaborador_id',
+            'usuario__id', 'usuario__username', 'usuario__first_name',
+            'usuario__last_name', 'usuario__is_superuser',
+            'usuario__vinculo_empresa__id', 'usuario__vinculo_empresa__empresa_id',
+            'assumido_por__id', 'assumido_por__username',
+            'assumido_por__first_name', 'assumido_por__last_name',
+            'cliente__id', 'cliente__nome_razao_social',
+            'colaborador__id', 'colaborador__tipo_pessoa',
+            'colaborador__nome_completo', 'colaborador__razao_social',
+        ).prefetch_related('usuario__groups')
+    tickets = list(tickets)
 
     metrics = {
         "tickets_total": len(tickets),
         "active": 0,
         "finalized": 0,
         "emergency": 0,
-        "budget_total": ZERO,
-        "budget_month": ZERO,
-        "paid_total": ZERO,
-        "pending_payments": ZERO,
-        "receivable_total": ZERO,
-        "received_total": ZERO,
         "operators_count": 0,
         "clients_count": 0,
         "collaborators_count": 0,
     }
+    if can_view_financial:
+        metrics.update(dict.fromkeys((
+            'budget_total', 'budget_month', 'paid_total', 'pending_payments',
+            'receivable_total', 'received_total',
+        ), ZERO))
     status_counts = Counter()
     monthly = {
-        key: {"label": f"{MONTH_NAMES[key[1]]}/{key[0]}", "tickets": 0, "budget": ZERO}
+        key: {
+            "label": f"{MONTH_NAMES[key[1]]}/{key[0]}", "tickets": 0,
+            **({"budget": ZERO} if can_view_financial else {}),
+        }
         for key in _month_keys(now)
     }
     current_month = (now.year, now.month - 1)
@@ -121,36 +144,37 @@ def build_dashboard_context(tickets, company, can_view_all, now=None, *, is_plat
         if ticket_month in monthly:
             monthly[ticket_month]["tickets"] += 1
 
-        ticket.total_orcamentos = sum(
-            (budget.valor_total or ZERO for budget in ticket.orcamentos_prefetch), ZERO,
-        )
-        ticket.total_pagamentos = sum(
-            (payment.valor_pagamento or ZERO for payment in ticket.pagamentos_prefetch), ZERO,
-        )
-        metrics["budget_total"] += ticket.total_orcamentos
+        if can_view_financial:
+            ticket.total_orcamentos = sum(
+                (budget.valor_total or ZERO for budget in ticket.orcamentos_prefetch), ZERO,
+            )
+            ticket.total_pagamentos = sum(
+                (payment.valor_pagamento or ZERO for payment in ticket.pagamentos_prefetch), ZERO,
+            )
+            metrics["budget_total"] += ticket.total_orcamentos
 
-        for budget in ticket.orcamentos_prefetch:
-            value = budget.valor_total or ZERO
-            budget_month = _local_month(budget.data_criacao)
-            if budget_month in monthly:
-                monthly[budget_month]["budget"] += value
-            if budget_month == current_month:
-                metrics["budget_month"] += value
-                month_budgets.append(budget)
+            for budget in ticket.orcamentos_prefetch:
+                value = budget.valor_total or ZERO
+                budget_month = _local_month(budget.data_criacao)
+                if budget_month in monthly:
+                    monthly[budget_month]["budget"] += value
+                if budget_month == current_month:
+                    metrics["budget_month"] += value
+                    month_budgets.append(budget)
 
-        for payment in ticket.pagamentos_prefetch:
-            key = "paid_total" if payment.status_pagamento else "pending_payments"
-            metrics[key] += payment.valor_pagamento or ZERO
+            for payment in ticket.pagamentos_prefetch:
+                key = "paid_total" if payment.status_pagamento else "pending_payments"
+                metrics[key] += payment.valor_pagamento or ZERO
 
-        for receipt in ticket.recebimentos_prefetch:
-            key = "received_total" if receipt.status_recebimento else "receivable_total"
-            metrics[key] += receipt.valor_recebimento or ZERO
+            for receipt in ticket.recebimentos_prefetch:
+                key = "received_total" if receipt.status_recebimento else "receivable_total"
+                metrics[key] += receipt.valor_recebimento or ZERO
 
-        if ticket.total_orcamentos > ZERO:
-            for index, (_, limit) in enumerate(HISTOGRAM_RANGES):
-                if limit is None or ticket.total_orcamentos <= limit:
-                    histogram[index]["value"] += 1
-                    break
+            if ticket.total_orcamentos > ZERO:
+                for index, (_, limit) in enumerate(HISTOGRAM_RANGES):
+                    if limit is None or ticket.total_orcamentos <= limit:
+                        histogram[index]["value"] += 1
+                        break
 
         responsavel = _responsavel_operacional(ticket)
         ticket.operador_responsavel = responsavel
@@ -175,22 +199,22 @@ def build_dashboard_context(tickets, company, can_view_all, now=None, *, is_plat
             for key, label in Ticket.STATUS_CHOICES
         ],
         "monthly": [
-            {**values, "budget": float(values["budget"])}
+            {**values, **({"budget": float(values["budget"])} if can_view_financial else {})}
             for values in monthly.values()
         ],
-        "histogram": histogram,
+        **({"histogram": histogram} if can_view_financial else {}),
         **{key: _ranking(counts[key], labels[key]) for key in counts},
     }
 
     return {
         "tickets": tickets,
         "tickets_total": metrics["tickets_total"],
-        "orcamentos": month_budgets,
-        "total_mes": metrics["budget_month"],
+        **({"orcamentos": month_budgets, "total_mes": metrics["budget_month"]} if can_view_financial else {}),
         "dashboard_metrics": metrics,
         "dashboard_charts": charts,
         "dashboard_company": company,
         "dashboard_scope": "Visão geral" if is_platform_admin else "Visão da empresa",
         "dashboard_updated_at": now,
         "dashboard_can_view_all": can_view_all,
+        "dashboard_can_view_financial": can_view_financial,
     }

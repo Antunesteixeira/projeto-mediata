@@ -68,6 +68,27 @@ outro status, a edição fica bloqueada. Não pode excluir tickets nem acessar
 orçamentos, pagamentos, recebimentos ou cadastros administrativos. No perfil,
 pode consultar seus dados e alterar a própria senha.
 
+## Níveis de acesso
+
+| Perfil | Acesso |
+| --- | --- |
+| Administrador da plataforma | Gestão e valores de todas as empresas. |
+| Gerente | Gestão, orçamento, financeiro e relatórios da própria empresa ativa. |
+| Operador | Tickets da própria empresa, fila disponível, cadastro/edição operacional, status, histórico e associação de cliente/colaborador. |
+| Cliente/colaborador | Acompanhamento dos tickets da própria empresa, sem valores internos. |
+| Assinante | Cadastro e acompanhamento dos próprios tickets, conforme as regras de Levantamento. |
+
+O operador tem dashboard operacional e acesso ao próprio perfil. Orçamentos,
+preços de insumos, BDI, pagamentos, recebimentos, documentos financeiros, PDFs
+completos, exclusão de tickets e cadastros administrativos ficam reservados à
+gestão. As mesmas restrições valem para URLs diretas, requisições POST, arquivos
+e dados dos gráficos. Campos financeiros enviados na edição operacional não
+são aplicados. Anexos de orçamento seguem a autorização financeira.
+
+A migração `usuarios.0005` remove permissões administrativas antigas do grupo
+operador e suas cópias diretas nos operadores, preservando gerentes,
+administradores, grupos e vínculos entre usuários e empresas.
+
 ## Empresas e fila de atendimento
 
 Em **Configurações → Empresas**, o administrador cadastra as empresas. Em
@@ -98,7 +119,8 @@ empresas, enquanto o código do ticket permanece único no sistema.
 
 Notas fiscais, comprovantes e anexos usam download autenticado em
 `/media/nfe/`, `/media/comprovantes/`, `/media/anexos/` e `/media/recebimentos/`.
-O Nginx encaminha esses diretórios ao Django para verificar a empresa; o
+O Nginx encaminha esses diretórios ao Django para verificar a empresa e o acesso
+financeiro do gerente ou administrador; o
 servidor local aplica a mesma autorização. A imagem inclui a configuração do
 Nginx para o fluxo de deploy instalá-la e validá-la junto com a aplicação.
 
@@ -117,9 +139,8 @@ informado manualmente. Na edição, deixar o campo em branco mantém o número a
 ## Financeiro
 
 O menu **Financeiro** (`/financeiro/`) reúne pagamentos e recebimentos dos
-tickets e lançamentos manuais em uma lista própria, com uma linha por lançamento. Gerentes e operadores consultam
-somente a empresa ativa da conta; o administrador da plataforma consulta todas.
-Perfis de acompanhamento e assinantes não acessam os valores internos.
+tickets e lançamentos manuais em uma lista própria, com uma linha por lançamento. Gerentes consultam somente a empresa ativa da conta; o administrador da plataforma consulta todas.
+Operadores, perfis de acompanhamento e assinantes não acessam os valores internos.
 
 Filtros disponíveis:
 

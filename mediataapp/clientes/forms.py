@@ -1,7 +1,7 @@
 from django import forms
 from .models import Cliente
 from core.models import Empresa
-from core.tenancy import empresa_do_usuario
+from core.tenancy import empresa_do_usuario, pode_gerenciar_empresa
 from django.db import IntegrityError, transaction
 
 
@@ -40,6 +40,8 @@ class EmpresaCadastroForm(forms.ModelForm):
         cleaned_data = super().clean()
         if self.actor is None:
             return cleaned_data
+        if not pode_gerenciar_empresa(self.actor):
+            raise forms.ValidationError('A gestão de cadastros é restrita aos gerentes da empresa.')
         if self.actor.is_superuser:
             empresa = cleaned_data.get('empresa')
         else:

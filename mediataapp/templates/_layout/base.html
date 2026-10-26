@@ -61,7 +61,7 @@
                         </a>
                     </li>
                     {% endif %}
-                    {% if is_assinante or not pode_operar_tickets %}
+                    {% if not pode_gerenciar_empresa %}
                     <li class="nav-item">
                         <a href="{% if user.is_authenticated %}{% url 'perfil-usuario' user.id %}{% else %}{% url 'login' %}{% endif %}" class="nav-link" data-nav-prefix="/usuarios/">
                             <i class="bi bi-person" aria-hidden="true"></i>
