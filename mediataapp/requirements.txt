@@ -21,3 +21,4 @@ weasyprint==66.0
 webencodings==0.5.1
 zopfli==0.2.3.post1
 gunicorn==23.0.0
+requests==2.34.2

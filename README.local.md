@@ -1,6 +1,6 @@
 # Desenvolvimento local
 
-Pré-requisitos: Git, Docker e Docker Compose v2 com suporte a `up --wait`.
+Pré-requisitos: Git, Docker e Docker Compose 2.24 ou superior, com suporte a `up --wait`.
 No Windows, use Docker Desktop com integração WSL e execute os comandos no WSL.
 No Linux, seu usuário precisa ter acesso ao Docker. Não execute o launcher com sudo.
 
@@ -54,6 +54,18 @@ Os uploads antigos em `data/web/media` continuam na máquina, mas não são
 copiados automaticamente para o novo volume.
 `./local.sh down` mantém os dados; `./local.sh down -v` apaga os volumes locais.
 O banco novo começa vazio e o dashboard pode solicitar o cadastro da empresa.
+
+## WhatsApp por empresa
+
+Para instalar a integração opcional com Evolution API, execute `./whatsapp.sh setup`.
+Acesse http://localhost:8000/whatsapp/ como gerente ou administrador para conectar
+o número de cada empresa pelo QR Code. A configuração e as credenciais ficam em
+`dotenv_files/.env.whatsapp`, fora do Git. Consulte [docs/whatsapp.md](docs/whatsapp.md)
+para operação, produção e escopo desta etapa.
+
+Dentro de um ticket, **Enviar pelo WhatsApp** permite revisar e confirmar uma
+mensagem para o único colaborador responsável vinculado. O operador utiliza esse
+botão somente nos tickets que cadastrou; a conexão usada é a da empresa do ticket.
 
 ## Grupo assinante
 

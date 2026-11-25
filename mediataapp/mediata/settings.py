@@ -37,6 +37,7 @@ INSTALLED_APPS = [
     'colaborador',
     'relatorios',
     'financeiro',
+    'whatsapp',
     # apps de terceiros
     'rolepermissions',
     'widget_tweaks',
@@ -50,7 +51,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'django_auto_logout.middleware.auto_logout',
+    'whatsapp.middleware.auto_logout',
     'usuarios.middleware.AssinanteAccessMiddleware',
     'usuarios.middleware.EmpresaAccessMiddleware',
 ]
@@ -118,6 +119,13 @@ else:
     
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# A integração é opcional: indisponibilidade do provedor não impede o sistema.
+EVOLUTION_ENABLED = os.getenv('EVOLUTION_ENABLED', '').strip().lower() in {'1', 'true', 'yes'}
+EVOLUTION_API_URL = os.getenv('EVOLUTION_API_URL', '').rstrip('/')
+EVOLUTION_API_KEY = os.getenv('EVOLUTION_API_KEY', '')
+EVOLUTION_WEBHOOK_BASE_URL = os.getenv('EVOLUTION_WEBHOOK_BASE_URL', '').rstrip('/')
+EVOLUTION_API_TIMEOUT = os.getenv('EVOLUTION_API_TIMEOUT', '10')
 
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = 'login'

@@ -32,6 +32,7 @@ urlpatterns = [
     path('colaborador/', include('colaborador.urls')),
     path('relatorios/', include('relatorios.urls')),
     path('financeiro/', include('financeiro.urls')),
+    path('whatsapp/', include('whatsapp.urls')),
 ]
 
 if settings.DEBUG:
@@ -39,4 +40,4 @@ if settings.DEBUG:
         settings.MEDIA_URL,
         document_root=settings.MEDIA_ROOT
     )
-    
+

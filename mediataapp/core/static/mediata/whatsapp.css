@@ -1,0 +1,88 @@
+.whatsapp-page { color: var(--app-ink); }
+.wa-eyebrow { color: #557089; font-size: 10px; font-weight: 750; letter-spacing: 1.6px; margin-bottom: 9px; }
+.whatsapp-page .app-page-title { display: flex; align-items: center; gap: 10px; }
+.wa-title-icon { display: inline-grid; place-items: center; width: 35px; height: 35px; font-size: 24px; color: #188d70; background: #e7f6ef; border-radius: 10px; }
+.wa-company-chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px; max-width: 340px; color: #526681; background: #fff; border: 1px solid var(--app-border); border-radius: 7px; font-size: 11px; line-height: 1.5; overflow-wrap: anywhere; }
+.wa-company-chip > i { color: #8a9bb2; }
+.wa-company-selector { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 12px; margin-bottom: 22px; }
+.wa-company-selector > div { width: min(100%, 340px); }
+.wa-company-selector .form-label { display: block; margin-bottom: 7px; }
+.wa-company-selector > p { align-self: flex-end; color: #7b8da5; font-size: 11px; line-height: 1.7; margin: 0 0 9px; }
+.wa-connection-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 22px; margin-bottom: 22px; }
+.wa-card-heading { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-bottom: 25px; }
+.wa-section-eyebrow { font-size: 9px; font-weight: 700; letter-spacing: 1.3px; color: #8493a7; margin-bottom: 7px; }
+.whatsapp-page .wa-card-heading h2 { color: var(--app-ink); font-size: 17px; font-weight: 700; letter-spacing: -.3px; margin: 0; }
+.wa-card-icon { color: #188d70; background: #eaf8f2; width: 39px; height: 39px; border-radius: 11px; display: grid; place-items: center; font-size: 23px; flex-shrink: 0; }
+.whatsapp-page .wa-connection-card .card-body, .whatsapp-page .wa-qr-card .card-body { padding: 25px; }
+.wa-status-block { margin: 28px 0 25px; }
+.wa-status { display: inline-flex; align-items: center; gap: 7px; border-radius: 5px; padding: 5px 8px; font-size: 10px; line-height: 1.5; font-weight: 650; color: #697c98; background: #eff3f8; }
+.wa-status-dot { height: 6px; width: 6px; background: currentColor; border-radius: 50%; flex-shrink: 0; }
+.wa-status-conectado { color: #258467; background: #e9f7ef; }
+.wa-status-aguardando_qr, .wa-status-conectando { color: #a47624; background: #fff5e2; }
+.wa-status-erro { color: #b24a4a; background: #fff0ed; }
+.wa-status-block h3 { color: var(--app-ink); font-size: 22px; font-weight: 750; line-height: 1.4; letter-spacing: -.5px; margin: 17px 0 9px; }
+.wa-status-block > p { max-width: 430px; color: #73869f; font-size: 12px; line-height: 1.9; margin: 0; }
+.wa-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; margin: 24px 0; }
+.wa-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.whatsapp-page .wa-connect-button { --bs-btn-bg: #17866c; --bs-btn-border-color: #17866c; --bs-btn-hover-bg: #126c57; --bs-btn-hover-border-color: #126c57; --bs-btn-active-bg: #126c57; --bs-btn-active-border-color: #126c57; --bs-btn-disabled-bg: #17866c; --bs-btn-disabled-border-color: #17866c; box-shadow: 0 4px 10px #17866c16; }
+.wa-connection-details { margin-top: 28px; border-top: 1px solid var(--app-border); padding-top: 4px; }
+.wa-connection-details > div { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 13px 0; border-bottom: 1px solid #f0f3f7; }
+.wa-connection-details > div:last-child { border-bottom: 0; }
+.wa-connection-details span { font-size: 11px; color: #7b8da5; flex-shrink: 0; }
+.wa-connection-details strong { color: #526681; font-size: 11px; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
+.wa-disconnect-row { border-top: 1px solid var(--app-border); margin-top: 14px; padding-top: 18px; }
+.wa-disconnect-row > p { color: #8595ab; font-size: 10px; line-height: 1.7; margin: 0 0 7px; }
+.wa-disconnect-button { display: inline-flex; align-items: center; gap: 7px; padding: 4px 0; border: 0; background: transparent; color: #b95a5a; font-size: 11px; font-weight: 600; }
+.wa-disconnect-button:hover { color: #a13434; }
+.wa-step-tag { color: #8799b0; background: #f5f7fb; border-radius: 5px; padding: 5px 8px; font-size: 10px; white-space: nowrap; }
+.wa-qr-stage { min-height: 300px; display: flex; align-items: center; justify-content: center; padding: 16px; border: 1px dashed #dce6e8; border-radius: 11px; background: #fbfdfd; }
+.wa-qr-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; max-width: 260px; text-align: center; padding: 22px 8px; }
+.wa-qr-placeholder > span { display: grid; place-items: center; height: 73px; width: 73px; color: #83ad9f; background: #edf6f1; border-radius: 18px; margin-bottom: 18px; font-size: 35px; }
+.wa-qr-placeholder > strong { font-size: 14px; font-weight: 650; color: #55766b; line-height: 1.6; }
+.wa-qr-placeholder > p { color: #8b9fa3; font-size: 11px; line-height: 1.8; margin: 8px 0 0; }
+.wa-qr-stage.is-connected { border-style: solid; border-color: #d2eade; background: #f8fdf9; }
+.wa-qr-stage.is-connected .wa-qr-placeholder > span { color: #268e6b; background: #e7f5ec; }
+.wa-qr-image { width: min(100%, 280px); height: auto; aspect-ratio: 1; object-fit: contain; padding: 5px; background: #fff; border-radius: 6px; }
+.wa-qr-caption { text-align: center; font-size: 10px; color: #748a8a; line-height: 1.8; margin: 13px 0 0; }
+.wa-privacy-note { display: flex; align-items: flex-start; gap: 7px; font-size: 10px; color: #809395; line-height: 1.8; margin: 17px 0 0; }
+.wa-privacy-note > i { margin-top: 1px; color: #6b9a8a; }
+.wa-service-note { display: flex; align-items: flex-start; gap: 10px; color: #8a713c; background: #fffcf4; border: 1px solid #eee4cd; border-radius: 9px; padding: 14px 17px; margin-bottom: 20px; }
+.wa-service-note > i { margin-top: 1px; }
+.wa-service-note strong { font-size: 12px; font-weight: 650; }
+.wa-service-note p { color: #8a7b5b; font-size: 11px; line-height: 1.8; margin: 4px 0 0; }
+.wa-feedback { color: #a44c4c; background: #fff4f1; border: 1px solid #f0dcd7; border-radius: 7px; padding: 11px 12px; font-size: 11px; line-height: 1.8; margin: 15px 0; }
+.wa-help-card { margin-top: 2px; }
+.wa-help-heading h2 { font-size: 15px; font-weight: 700; margin: 0 0 7px; }
+.wa-help-heading p { font-size: 11px; color: #8192aa; line-height: 1.8; margin: 0; }
+.wa-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 25px; list-style: none; padding: 0; margin: 24px 0 0; }
+.wa-steps > li { display: flex; align-items: flex-start; gap: 11px; }
+.wa-steps > li > span { flex-shrink: 0; display: grid; place-items: center; height: 25px; width: 25px; background: #eff5f2; color: #4f8c75; border-radius: 7px; font-size: 11px; font-weight: 700; }
+.wa-steps h3 { color: #526681; font-size: 12px; font-weight: 650; margin: 3px 0 7px; }
+.wa-steps p { color: #8192aa; font-size: 11px; line-height: 1.8; margin: 0; }
+.wa-steps strong { font-weight: 600; color: #617b8c; }
+.wa-attribution { display: flex; align-items: center; gap: 6px; margin-top: 19px; color: #8899af; font-size: 10px; line-height: 1.7; }
+.wa-attribution a { color: #6882a2; text-decoration: none; }
+.wa-attribution a:hover { text-decoration: underline; color: var(--app-primary); }
+.wa-attribution a > i { font-size: 8px; margin-left: 2px; }
+.wa-section-heading { margin-bottom: 20px; }
+.wa-section-heading h2 { font-size: 17px; font-weight: 700; margin: 0 0 8px; }
+.wa-section-heading p { font-size: 12px; color: #7b8da5; line-height: 1.8; margin: 0; }
+.wa-company-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 18px; }
+.wa-company-card { display: flex; flex-direction: row; gap: 17px; padding: 23px; text-decoration: none; transition: border-color .2s, box-shadow .2s; }
+.whatsapp-page .wa-company-card:hover { border-color: #bfd8cc !important; box-shadow: 0 5px 16px #245bdf0b !important; }
+.wa-company-icon { display: grid; place-items: center; height: 43px; width: 43px; flex-shrink: 0; font-size: 21px; color: #4b9276; background: #eef7f1; border-radius: 11px; }
+.wa-company-card > div { min-width: 0; }
+.wa-company-card h3 { font-size: 15px; font-weight: 700; line-height: 1.5; color: #3f5878; overflow-wrap: anywhere; margin: 1px 0 6px; }
+.wa-company-card p { color: #8b9bb0; font-size: 11px; line-height: 1.7; overflow-wrap: anywhere; margin: 0 0 16px; }
+.wa-company-card div > span { display: inline-flex; align-items: center; gap: 8px; color: #41856d; font-size: 11px; font-weight: 650; }
+.wa-empty { grid-column: 1 / -1; display: flex; align-items: center; flex-direction: column; text-align: center; padding: 42px 20px; }
+.wa-empty > i { font-size: 30px; color: #9cb6aa; margin-bottom: 17px; }
+.wa-empty h3 { font-size: 16px; font-weight: 650; color: #5c718f; margin: 0 0 10px; }
+.wa-empty p { max-width: 360px; font-size: 12px; color: #8596ad; line-height: 1.8; margin: 0 0 19px; }
+.whatsapp-page [hidden] { display: none !important; }
+.wa-loading-icon { display: inline-block; animation: wa-spin 1s linear infinite; }
+@keyframes wa-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .wa-loading-icon { animation: none; } .wa-company-card { transition: none; } }
+@media (max-width: 1100px) { .wa-connection-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 17px; } .whatsapp-page .wa-connection-card .card-body, .whatsapp-page .wa-qr-card .card-body { padding: 20px; } .wa-actions .btn { flex: 1; } }
+@media (max-width: 767px) { .wa-connection-grid { grid-template-columns: minmax(0, 1fr); } .wa-steps { grid-template-columns: minmax(0, 1fr); gap: 20px; } .wa-qr-stage { min-height: 280px; } .wa-company-selector > div { flex: 1; min-width: min(100%, 200px); } .wa-company-selector > p { flex-basis: 100%; margin-bottom: 0; } }
+@media (max-width: 575px) { .wa-company-chip { max-width: 100%; } .wa-title-icon { height: 31px; width: 31px; font-size: 22px; border-radius: 9px; } .wa-company-selector { align-items: stretch; } .wa-company-selector > div, .wa-company-selector > .btn { width: 100%; flex-basis: 100%; } .wa-status-block h3 { font-size: 20px; } .wa-status-block { margin-top: 23px; } .wa-actions { flex-direction: column; align-items: stretch; } .wa-actions .btn { width: 100%; } .wa-connection-details > div { align-items: flex-start; } .wa-connection-details strong { max-width: 60%; } .wa-company-card { padding: 21px 17px; gap: 13px; } }

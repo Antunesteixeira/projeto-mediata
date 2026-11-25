@@ -5,6 +5,8 @@ services:
     command: ["sh", "/scripts/development.sh"]
     env_file:
       - ./dotenv_files/.env.dev
+      - path: ./dotenv_files/.env.whatsapp
+        required: false
     volumes:
       - ./mediataapp:/mediataapp
       - ./data/web/static:/data/web/static

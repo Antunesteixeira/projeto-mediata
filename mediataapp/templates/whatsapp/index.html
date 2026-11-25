@@ -1,0 +1,91 @@
+{% extends '_layout/base.html' %}
+{% load static theme_assets %}
+
+{% block title %}WhatsApp | Mediata{% endblock %}
+{% block body_class %}has-whatsapp-settings{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% theme_asset 'whatsapp.css' %}">{% endblock %}
+
+{% block conteudo %}
+<div class="app-page whatsapp-page">
+    <header class="app-page-header">
+        <div>
+            <div class="wa-eyebrow">INTEGRAÇÕES</div>
+            <h1 class="app-page-title"><span class="wa-title-icon"><i class="bi bi-whatsapp" aria-hidden="true"></i></span> WhatsApp</h1>
+            <p class="app-page-description">Vincule o número de WhatsApp da empresa e acompanhe a conexão.</p>
+        </div>
+        {% if empresa_selecionada %}<span class="wa-company-chip"><i class="bi bi-building" aria-hidden="true"></i>{{ empresa_selecionada.nome_fantasia }}</span>{% endif %}
+    </header>
+
+    {% if user.is_superuser and empresa_selecionada %}
+    <form action="{% url 'whatsapp:index' %}" method="get" class="wa-company-selector">
+        <div><label class="form-label" for="wa-empresa">Empresa</label><select name="empresa_id" id="wa-empresa" class="form-select">{% for empresa in empresas %}<option value="{{ empresa.pk }}"{% if empresa.pk == empresa_selecionada.pk %} selected{% endif %}>{{ empresa.nome_fantasia }}</option>{% endfor %}</select></div>
+        <button type="submit" class="btn btn-outline-primary">Alterar empresa</button>
+        <p>Cada empresa tem sua própria conexão e seu próprio número.</p>
+    </form>
+    {% endif %}
+
+    {% if empresa_selecionada %}
+    <div id="whatsapp-config" data-empresa-id="{{ empresa_selecionada.pk }}" data-estado="{{ estado_inicial|default:'desconectado' }}" data-disponivel="{{ evolution_disponivel|yesno:'true,false' }}" data-url-conectar="{{ url_conectar }}" data-url-status="{{ url_status }}" data-url-desconectar="{{ url_desconectar }}">
+        <form class="d-none" id="wa-csrf-form">{% csrf_token %}</form>
+        {% if not evolution_disponivel %}
+        <div class="wa-service-note" role="status"><i class="bi bi-info-circle" aria-hidden="true"></i><div><strong>Integração indisponível no momento</strong><p>Solicite ao administrador do sistema a ativação do serviço para conectar o WhatsApp desta empresa.</p></div></div>
+        {% endif %}
+        <div class="wa-connection-grid">
+            <section class="card wa-connection-card" aria-labelledby="wa-connection-title">
+                <div class="card-body">
+                    <div class="wa-card-heading"><div><div class="wa-section-eyebrow">NÚMERO DA EMPRESA</div><h2 id="wa-connection-title">Sua conexão</h2></div><span class="wa-card-icon"><i class="bi bi-whatsapp" aria-hidden="true"></i></span></div>
+                    <div class="wa-status-block">
+                        <span id="wa-status" class="wa-status wa-status-verificando"><span class="wa-status-dot" aria-hidden="true"></span><span id="wa-status-label">{% if evolution_disponivel %}Verificando conexão{% else %}Serviço indisponível{% endif %}</span></span>
+                        <h3 id="wa-state-title">{% if evolution_disponivel %}Consulte a conexão da sua empresa{% else %}A conexão ainda não está disponível{% endif %}</h3>
+                        <p id="wa-state-description">{% if evolution_disponivel %}Conecte o WhatsApp usado por {{ empresa_selecionada.nome_fantasia }} para vincular o número a esta empresa.{% else %}Depois da ativação do serviço, você poderá gerar o QR Code nesta página.{% endif %}</p>
+                    </div>
+                    <div id="wa-feedback" class="wa-feedback" role="status" aria-live="polite" hidden></div>
+                    <div class="wa-actions">
+                        <button type="button" class="btn btn-primary wa-connect-button" id="wa-connect"{% if not evolution_disponivel %} disabled{% endif %}><i class="bi bi-qr-code" aria-hidden="true"></i><span>Conectar WhatsApp</span></button>
+                        <button type="button" class="btn btn-outline-secondary" id="wa-refresh"{% if not evolution_disponivel %} disabled{% endif %}><i class="bi bi-arrow-clockwise" aria-hidden="true"></i><span>Atualizar status</span></button>
+                    </div>
+                    <div class="wa-connection-details">
+                        <div><span>Empresa vinculada</span><strong>{{ empresa_selecionada.nome_fantasia }}</strong></div>
+                        <div><span>Última verificação</span><strong id="wa-last-check">Ainda não verificada</strong></div>
+                    </div>
+                    <div class="wa-disconnect-row" id="wa-disconnect-row" hidden><p>Precisa trocar o número ou encerrar esta conexão?</p><button type="button" class="wa-disconnect-button" id="wa-disconnect-open" data-bs-toggle="modal" data-bs-target="#waDisconnectModal"><i class="bi bi-box-arrow-right" aria-hidden="true"></i>Desconectar WhatsApp</button></div>
+                </div>
+            </section>
+
+            <section class="card wa-qr-card" aria-labelledby="wa-qr-title">
+                <div class="card-body">
+                    <div class="wa-card-heading"><div><div class="wa-section-eyebrow">VINCULAR DISPOSITIVO</div><h2 id="wa-qr-title">Conecte pelo QR Code</h2></div><span class="wa-step-tag">Pelo celular</span></div>
+                    <div class="wa-qr-stage" id="wa-qr-stage">
+                        <div class="wa-qr-placeholder" id="wa-qr-placeholder"><span id="wa-qr-placeholder-icon"><i class="bi bi-qr-code-scan" aria-hidden="true"></i></span><strong id="wa-qr-placeholder-title">Pronto para conectar</strong><p id="wa-qr-placeholder-text">Clique em “Conectar WhatsApp” para gerar o QR Code desta empresa.</p></div>
+                        <img id="wa-qr-image" class="wa-qr-image" alt="QR Code para conectar o WhatsApp de {{ empresa_selecionada.nome_fantasia }}" width="280" height="280" hidden>
+                    </div>
+                    <p class="wa-qr-caption" id="wa-qr-caption" hidden>Leia o código com o WhatsApp que será usado por esta empresa. Se ele expirar, clique em “Gerar novo QR Code”.</p>
+                    <p class="wa-privacy-note"><i class="bi bi-shield-check" aria-hidden="true"></i>O QR Code pertence à empresa selecionada. A conexão das demais empresas permanece independente.</p>
+                </div>
+            </section>
+        </div>
+
+        <section class="card wa-help-card" aria-labelledby="wa-help-title"><div class="card-body">
+            <div class="wa-help-heading"><h2 id="wa-help-title">Como conectar</h2><p>Tenha em mãos o celular com o número que sua empresa deseja utilizar.</p></div>
+            <ol class="wa-steps"><li><span aria-hidden="true">1</span><div><h3>Gere o QR Code</h3><p>Confirme a empresa no topo da página e clique em “Conectar WhatsApp”.</p></div></li><li><span aria-hidden="true">2</span><div><h3>Abra o WhatsApp no celular</h3><p>Acesse <strong>Dispositivos conectados</strong> e escolha <strong>Conectar dispositivo</strong>.</p></div></li><li><span aria-hidden="true">3</span><div><h3>Leia o código</h3><p>Aponte a câmera para o QR Code e aguarde a confirmação de conexão nesta página.</p></div></li></ol>
+        </div></section>
+        <noscript><div class="alert alert-info mt-3">Ative o JavaScript do navegador para conectar o WhatsApp e consultar o status.</div></noscript>
+
+        <div class="modal fade" id="waDisconnectModal" tabindex="-1" aria-labelledby="wa-disconnect-title" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+            <div class="modal-header"><h2 class="modal-title fs-5" id="wa-disconnect-title">Desconectar WhatsApp?</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button></div>
+            <div class="modal-body"><p>O WhatsApp será desconectado de <strong>{{ empresa_selecionada.nome_fantasia }}</strong>.</p><p class="mb-0 text-muted">Para conectar um número novamente, gere um novo QR Code e faça a leitura pelo celular.</p><div id="wa-disconnect-error" class="wa-feedback mt-3" role="alert" hidden></div></div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="wa-disconnect-cancel">Cancelar</button><button type="button" class="btn btn-danger" id="wa-disconnect-confirm"><i class="bi bi-box-arrow-right me-1" aria-hidden="true"></i>Desconectar</button></div>
+        </div></div></div>
+    </div>
+    {% else %}
+    <section class="wa-companies" aria-labelledby="wa-companies-title">
+        <div class="wa-section-heading"><h2 id="wa-companies-title">Escolha a empresa</h2><p>Configure um número de WhatsApp para cada empresa cadastrada.</p></div>
+        <div class="wa-company-grid">{% for empresa in empresas %}<a class="card wa-company-card" href="{% url 'whatsapp:configurar' empresa_id=empresa.pk %}"><span class="wa-company-icon"><i class="bi bi-building" aria-hidden="true"></i></span><div><h3>{{ empresa.nome_fantasia }}</h3><p>{{ empresa.razao_social }}</p><span>Configurar conexão <i class="bi bi-arrow-right" aria-hidden="true"></i></span></div></a>{% empty %}<div class="card wa-empty"><i class="bi bi-building" aria-hidden="true"></i><h3>Nenhuma empresa disponível</h3><p>Cadastre uma empresa ativa para configurar sua conexão com o WhatsApp.</p>{% if user.is_superuser %}<a class="btn btn-primary" href="{% url 'empresa_cadastrar' %}">Cadastrar empresa</a>{% endif %}</div>{% endfor %}</div>
+    </section>
+    {% endif %}
+
+    <footer class="wa-attribution"><i class="bi bi-plug" aria-hidden="true"></i><span>Integração com <a href="https://github.com/evolution-foundation/evolution-api" target="_blank" rel="noopener noreferrer">Evolution API <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a></span></footer>
+</div>
+{% endblock %}
+
+{% block extra_js %}<script src="{% theme_asset 'whatsapp.js' %}" defer></script>{% endblock %}

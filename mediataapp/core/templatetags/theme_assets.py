@@ -9,14 +9,17 @@ from django.templatetags.static import static
 
 register = template.Library()
 THEME_ROOT = Path(__file__).resolve().parent.parent / 'static' / 'mediata'
-THEME_FILES = {'css/app.css', 'js/app.js'}
+THEME_FILES = {
+    'css/app.css', 'js/app.js', 'whatsapp.css', 'whatsapp.js',
+    'ticket-whatsapp.css', 'ticket-whatsapp.js',
+}
 
 
 def _read_digest(name):
     return sha256((THEME_ROOT / name).read_bytes()).hexdigest()[:12]
 
 
-_cached_digest = lru_cache(maxsize=2)(_read_digest)
+_cached_digest = lru_cache(maxsize=6)(_read_digest)
 
 
 @register.simple_tag

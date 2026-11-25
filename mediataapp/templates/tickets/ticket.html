@@ -1,5 +1,7 @@
 {% extends '_layout/base.html' %}
-{% load static %}
+{% load static theme_assets %}
+
+{% block extra_css %}{% if pode_operar_tickets %}<link rel="stylesheet" href="{% theme_asset 'ticket-whatsapp.css' %}">{% endif %}{% endblock %}
 
 {% block conteudo %}
 <style>
@@ -166,6 +168,9 @@
         </div>
       </div>
       <div class="app-page-actions">
+        {% if pode_operar_tickets %}
+        <button type="button" class="btn btn-sm ticket-wa-trigger" data-bs-toggle="modal" data-bs-target="#ticketWhatsAppModal" aria-haspopup="dialog" aria-controls="ticketWhatsAppModal"><i class="bi bi-whatsapp me-1" aria-hidden="true"></i>Enviar pelo WhatsApp</button>
+        {% endif %}
         {% if pode_acessar_financeiro %}
         <a href="{% url 'gerar_pdf_ticket' ticket.key %}" class="btn btn-sm btn-outline-primary">
           <i class="bi bi-file-earmark-pdf me-1"></i>PDF completo
@@ -1225,4 +1230,36 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>document.addEventListener('DOMContentLoaded', function () { bootstrap.Modal.getOrCreateInstance(document.getElementById('ModalPagamento')).show(); });</script>
 {% endif %}
 {% endif %}
+{% if pode_operar_tickets %}
+<div class="modal fade ticket-wa-modal" id="ticketWhatsAppModal" tabindex="-1" aria-labelledby="ticket-wa-title" aria-describedby="ticket-wa-intro" aria-hidden="true" data-ticket-codigo="{{ ticket.ticket }}" data-url-previa="{% url 'ticket-whatsapp-previa' ticket.key %}" data-url-enviar="{% url 'ticket-whatsapp-enviar' ticket.key %}">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="ticket-wa-modal-heading"><span class="ticket-wa-heading-icon"><i class="bi bi-whatsapp" aria-hidden="true"></i></span><div><span class="ticket-wa-eyebrow">TICKET #{{ ticket.ticket }}</span><h2 class="modal-title" id="ticket-wa-title">Enviar pelo WhatsApp</h2></div></div>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar" data-ticket-wa-close></button>
+      </div>
+      <div class="modal-body">
+        <p class="ticket-wa-intro" id="ticket-wa-intro">Confira o responsável e a mensagem antes de confirmar. O envio usa o WhatsApp da empresa responsável pelo ticket.</p>
+        <div class="ticket-wa-loading" id="ticket-wa-loading" role="status" hidden><span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Preparando a prévia…</span></div>
+        <div class="ticket-wa-result" id="ticket-wa-result" role="status" aria-live="polite" hidden><strong id="ticket-wa-result-title"></strong><p id="ticket-wa-result-message"></p></div>
+        <div id="ticket-wa-preview" hidden>
+          <div class="ticket-wa-recipient"><span class="ticket-wa-recipient-icon"><i class="bi bi-person-check" aria-hidden="true"></i></span><div><span>Destinatário</span><strong id="ticket-wa-recipient-name"></strong><small id="ticket-wa-recipient-phone"></small></div></div>
+          <div class="ticket-wa-message-heading"><h3>Prévia da mensagem</h3><span><i class="bi bi-chat-text" aria-hidden="true"></i>WhatsApp</span></div>
+          <pre class="ticket-wa-message" id="ticket-wa-message"></pre>
+          <div class="ticket-wa-last" id="ticket-wa-last" hidden><div><span>Último envio</span><strong id="ticket-wa-last-state"></strong></div><p id="ticket-wa-last-detail"></p><p id="ticket-wa-last-message"></p></div>
+        </div>
+        <div class="ticket-wa-review" id="ticket-wa-review" hidden><div class="form-check"><input type="checkbox" class="form-check-input" id="ticket-wa-reviewed"><label class="form-check-label" for="ticket-wa-reviewed">Conferi a conversa no WhatsApp e desejo preparar outra tentativa.</label></div></div>
+        <form id="ticket-wa-form" method="post" action="{% url 'ticket-whatsapp-enviar' ticket.key %}">{% csrf_token %}<input type="hidden" name="confirmacao" id="ticket-wa-confirmation"></form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-primary ticket-wa-refresh" id="ticket-wa-refresh" hidden><i class="bi bi-arrow-clockwise me-1" aria-hidden="true"></i><span>Revisar prévia</span></button>
+        <div class="ticket-wa-footer-actions"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" id="ticket-wa-cancel" data-ticket-wa-close>Cancelar</button><button type="submit" form="ticket-wa-form" class="btn ticket-wa-confirm" id="ticket-wa-confirm" disabled><i class="bi bi-whatsapp" aria-hidden="true"></i><span>Confirmar envio</span></button></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
+
+
+{% block extra_js %}{% if pode_operar_tickets %}<script src="{% theme_asset 'ticket-whatsapp.js' %}" defer></script>{% endif %}{% endblock %}

@@ -1,6 +1,9 @@
 """Configuração compartilhada para desenvolvimento com Docker."""
 from .settings import *  # noqa: F403
 
+# Nome do serviço usado pelo webhook na rede privada do Docker local.
+ALLOWED_HOSTS = list(dict.fromkeys([*ALLOWED_HOSTS, 'mediataapp']))  # noqa: F405
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = '/data/web/media'
 CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://127.0.0.1:8000']

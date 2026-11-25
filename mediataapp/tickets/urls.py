@@ -1,8 +1,11 @@
 from django.urls import path
 
 from . import views
+from whatsapp import ticket_views as whatsapp_ticket_views
 
 urlpatterns = [
+    path('ticket/<uuid:key>/whatsapp/previa/', whatsapp_ticket_views.previa, name='ticket-whatsapp-previa'),
+    path('ticket/<uuid:key>/whatsapp/enviar/', whatsapp_ticket_views.enviar, name='ticket-whatsapp-enviar'),
     path('disponiveis/', views.tickets_disponiveis, name='tickets-disponiveis'),
     path('disponiveis/<uuid:key>/', views.ticket_disponivel, name='ticket-disponivel'),
     path('assumir/<uuid:key>/', views.assumir_ticket, name='assumir-ticket'),

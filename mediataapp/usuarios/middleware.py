@@ -48,6 +48,7 @@ class EmpresaAccessMiddleware(MiddlewareMixin):
         'cadastro-ticket', 'editar-ticket', 'update-historico',
         'add-colaborador-ticket', 'cadastrar-colaborador-ticket',
         'add-cliente-ticket', 'cadastrar-cliente-ticket',
+        'ticket-whatsapp-previa', 'ticket-whatsapp-enviar',
     }
 
     def process_view(self, request, view_func, view_args, view_kwargs):
